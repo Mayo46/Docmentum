@@ -2,6 +2,7 @@ import axios from "axios";
 import type {
   DocumentLibraryGraphClient,
   DocumentLibraryItemRow,
+  SharePointColumnOption,
   DocumentLibraryVersion,
   UploadFailure,
 } from "./types";
@@ -94,28 +95,56 @@ export function createGraphClient(
 ): DocumentLibraryGraphClient {
   const graphBaseUrl = opts.graphBaseUrl ?? "https://graph.microsoft.com/v1.0";
   let resolvedDriveId: string | null = opts.driveId ?? null;
+  let resolvedSiteId: string | null = null;
+  let resolvedListId: string | null = null;
 
-  async function ensureDriveId(accessToken: string): Promise<string> {
-    if (resolvedDriveId) return resolvedDriveId;
-
+  async function ensureSiteAndList(accessToken: string): Promise<{
+    siteId: string;
+    listId: string;
+  }> {
     if (!opts.siteUrl || !opts.listName) {
       throw new Error("Missing driveId or siteUrl/listName for Graph client.");
     }
+    if (resolvedSiteId && resolvedListId) {
+      return { siteId: resolvedSiteId, listId: resolvedListId };
+    }
 
-    const { hostname, sitePath } = parseSiteUrl(opts.siteUrl); // Step 1: Get Site
+    const { hostname, sitePath } = parseSiteUrl(opts.siteUrl);
     const site = await graphRequest<{ id: string }>({
       url: `${graphBaseUrl}/sites/${encodeURIComponent(hostname)}:${sitePath}?$select=id`,
       method: "GET",
       accessToken,
-    }); // Step 2: Get drives
+    });
 
+    const lists = await graphRequest<{
+      value: Array<{ id: string; name: string; displayName?: string }>;
+    }>({
+      url: `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}/lists?$select=id,name,displayName`,
+      method: "GET",
+      accessToken,
+    });
+    const list = lists.value.find(
+      (l) => l.name === opts.listName || l.displayName === opts.listName,
+    );
+    if (!list) {
+      throw new Error(`List '${opts.listName}' not found in site.`);
+    }
+
+    resolvedSiteId = site.id;
+    resolvedListId = list.id;
+    return { siteId: site.id, listId: list.id };
+  }
+
+  async function ensureDriveId(accessToken: string): Promise<string> {
+    if (resolvedDriveId) return resolvedDriveId;
+    const { siteId } = await ensureSiteAndList(accessToken);
     const drives = await graphRequest<{
       value: Array<{ id: string; name: string }>;
     }>({
-      url: `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}/drives?$select=id,name`,
+      url: `${graphBaseUrl}/sites/${encodeURIComponent(siteId)}/drives?$select=id,name`,
       method: "GET",
       accessToken,
-    }); // Step 3: Find matching drive
+    });
     const drive = drives.value.find((d) => d.name === opts.listName);
     if (!drive) {
       throw new Error(
@@ -151,8 +180,45 @@ export function createGraphClient(
       }
     },
 
-    async listChildren({ parentDriveItemId }) {
+    async listAvailableColumns() {
+      const accessToken = await opts.getAccessToken();
+      const { siteId, listId } = await ensureSiteAndList(accessToken);
+      const res = await graphRequest<{ value: any[] }>({
+        url:
+          `${graphBaseUrl}/sites/${encodeURIComponent(siteId)}` +
+          `/lists/${encodeURIComponent(listId)}/columns` +
+          `?$select=name,displayName,readOnly,hidden,columnGroup`,
+        method: "GET",
+        accessToken,
+      });
+
+      const baseOptions: SharePointColumnOption[] = [
+        { key: "CreatedBy", headerName: "Created By", kind: "user" },
+        { key: "ModifiedBy", headerName: "Modified By", kind: "user" },
+      ];
+
+      const listOptions: SharePointColumnOption[] = (res.value ?? [])
+        .filter((c) => !c.hidden)
+        .map((c) => ({
+          key: c.name,
+          headerName: c.displayName || c.name,
+          kind: "text",
+        }));
+
+      const dedup = new Map<string, SharePointColumnOption>();
+      for (const o of [...baseOptions, ...listOptions]) dedup.set(o.key, o);
+      return Array.from(dedup.values());
+    },
+
+    async listChildren({ parentDriveItemId, selectedColumnKeys }) {
       const { accessToken, driveId } = await getContext();
+      const selectedKeys = new Set((selectedColumnKeys ?? []).map((k) => k.toLowerCase()));
+      const fieldsToFetch = Array.from(selectedKeys).filter(
+        (k) =>
+          !["createdby", "created by", "modifiedby", "modified by", "itemid", "item id"].includes(
+            k,
+          ),
+      );
       let nextUrl =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
         `${parentDriveItemId ? `/items/${encodeURIComponent(parentDriveItemId)}` : "/root"}/children` +
@@ -178,7 +244,21 @@ export function createGraphClient(
         const items = (json?.value ?? []) as any[];
 
         for (const item of items) {
-          const fields: Record<string, unknown> = item?.listItem?.fields ?? {};
+          let fields: Record<string, unknown> = {};
+          if (fieldsToFetch.length > 0) {
+            try {
+              const fieldsUrl =
+                `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
+                `/items/${encodeURIComponent(item.id)}/listItem/fields` +
+                `?$select=${fieldsToFetch.map((f) => encodeURIComponent(f)).join(",")}`;
+              const fieldsRes = await axios.get(fieldsUrl, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              });
+              fields = (fieldsRes.data ?? {}) as Record<string, unknown>;
+            } catch {
+              fields = {};
+            }
+          }
 
           rows.push({
             itemId: item.id,
@@ -189,8 +269,6 @@ export function createGraphClient(
             modifiedByDisplayName: getFieldDisplayName(item.lastModifiedBy),
           });
         }
-        console.log("rowa", rows);
-
         nextUrl = json?.["@odata.nextLink"];
       }
 
@@ -230,7 +308,7 @@ export function createGraphClient(
     async uploadFiles({
       parentDriveItemId,
       files,
-      contentType,
+      contentType: _contentType,
       properties,
       conflictBehavior,
     }) {
