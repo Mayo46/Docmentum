@@ -12,10 +12,9 @@ import {
 import DocumentLibraryGrid from "./documentLibrary/DocumentLibraryGrid";
 import type {
     DocumentLibraryGraphClient,
-    DocumentLibraryItemRow,
+    DocumentLibraryUploadColumn,
 } from "./documentLibrary/types";
 import { createGraphClient } from "./documentLibrary/graphClient";
-import type { DocumentLibraryUploadColumn } from "./documentLibrary/types";
 
 export default function App() {
     const [accessToken, setAccessToken] = useState("");
@@ -29,8 +28,6 @@ export default function App() {
     const [docSetItemName, setDocSetItemName] = useState(
         import.meta.env.VITE_APP_DOC_SET_ITEM_NAME ?? "",
     );
-
-    const [mockRows, setMockRows] = useState<DocumentLibraryItemRow[]>(() => []);
 
     const columns = useMemo(
         () => [
@@ -78,69 +75,7 @@ export default function App() {
         }
     }, [graphClient, docSetItemName, docSetItemId]);
 
-    const mockClient = useMemo<DocumentLibraryGraphClient>(() => {
-        return {
-            async getDriveItemIdByName({ name }) {
-                return `mock-id-for-${name}`;
-            },
-            async listChildren() {
-                return mockRows;
-            },
-            async deleteItem({ itemId }) {
-                setMockRows((prev) => prev.filter((r) => r.itemId !== itemId));
-            },
-            async listVersions({ itemId }) {
-                return [
-                    {
-                        id: `${itemId}-v1`,
-                        createdDateTime: new Date(
-                            Date.now() - 1000 * 60 * 60 * 24 * 7,
-                        ).toISOString(),
-                        comment: "Initial version",
-                    },
-                    {
-                        id: `${itemId}-v2`,
-                        createdDateTime: new Date(
-                            Date.now() - 1000 * 60 * 60 * 24 * 2,
-                        ).toISOString(),
-                        comment: "Latest version",
-                    },
-                ];
-            },
-            async restoreVersion() {
-                // no-op in mock
-            },
-            async uploadFiles({ files, properties }) {
-                const uploadedItemIds: string[] = [];
-                const failures: any[] = [];
-
-                const next: DocumentLibraryItemRow[] = files.map((f, idx) => ({
-                    itemId: `mock-${Date.now()}-${idx}`,
-                    name: f.name,
-                    webUrl: undefined,
-                    createdByDisplayName: "",
-                    modifiedByDisplayName: "",
-                    fields: {
-                        Title:
-                            (properties.Title as string | undefined) ??
-                            f.name.replace(/\.[^.]+$/, ""),
-                        ContentType: "Document",
-                        DocumentClientUrl: `https://client.app/doc/mock-${Date.now()}-${idx}`,
-                    },
-                    contentTypeName: "Document",
-                }));
-
-                setMockRows((prev) => [...next, ...prev]);
-                for (const n of next) uploadedItemIds.push(n.itemId);
-
-                return { uploadedItemIds, failures };
-            },
-        };
-    }, [mockRows]);
-
-    const clientToUse = graphClient ?? mockClient;
-    const parentDriveItemId = graphClient ? (docSetItemId ?? "") : "mock-parent";
-
+    const parentDriveItemId = docSetItemId ?? "";
     const isResolving = !!(graphClient && docSetItemName && !docSetItemId);
 
     return (
@@ -157,7 +92,7 @@ export default function App() {
                     </Typography>
                 </Box>
                 <Divider />
-                <Typography variant="h6">Graph (optional)</Typography>
+                <Typography variant="h6">SharePoint connection</Typography>
                 <Stack
                     direction={{ xs: "column", sm: "row" }}
                     spacing={2}
@@ -167,7 +102,7 @@ export default function App() {
                         label="Graph access token"
                         value={accessToken}
                         onChange={(e) => setAccessToken(e.target.value)}
-                        placeholder="Paste token to use real Microsoft Graph"
+                        placeholder="Paste a Microsoft Graph access token"
                         multiline
                         minRows={3}
                         fullWidth
@@ -191,24 +126,24 @@ export default function App() {
                             value={docSetItemName}
                             onChange={(e) => {
                                 setDocSetItemName(e.target.value);
-                                setDocSetItemId(undefined); // Clear ID so effect can re-resolve
+                                setDocSetItemId(undefined);
                             }}
                         />
 
-                        <Button variant="outlined" onClick={() => { }}>
-                            Use Graph
+                        <Button variant="outlined" onClick={() => {}}>
+                            Connect
                         </Button>
                     </Stack>
                 </Stack>
 
                 {!graphClient ? (
-                    <Alert severity="info">
-                        Showing mock data. Provide `accessToken` + (`siteUrl` and
-                        `listName`) to switch to real Graph.
+                    <Alert severity="warning">
+                        Enter an access token, site URL, and library (list) name to load
+                        documents from SharePoint via Microsoft Graph.
                     </Alert>
                 ) : null}
 
-                {isResolving ? (
+                {graphClient && isResolving ? (
                     <Box
                         sx={{
                             display: "flex",
@@ -221,16 +156,22 @@ export default function App() {
                             Resolving Doc Set ID from name...
                         </Typography>
                     </Box>
-                ) : (
+                ) : null}
+
+                {graphClient && !isResolving ? (
                     <DocumentLibraryGrid
-                        client={clientToUse}
+                        client={graphClient}
                         parentDriveItemId={parentDriveItemId}
+                        libraryRootLabel={listName || "Library"}
+                        initialSegmentName={
+                            docSetItemId ? docSetItemName || undefined : undefined
+                        }
                         documentClientUrlFieldKey="DocumentClientUrl"
                         columns={columns}
                         uploadColumns={uploadColumns}
                         uploadPrefillProperties={uploadPrefillProperties}
                     />
-                )}
+                ) : null}
             </Stack>
         </Container>
     );

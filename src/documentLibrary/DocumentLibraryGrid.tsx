@@ -15,12 +15,14 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 import {
   Alert,
   Box,
+  Breadcrumbs,
   Button,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Link,
   Snackbar,
   Stack,
   Tooltip,
@@ -37,15 +39,39 @@ import type {
 import VersionHistoryDialog from "./VersionHistoryDialog";
 import UploadDialog from "./UploadDialog";
 
+type BreadcrumbSegment = { name: string; id: string | undefined };
+
 type Props = {
   client: DocumentLibraryGraphClient;
-  parentDriveItemId: string; 
+  /** Drive folder id to open initially (e.g. document set). Empty string = library root. */
+  parentDriveItemId: string;
+  /** Label for the drive root crumb (e.g. library name). */
+  libraryRootLabel?: string;
+  /** Display name for the initial `parentDriveItemId` segment when it is set. */
+  initialSegmentName?: string;
   documentClientUrlFieldKey: string;
   columns: DocumentLibraryColumn[];
   uploadColumns: DocumentLibraryUploadColumn[];
   uploadPrefillProperties?: Record<string, unknown>;
   titleColumnKey?: string;
 };
+
+function buildInitialSegments(
+  libraryRootLabel: string,
+  parentDriveItemId: string,
+  initialSegmentName?: string,
+): BreadcrumbSegment[] {
+  const root: BreadcrumbSegment = { name: libraryRootLabel, id: undefined };
+  const trimmed = parentDriveItemId.trim();
+  if (!trimmed) return [root];
+  return [
+    root,
+    {
+      name: initialSegmentName?.trim() || "Folder",
+      id: trimmed,
+    },
+  ];
+}
 
 function formatDate(value: unknown) {
   if (!value) return "";
@@ -101,6 +127,8 @@ export default function DocumentLibraryGrid(props: Props) {
   const {
     client,
     parentDriveItemId,
+    libraryRootLabel = "Library",
+    initialSegmentName,
     documentClientUrlFieldKey,
     columns,
     uploadColumns,
@@ -131,6 +159,33 @@ export default function DocumentLibraryGrid(props: Props) {
     message: string;
   } | null>(null);
 
+  const [segments, setSegments] = useState<BreadcrumbSegment[]>(() =>
+    buildInitialSegments(libraryRootLabel, parentDriveItemId, initialSegmentName),
+  );
+
+  useEffect(() => {
+    setSegments(
+      buildInitialSegments(libraryRootLabel, parentDriveItemId, initialSegmentName),
+    );
+  }, [libraryRootLabel, parentDriveItemId, initialSegmentName]);
+
+  const currentParentDriveItemId =
+    segments[segments.length - 1]?.id ?? undefined;
+
+  const navigateInto = useCallback((row: DocumentLibraryItemRow) => {
+    if (!row.isContainer) return;
+    setSegments((prev) => [...prev, { name: row.name, id: row.itemId }]);
+  }, []);
+
+  const onBreadcrumbClick = useCallback((index: number) => {
+    setSegments((prev) => prev.slice(0, index + 1));
+  }, []);
+
+  const openVersionHistory = useCallback((row: DocumentLibraryItemRow) => {
+    setVersionsTarget(row);
+    setVersionsOpen(true);
+  }, []);
+
   const documentUrlFromRow = useCallback(
     (row: DocumentLibraryItemRow) => {
       const fromField = row.fields?.[documentClientUrlFieldKey];
@@ -145,14 +200,16 @@ export default function DocumentLibraryGrid(props: Props) {
     setLoading(true);
     setError(null);
     try {
-      const next = await client.listChildren({ parentDriveItemId });
+      const next = await client.listChildren({
+        parentDriveItemId: currentParentDriveItemId,
+      });
       setRows(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load documents");
     } finally {
       setLoading(false);
     }
-  }, [client, parentDriveItemId]);
+  }, [client, currentParentDriveItemId]);
 
   useEffect(() => {
     refresh();
@@ -171,12 +228,61 @@ export default function DocumentLibraryGrid(props: Props) {
         ? (params: ICellRendererParams<DocumentLibraryItemRow>) => {
             const row = params.data;
             if (!row) return undefined;
+            const label = String(params.value ?? "");
+            if (row.isContainer) {
+              return (
+                <Button
+                  type="button"
+                  variant="text"
+                  size="small"
+                  onClick={() => navigateInto(row)}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 600,
+                    p: 0,
+                    minWidth: 0,
+                    justifyContent: "flex-start",
+                  }}
+                >
+                  {label}
+                </Button>
+              );
+            }
             const url = documentUrlFromRow(row);
-            if (!url) return undefined;
             return (
-              <a href={url} target="_blank" rel="noreferrer">
-                {String(params.value ?? "")}
-              </a>
+              <Stack
+                direction="row"
+                spacing={0.75}
+                useFlexGap
+                flexWrap="wrap"
+                alignItems="center"
+                sx={{ minWidth: 0 }}
+              >
+                {url ? (
+                  <a href={url} target="_blank" rel="noreferrer">
+                    {label}
+                  </a>
+                ) : (
+                  <Typography component="span" variant="body2">
+                    {label}
+                  </Typography>
+                )}
+                <Link
+                  component="button"
+                  type="button"
+                  variant="body2"
+                  underline="hover"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openVersionHistory(row);
+                  }}
+                  aria-label={`Version history for ${label}`}
+                  sx={{ cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+                >
+                  Version history
+                </Link>
+              </Stack>
             );
           }
         : undefined,
@@ -209,16 +315,15 @@ export default function DocumentLibraryGrid(props: Props) {
             spacing={1}
             sx={{ alignItems: "center", flexWrap: "wrap" }}
           >
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => {
-                setVersionsTarget(row);
-                setVersionsOpen(true);
-              }}
-            >
-              Versions
-            </Button>
+            {!row.isContainer ? (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => openVersionHistory(row)}
+              >
+                Versions
+              </Button>
+            ) : null}
 
             <Button
               size="small"
@@ -237,7 +342,7 @@ export default function DocumentLibraryGrid(props: Props) {
     });
 
     return defs;
-  }, [columns, documentUrlFromRow]);
+  }, [columns, documentUrlFromRow, navigateInto, openVersionHistory]);
 
   const onDropFiles = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -298,10 +403,43 @@ export default function DocumentLibraryGrid(props: Props) {
             alignItems: "center",
           }}
         >
-          <Box>
+          <Box sx={{ minWidth: 0, flex: 1, pr: 2 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
               Documents
             </Typography>
+
+            <Breadcrumbs sx={{ mt: 0.5, mb: 0.5 }} aria-label="Folder path">
+              {segments.map((seg, index) => {
+                const isLast = index === segments.length - 1;
+                const key = `${seg.id ?? "root"}-${index}`;
+                if (isLast) {
+                  return (
+                    <Typography
+                      key={key}
+                      color="text.primary"
+                      variant="body2"
+                      sx={{ fontWeight: 600 }}
+                    >
+                      {seg.name}
+                    </Typography>
+                  );
+                }
+                return (
+                  <Link
+                    key={key}
+                    component="button"
+                    type="button"
+                    variant="body2"
+                    underline="hover"
+                    color="inherit"
+                    onClick={() => onBreadcrumbClick(index)}
+                    sx={{ cursor: "pointer" }}
+                  >
+                    {seg.name}
+                  </Link>
+                );
+              })}
+            </Breadcrumbs>
 
             <Typography variant="body2" color="text.secondary">
               Drag & drop files here, or use the Upload button.
@@ -383,7 +521,7 @@ export default function DocumentLibraryGrid(props: Props) {
         onClose={() => setUploadOpen(false)}
         onUpload={async ({ files, contentType, properties }) => {
           const result = await client.uploadFiles({
-            parentDriveItemId,
+            parentDriveItemId: currentParentDriveItemId,
             files,
             contentType,
             properties,

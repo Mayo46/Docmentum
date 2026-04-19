@@ -156,7 +156,7 @@ export function createGraphClient(
       let nextUrl =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
         `${parentDriveItemId ? `/items/${encodeURIComponent(parentDriveItemId)}` : "/root"}/children` +
-        `?$select=id,name,webUrl,createdBy,lastModifiedBy,createdDateTime,lastModifiedDateTime`;
+        `?$select=id,name,webUrl,folder,file,package,createdBy,lastModifiedBy,createdDateTime,lastModifiedDateTime`;
       const rows: DocumentLibraryItemRow[] = [];
       while (nextUrl) {
         let json: any;
@@ -206,12 +206,18 @@ export function createGraphClient(
             if (typeof n === "string") contentTypeName = n;
           }
 
+          let isContainer = !!(item.folder || item.package);
+          if (contentTypeName && /document\s*set/i.test(contentTypeName)) {
+            isContainer = true;
+          }
+
           rows.push({
             itemId: item.id,
             name: item.name,
             webUrl: item.webUrl,
             fields,
             contentTypeName,
+            isContainer,
             createdByDisplayName: getFieldDisplayName(item.createdBy),
             modifiedByDisplayName: getFieldDisplayName(item.lastModifiedBy),
           });
@@ -231,10 +237,11 @@ export function createGraphClient(
 
     async listVersions({ itemId }) {
       const { accessToken, driveId } = await getContext();
+      // driveItemVersion supports id, lastModifiedDateTime, size, lastModifiedBy, publication, content — not createdDateTime/comment.
       const url =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
         `/items/${encodeURIComponent(itemId)}/versions` +
-        `?$select=id,createdDateTime,lastModifiedDateTime,size,comment`;
+        `?$select=id,lastModifiedDateTime,lastModifiedBy,size`;
 
       const json = await graphRequest<{ value: DocumentLibraryVersion[] }>({
         url,
@@ -249,7 +256,7 @@ export function createGraphClient(
       const { accessToken, driveId } = await getContext();
       const url =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
-        `/items/${encodeURIComponent(itemId)}/versions/${encodeURIComponent(versionId)}/restore`;
+        `/items/${encodeURIComponent(itemId)}/versions/${encodeURIComponent(versionId)}/restoreVersion`;
       await graphRequestNoJson({ url, method: "POST", accessToken });
     },
 
