@@ -178,18 +178,44 @@ export function createGraphClient(
         const items = (json?.value ?? []) as any[];
 
         for (const item of items) {
-          const fields: Record<string, unknown> = item?.listItem?.fields ?? {};
+          let fields: Record<string, unknown> =
+            (item?.listItem?.fields as Record<string, unknown>) ?? {};
+          try {
+            const fieldsUrl =
+              `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
+              `/items/${encodeURIComponent(item.id)}/listItem/fields`;
+            const fieldsRes = await axios.get(fieldsUrl, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (fieldsRes.data && typeof fieldsRes.data === "object") {
+              fields = fieldsRes.data as Record<string, unknown>;
+            }
+          } catch {
+            // keep inline fields if any
+          }
+
+          const ctRaw = fields.ContentType;
+          let contentTypeName: string | undefined;
+          if (typeof ctRaw === "string" && ctRaw.trim()) {
+            const s = ctRaw.trim();
+            contentTypeName =
+              /^0x[0-9A-F]+$/i.test(s) && s.length > 8 ? undefined : s;
+          } else if (ctRaw && typeof ctRaw === "object") {
+            const o = ctRaw as Record<string, unknown>;
+            const n = o.name ?? o.label ?? o.displayName;
+            if (typeof n === "string") contentTypeName = n;
+          }
 
           rows.push({
             itemId: item.id,
             name: item.name,
             webUrl: item.webUrl,
             fields,
+            contentTypeName,
             createdByDisplayName: getFieldDisplayName(item.createdBy),
             modifiedByDisplayName: getFieldDisplayName(item.lastModifiedBy),
           });
         }
-        console.log("rowa", rows);
 
         nextUrl = json?.["@odata.nextLink"];
       }
@@ -230,7 +256,7 @@ export function createGraphClient(
     async uploadFiles({
       parentDriveItemId,
       files,
-      contentType,
+      contentType: _contentType,
       properties,
       conflictBehavior,
     }) {

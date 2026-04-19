@@ -29,6 +29,8 @@ export type DocumentLibraryItemRow = {
     createdByDisplayName?: string
     modifiedByDisplayName?: string
     documentClientUrl?: string
+    /** Display name of the SharePoint Content Type (e.g. "Document", "Report"). */
+    contentTypeName?: string
 }
 
 export type DocumentLibraryVersion = {

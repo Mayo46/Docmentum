@@ -41,6 +41,11 @@ export default function App() {
                 kind: "text" as const,
                 useDocumentClientUrl: true,
             },
+            {
+                key: "ContentType",
+                headerName: "Content Type",
+                kind: "text" as const,
+            },
             { key: "CreatedBy", headerName: "Created By", kind: "user" as const },
             { key: "ModifiedBy", headerName: "Last Modified", kind: "user" as const },
         ],
@@ -113,14 +118,16 @@ export default function App() {
                     itemId: `mock-${Date.now()}-${idx}`,
                     name: f.name,
                     webUrl: undefined,
-                    createdByDisplayName: "Mock User",
-                    modifiedByDisplayName: "Mock User",
+                    createdByDisplayName: "",
+                    modifiedByDisplayName: "",
                     fields: {
                         Title:
                             (properties.Title as string | undefined) ??
                             f.name.replace(/\.[^.]+$/, ""),
+                        ContentType: "Document",
                         DocumentClientUrl: `https://client.app/doc/mock-${Date.now()}-${idx}`,
                     },
+                    contentTypeName: "Document",
                 }));
 
                 setMockRows((prev) => [...next, ...prev]);
