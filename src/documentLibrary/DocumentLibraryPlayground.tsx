@@ -9,29 +9,48 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import DocumentLibraryGrid from "./documentLibrary/DocumentLibraryGrid";
+import DocumentLibraryGrid from "./DocumentLibraryGrid";
 import type {
     DocumentLibraryGraphClient,
     DocumentLibraryUploadColumn,
-} from "./documentLibrary/types";
-import { createGraphClient } from "./documentLibrary/graphClient";
+} from "./types";
+import { createGraphClient } from "./graphClient";
 
-export default function App() {
-    const [accessToken, setAccessToken] = useState("");
-    const [siteUrl, setSiteUrl] = useState(
-        import.meta.env.VITE_APP_SITE_URL ?? "",
-    );
-    const [listName, setListName] = useState(
-        import.meta.env.VITE_APP_LIST_NAME ?? "",
-    );
+export type DocumentLibraryPlaygroundProps = {
+    graphToken: string;
+    siteUrl: string;
+    listName: string;
+    documentSetName: string;
+};
+
+export default function DocumentLibraryPlayground(
+    props: DocumentLibraryPlaygroundProps,
+) {
+    const [accessToken, setAccessToken] = useState(props.graphToken);
+    const [siteUrl, setSiteUrl] = useState(props.siteUrl);
+    const [listName, setListName] = useState(props.listName);
     const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
-    const [docSetItemName, setDocSetItemName] = useState(
-        import.meta.env.VITE_APP_DOC_SET_ITEM_NAME ?? "",
-    );
+    const [docSetItemName, setDocSetItemName] = useState(props.documentSetName);
+
+    useEffect(() => {
+        setAccessToken(props.graphToken);
+    }, [props.graphToken]);
+
+    useEffect(() => {
+        setSiteUrl(props.siteUrl);
+    }, [props.siteUrl]);
+
+    useEffect(() => {
+        setListName(props.listName);
+    }, [props.listName]);
+
+    useEffect(() => {
+        setDocSetItemId(undefined);
+        setDocSetItemName(props.documentSetName);
+    }, [props.documentSetName]);
 
     const columns = useMemo(
         () => [
-            { key: "ItemId", headerName: "Item ID", kind: "text" as const },
             {
                 key: "Title",
                 headerName: "Title",
@@ -83,58 +102,10 @@ export default function App() {
             <Stack spacing={2}>
                 <Box>
                     <Typography variant="h4" component="h1" gutterBottom>
-                        Docmentum - Document Library Grid
-                    </Typography>
-
-                    <Typography variant="body2" color="text.secondary">
-                        AG Grid + document link, version history, delete, and drag & drop
-                        upload.
+                        GDocs - Docmentum
                     </Typography>
                 </Box>
                 <Divider />
-                <Typography variant="h6">SharePoint connection</Typography>
-                <Stack
-                    direction={{ xs: "column", sm: "row" }}
-                    spacing={2}
-                    alignItems="flex-start"
-                >
-                    <TextField
-                        label="Graph access token"
-                        value={accessToken}
-                        onChange={(e) => setAccessToken(e.target.value)}
-                        placeholder="Paste a Microsoft Graph access token"
-                        multiline
-                        minRows={3}
-                        fullWidth
-                    />
-
-                    <Stack spacing={2} sx={{ minWidth: 320 }}>
-                        <TextField
-                            label="Site URL"
-                            value={siteUrl}
-                            onChange={(e) => setSiteUrl(e.target.value)}
-                        />
-
-                        <TextField
-                            label="List Name"
-                            value={listName}
-                            onChange={(e) => setListName(e.target.value)}
-                        />
-
-                        <TextField
-                            label="Doc Set Name"
-                            value={docSetItemName}
-                            onChange={(e) => {
-                                setDocSetItemName(e.target.value);
-                                setDocSetItemId(undefined);
-                            }}
-                        />
-
-                        <Button variant="outlined" onClick={() => {}}>
-                            Connect
-                        </Button>
-                    </Stack>
-                </Stack>
 
                 {!graphClient ? (
                     <Alert severity="warning">
