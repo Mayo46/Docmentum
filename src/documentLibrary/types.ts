@@ -22,6 +22,10 @@ export type DocumentLibraryItemRow = {
     name: string
     webUrl?: string
     /**
+     * True when this item is a folder or document-set-like container (navigate in-app).
+     */
+    isContainer?: boolean
+    /**
      * SharePoint list item field values.
      * Keys should match the internal column names you're passing in via `columns`.
      */
@@ -29,13 +33,18 @@ export type DocumentLibraryItemRow = {
     createdByDisplayName?: string
     modifiedByDisplayName?: string
     documentClientUrl?: string
+    /** Display name of the SharePoint Content Type (e.g. "Document", "Report"). */
+    contentTypeName?: string
 }
 
+/** Mirrors Microsoft Graph `driveItemVersion` (no createdDateTime/comment on that type). */
 export type DocumentLibraryVersion = {
     id: string
-    createdDateTime?: string
     lastModifiedDateTime?: string
+    lastModifiedBy?: unknown
     size?: number
+    /** Legacy / optional; not returned by Graph driveItemVersion $select. */
+    createdDateTime?: string
     comment?: string
 }
 
