@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import App from './App'
+import DocumentLibraryPlayground from './documentLibrary/DocumentLibraryPlayground'
 
-const meta: Meta<typeof App> = {
+const meta: Meta<typeof DocumentLibraryPlayground> = {
   title: 'App',
-  component: App,
+  component: DocumentLibraryPlayground,
 }
 
 export default meta
 
-type Story = StoryObj<typeof App>
+type Story = StoryObj<typeof DocumentLibraryPlayground>
 
 export const Default: Story = {}
 
