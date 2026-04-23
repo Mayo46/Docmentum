@@ -173,6 +173,8 @@ export default function DocumentLibraryGrid(props: Props) {
 
     const currentParentDriveItemId =
         segments[segments.length - 1]?.id ?? undefined;
+    const isRootLevel = !currentParentDriveItemId;
+    const uploadsEnabled = !isRootLevel;
 
     const navigateInto = useCallback((row: DocumentLibraryItemRow) => {
         if (!row.isContainer) return;
@@ -293,6 +295,7 @@ export default function DocumentLibraryGrid(props: Props) {
             minWidth: 210,
             sortable: false,
             resizable: false,
+            pinned: "left",
             cellRenderer: (params: ICellRendererParams<DocumentLibraryItemRow>) => {
                 const row = params.data;
                 if (!row) return undefined;
@@ -305,7 +308,6 @@ export default function DocumentLibraryGrid(props: Props) {
                         {!row.isContainer ? (
                             <Button
                                 size="small"
-                                variant="outlined"
                                 onClick={() => openVersionHistory(row)}>
                                 Versions
                             </Button>
@@ -313,7 +315,6 @@ export default function DocumentLibraryGrid(props: Props) {
 
                         <Button
                             size="small"
-                            variant="outlined"
                             color="error"
                             onClick={() => {
                                 setDeleteTarget(row);
@@ -331,11 +332,12 @@ export default function DocumentLibraryGrid(props: Props) {
     }, [columns, documentUrlFromRow, navigateInto, openVersionHistory]);
 
     const onDropFiles = useCallback((files: FileList | null) => {
+        if (!uploadsEnabled) return;
         if (!files || files.length === 0) return;
         const arr = Array.from(files).filter((f) => f.size >= 0);
         setUploadFiles(arr);
         setUploadOpen(true);
-    }, []);
+    }, [uploadsEnabled]);
 
     const handleFileInputChange = useCallback(
         (e: ChangeEvent<HTMLInputElement>) => {
@@ -346,21 +348,24 @@ export default function DocumentLibraryGrid(props: Props) {
     );
 
     const handleUploadButtonClick = useCallback(() => {
+        if (!uploadsEnabled) return;
         fileInputRef.current?.click();
-    }, []);
+    }, [uploadsEnabled]);
 
     const handleDrop = useCallback(
         (e: DragEvent) => {
+            if (!uploadsEnabled) return;
             e.preventDefault();
             setIsDragging(false);
             onDropFiles(e.dataTransfer.files);
         },
-        [onDropFiles],
+        [onDropFiles, uploadsEnabled],
     );
 
     const handleDragOver = useCallback((e: DragEvent) => {
+        if (!uploadsEnabled) return;
         e.preventDefault();
-    }, []);
+    }, [uploadsEnabled]);
 
     const toastFromFailures = useCallback((failures: UploadFailure[]) => {
         if (failures.length === 0) return "";
@@ -371,15 +376,16 @@ export default function DocumentLibraryGrid(props: Props) {
         <Box>
             <Box
                 sx={{
-                    border: isDragging ? "2px dashed" : "1px solid",
-                    borderColor: isDragging ? "primary.main" : "divider",
+                    border: uploadsEnabled && isDragging ? "2px dashed" : "1px solid",
+                    borderColor:
+                        uploadsEnabled && isDragging ? "primary.main" : "divider",
                     borderRadius: 2,
                     overflow: "hidden",
                 }}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragEnter={() => setIsDragging(true)}
-                onDragLeave={() => setIsDragging(false)}
+                onDrop={uploadsEnabled ? handleDrop : undefined}
+                onDragOver={uploadsEnabled ? handleDragOver : undefined}
+                onDragEnter={uploadsEnabled ? () => setIsDragging(true) : undefined}
+                onDragLeave={uploadsEnabled ? () => setIsDragging(false) : undefined}
             >
                 <Box
                     sx={{
@@ -428,7 +434,9 @@ export default function DocumentLibraryGrid(props: Props) {
                         </Breadcrumbs>
 
                         <Typography variant="body2" color="text.secondary">
-                            Drag & drop files here, or use the Upload button.
+                            {uploadsEnabled
+                                ? "Drag & drop files here, or use the Upload button."
+                                : "Upload is disabled at root level. Open a folder to upload files."}
                         </Typography>
                     </Box>
 
@@ -442,13 +450,16 @@ export default function DocumentLibraryGrid(props: Props) {
                         />
 
                         <Tooltip title="Pick files to upload">
-                            <Button
-                                variant="contained"
-                                startIcon={<UploadFileIcon />}
-                                onClick={handleUploadButtonClick}
-                            >
+                            <span>
+                                <Button
+                                    variant="contained"
+                                    startIcon={<UploadFileIcon />}
+                                    onClick={handleUploadButtonClick}
+                                    disabled={!uploadsEnabled}
+                                >
                                 Upload
-                            </Button>
+                                </Button>
+                            </span>
                         </Tooltip>
 
                         <Button variant="outlined" onClick={refresh} disabled={loading}>
@@ -500,7 +511,7 @@ export default function DocumentLibraryGrid(props: Props) {
             />
 
             <UploadDialog
-                open={uploadOpen}
+                open={uploadOpen && uploadsEnabled}
                 files={uploadFiles}
                 uploadColumns={uploadColumns}
                 initialProperties={uploadPrefillProperties}
