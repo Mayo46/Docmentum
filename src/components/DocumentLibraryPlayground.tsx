@@ -23,6 +23,7 @@ export type DocumentLibraryPlaygroundProps = {
     columns?: unknown;
     showActions?: boolean;
     showBreadcrumb?: boolean;
+    showUploadControls?: boolean;
 };
 
 export default function DocumentLibraryPlayground(
@@ -36,6 +37,7 @@ export default function DocumentLibraryPlayground(
         columns,
         showActions = true,
         showBreadcrumb = true,
+        showUploadControls = true,
     } = props;
     const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
     const [resolveError, setResolveError] = useState<string | null>(null);
@@ -169,6 +171,7 @@ export default function DocumentLibraryPlayground(
                         }
                         showActions={showActions}
                         showBreadcrumb={showBreadcrumb}
+                        showUploadControls={showUploadControls}
                         documentClientUrlFieldKey="DocumentClientUrl"
                         columns={gridColumns}
                         uploadColumns={uploadColumns}

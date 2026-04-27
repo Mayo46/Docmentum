@@ -27,6 +27,7 @@ type Props = {
     initialSegmentName?: string;
     showActions?: boolean;
     showBreadcrumb?: boolean;
+    showUploadControls?: boolean;
     documentClientUrlFieldKey: string;
     columns: DocumentLibraryColumn[];
     uploadColumns: DocumentLibraryUploadColumn[];
@@ -42,6 +43,7 @@ export default function DocumentLibrary(props: Props) {
         initialSegmentName,
         showActions = true,
         showBreadcrumb = true,
+        showUploadControls = true,
         documentClientUrlFieldKey,
         columns,
         uploadColumns,
@@ -259,6 +261,7 @@ export default function DocumentLibrary(props: Props) {
             <UploadPannel
                 uploadsEnabled={uploadsEnabled}
                 showBreadcrumb={showBreadcrumb}
+                showUploadControls={showUploadControls}
                 loading={loading}
                 segments={segments}
                 onBreadcrumbClick={onBreadcrumbClick}
@@ -283,7 +286,7 @@ export default function DocumentLibrary(props: Props) {
             />
 
             <UploadDialog
-                open={uploadOpen && uploadsEnabled}
+                open={uploadOpen && uploadsEnabled && showUploadControls}
                 files={uploadFiles}
                 uploadColumns={uploadColumns}
                 initialProperties={uploadPrefillProperties}

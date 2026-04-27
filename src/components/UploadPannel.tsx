@@ -15,6 +15,7 @@ import type { BreadcrumbSegment } from "./../common/helpers";
 type UploadPannelProps = {
     uploadsEnabled: boolean;
     showBreadcrumb?: boolean;
+    showUploadControls?: boolean;
     loading: boolean;
     segments: BreadcrumbSegment[];
     onBreadcrumbClick: (index: number) => void;
@@ -26,6 +27,7 @@ type UploadPannelProps = {
 export default function UploadPannel({
     uploadsEnabled,
     showBreadcrumb = true,
+    showUploadControls = true,
     loading,
     segments,
     onBreadcrumbClick,
@@ -35,6 +37,7 @@ export default function UploadPannel({
 }: UploadPannelProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const uploadControlsEnabled = uploadsEnabled && showUploadControls;
 
     const handleFileInputChange = useCallback(
         (e: ChangeEvent<HTMLInputElement>) => {
@@ -45,40 +48,40 @@ export default function UploadPannel({
     );
 
     const handleUploadButtonClick = useCallback(() => {
-        if (!uploadsEnabled) return;
+        if (!uploadControlsEnabled) return;
         fileInputRef.current?.click();
-    }, [uploadsEnabled]);
+    }, [uploadControlsEnabled]);
 
     const handleDrop = useCallback(
         (e: DragEvent) => {
-            if (!uploadsEnabled) return;
+            if (!uploadControlsEnabled) return;
             e.preventDefault();
             setIsDragging(false);
             onSelectFiles(e.dataTransfer.files);
         },
-        [onSelectFiles, uploadsEnabled],
+        [uploadControlsEnabled, onSelectFiles],
     );
 
     const handleDragOver = useCallback(
         (e: DragEvent) => {
-            if (!uploadsEnabled) return;
+            if (!uploadControlsEnabled) return;
             e.preventDefault();
         },
-        [uploadsEnabled],
+        [uploadControlsEnabled],
     );
 
     return (
         <Box
             sx={{
-                border: uploadsEnabled && isDragging ? "2px dashed" : "1px solid",
-                borderColor: uploadsEnabled && isDragging ? "primary.main" : "divider",
+                border: uploadControlsEnabled && isDragging ? "2px dashed" : "1px solid",
+                borderColor: uploadControlsEnabled && isDragging ? "primary.main" : "divider",
                 borderRadius: 2,
                 overflow: "hidden",
             }}
-            onDrop={uploadsEnabled ? handleDrop : undefined}
-            onDragOver={uploadsEnabled ? handleDragOver : undefined}
-            onDragEnter={uploadsEnabled ? () => setIsDragging(true) : undefined}
-            onDragLeave={uploadsEnabled ? () => setIsDragging(false) : undefined}
+            onDrop={uploadControlsEnabled ? handleDrop : undefined}
+            onDragOver={uploadControlsEnabled ? handleDragOver : undefined}
+            onDragEnter={uploadControlsEnabled ? () => setIsDragging(true) : undefined}
+            onDragLeave={uploadControlsEnabled ? () => setIsDragging(false) : undefined}
         >
             <Box
                 sx={{
@@ -129,33 +132,39 @@ export default function UploadPannel({
                     ) : null}
 
                     <Typography variant="body2" color="text.secondary">
-                        {uploadsEnabled
+                        {uploadControlsEnabled
                             ? "Drag & drop files here, or use the Upload button."
+                            : uploadsEnabled
+                              ? ""
                             : "Upload is disabled at root level. Open a folder to upload files."}
                     </Typography>
                 </Box>
 
                 <Stack direction="row" spacing={1}>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        style={{ display: "none" }}
-                        onChange={handleFileInputChange}
-                    />
+                    {showUploadControls ? (
+                        <>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                style={{ display: "none" }}
+                                onChange={handleFileInputChange}
+                            />
 
-                    <Tooltip title="Pick files to upload">
-                        <span>
-                            <Button
-                                variant="contained"
-                                startIcon={<UploadFileIcon />}
-                                onClick={handleUploadButtonClick}
-                                disabled={!uploadsEnabled}
-                            >
-                                Upload
-                            </Button>
-                        </span>
-                    </Tooltip>
+                            <Tooltip title="Pick files to upload">
+                                <span>
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<UploadFileIcon />}
+                                        onClick={handleUploadButtonClick}
+                                        disabled={!uploadsEnabled}
+                                    >
+                                        Upload
+                                    </Button>
+                                </span>
+                            </Tooltip>
+                        </>
+                    ) : null}
 
                     <Button variant="outlined" onClick={onRefresh} disabled={loading}>
                         Refresh
