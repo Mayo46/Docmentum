@@ -15,7 +15,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import type { DocumentLibraryUploadColumn, UploadFailure } from './types'
+import type { DocumentLibraryUploadColumn, UploadFailure } from './../types'
 
 type Props = {
   open: boolean

@@ -15,7 +15,7 @@ import {
 import type {
   DocumentLibraryGraphClient,
   DocumentLibraryVersion,
-} from "./types";
+} from "./../types";
 
 type Props = {
   open: boolean;

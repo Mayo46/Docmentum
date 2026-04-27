@@ -1,4 +1,3 @@
-export { default as DocumentLibraryGrid } from './documentLibrary/DocumentLibraryGrid';
-export { default as SharePointDocumentLibrary } from './documentLibrary/SharePointDocumentLibrary';
-export { default as DocumentLibraryPlayground } from './documentLibrary/DocumentLibraryPlayground';
+export { default as DocumentLibraryGrid } from './components/DocumentLibrary';
+export { default as DocumentLibraryPlayground } from './components/DocumentLibraryPlayground';
 export * from './documentLibrary/types';

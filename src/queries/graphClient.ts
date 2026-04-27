@@ -4,12 +4,13 @@ import type {
   DocumentLibraryItemRow,
   DocumentLibraryVersion,
   UploadFailure,
-} from "./types";
-
+} from "../types";
+import { buildDriveItemSelect, buildFieldSelect } from "../utils/columns";
 type GraphClientOptions = {
   driveId?: string;
   siteUrl?: string;
   listName?: string;
+  columns?: unknown;
   graphBaseUrl?: string; /**
    * Return a valid access token for Microsoft Graph.
    */
@@ -89,6 +90,10 @@ function parseSiteUrl(siteUrl: string) {
   return { hostname, sitePath };
 }
 
+function escapeODataString(value: string) {
+  return value.replace(/'/g, "''");
+}
+
 export function createGraphClient(
   opts: GraphClientOptions,
 ): DocumentLibraryGraphClient {
@@ -107,21 +112,35 @@ export function createGraphClient(
       url: `${graphBaseUrl}/sites/${encodeURIComponent(hostname)}:${sitePath}?$select=id`,
       method: "GET",
       accessToken,
-    }); // Step 2: Get drives
+    });
 
-    const drives = await graphRequest<{
-      value: Array<{ id: string; name: string }>;
+    // Step 2: Resolve the list by displayName (server-side filtered).
+    const escapedListName = escapeODataString(opts.listName);
+    const lists = await graphRequest<{
+      value: Array<{ id: string; displayName: string }>;
     }>({
-      url: `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}/drives?$select=id,name`,
+      url:
+        `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}/lists` +
+        `?$select=id,displayName&$filter=displayName eq '${escapedListName}'`,
       method: "GET",
       accessToken,
-    }); // Step 3: Find matching drive
-    const drive = drives.value.find((d) => d.name === opts.listName);
-    if (!drive) {
+    });
+
+    const list = lists.value[0];
+    if (!list) {
       throw new Error(
-        `Drive (Library) '${opts.listName}' not found in site drives.`,
+        `List (Library) '${opts.listName}' not found in site lists.`,
       );
     }
+
+    // Step 3: Get the drive that backs this list.
+    const drive = await graphRequest<{ id: string; name: string }>({
+      url:
+        `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}` +
+        `/lists/${encodeURIComponent(list.id)}/drive?$select=id,name`,
+      method: "GET",
+      accessToken,
+    });
 
     resolvedDriveId = drive.id;
     return drive.id;
@@ -153,10 +172,13 @@ export function createGraphClient(
 
     async listChildren({ parentDriveItemId }) {
       const { accessToken, driveId } = await getContext();
+      const selectClause = buildDriveItemSelect(opts.columns);
+      const fieldSelectClause = buildFieldSelect(opts.columns);
       let nextUrl =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
         `${parentDriveItemId ? `/items/${encodeURIComponent(parentDriveItemId)}` : "/root"}/children` +
-        `?$select=id,name,webUrl,folder,file,package,createdBy,lastModifiedBy,createdDateTime,lastModifiedDateTime`;
+        `?$select=${encodeURIComponent(selectClause)}` +
+        `&$expand=listItem($expand=fields($select=${encodeURIComponent(fieldSelectClause)}))`;
       const rows: DocumentLibraryItemRow[] = [];
       while (nextUrl) {
         let json: any;
@@ -178,21 +200,8 @@ export function createGraphClient(
         const items = (json?.value ?? []) as any[];
 
         for (const item of items) {
-          let fields: Record<string, unknown> =
+          const fields: Record<string, unknown> =
             (item?.listItem?.fields as Record<string, unknown>) ?? {};
-          try {
-            const fieldsUrl =
-              `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
-              `/items/${encodeURIComponent(item.id)}/listItem/fields`;
-            const fieldsRes = await axios.get(fieldsUrl, {
-              headers: { Authorization: `Bearer ${accessToken}` },
-            });
-            if (fieldsRes.data && typeof fieldsRes.data === "object") {
-              fields = fieldsRes.data as Record<string, unknown>;
-            }
-          } catch {
-            // keep inline fields if any
-          }
 
           const ctRaw = fields.ContentType;
           let contentTypeName: string | undefined;
