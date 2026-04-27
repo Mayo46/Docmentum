@@ -67,3 +67,5 @@ storybook-static/
 settings.json
 
 .idea
+
+package-lock.json

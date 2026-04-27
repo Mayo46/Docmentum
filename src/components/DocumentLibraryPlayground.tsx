@@ -1,0 +1,169 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+    Alert,
+    Box,
+    Container,
+    Stack,
+    Typography,
+} from "@mui/material";
+import DocumentLibraryGrid from "./DocumentLibrary";
+import type {
+    DocumentLibraryColumn,
+    DocumentLibraryGraphClient,
+    DocumentLibraryUploadColumn,
+} from "../types";
+import { createGraphClient } from "../queries/graphClient";
+import { normalizeColumnsInput, normalizeLookupKey } from "../utils/columns";
+
+export type DocumentLibraryPlaygroundProps = {
+    graphToken: string;
+    siteUrl: string;
+    listName: string;
+    documentSetName?: string;
+    columns?: unknown;
+};
+
+export default function DocumentLibraryPlayground(
+    props: DocumentLibraryPlaygroundProps,
+) {
+    const { graphToken, siteUrl, listName, documentSetName, columns } = props;
+    const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
+    const [resolveError, setResolveError] = useState<string | null>(null);
+
+    useEffect(() => {
+        setDocSetItemId(undefined);
+        setResolveError(null);
+    }, [documentSetName]);
+
+    const defaultGridColumns = useMemo<DocumentLibraryColumn[]>(
+        () => [
+            {
+                key: "Title",
+                headerName: "Title",
+                kind: "text",
+                useDocumentClientUrl: true,
+            },
+            {
+                key: "ContentType",
+                headerName: "Content Type",
+                kind: "text",
+            },
+            { key: "CreatedBy", headerName: "Created By", kind: "user" },
+            { key: "ModifiedBy", headerName: "Last Modified", kind: "user" },
+        ],
+        [],
+    );
+
+    const uploadColumns = useMemo<DocumentLibraryUploadColumn[]>(
+        () => [{ key: "Title", label: "Title", inputType: "text" }],
+        [],
+    );
+
+    const uploadPrefillProperties = useMemo(() => ({ Title: "New upload" }), []);
+    const columnsSignature = JSON.stringify(columns ?? null);
+    const normalizedColumns = useMemo(
+        () => normalizeColumnsInput(columns),
+        [columnsSignature],
+    );
+    const gridColumns = useMemo<DocumentLibraryColumn[]>(() => {
+        if (normalizedColumns.length === 0) return defaultGridColumns;
+
+        return normalizedColumns.map((key) => {
+            const lower = normalizeLookupKey(key);
+            const prettyHeader = key
+                .replace(/[_-]+/g, " ")
+                .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+                .replace(/\s+/g, " ")
+                .trim();
+
+            return {
+                key,
+                headerName: prettyHeader || key,
+                kind:
+                    lower === "createdby" || lower === "modifiedby"
+                        ? "user"
+                        : lower === "modified" || lower === "created"
+                          ? "date"
+                          : "text",
+                useDocumentClientUrl: lower === "title" || lower === "name",
+            };
+        });
+    }, [normalizedColumns, defaultGridColumns]);
+
+    const graphClient = useMemo<DocumentLibraryGraphClient | null>(() => {
+        if (!graphToken) return null;
+        if (!siteUrl || !listName) return null;
+        return createGraphClient({
+            siteUrl,
+            listName,
+            columns: normalizedColumns,
+            getAccessToken: async () => graphToken,
+        });
+    }, [graphToken, siteUrl, listName, normalizedColumns]);
+
+    useEffect(() => {
+        if (graphClient && documentSetName && !docSetItemId) {
+            setResolveError(null);
+            graphClient
+                .getDriveItemIdByName({ name: documentSetName })
+                .then((id) => setDocSetItemId(id))
+                .catch((err) => {
+                    const message =
+                        err instanceof Error
+                            ? err.message
+                            : "Failed to resolve document set.";
+                    setResolveError(message);
+                });
+        }
+    }, [graphClient, documentSetName, docSetItemId]);
+
+    const parentDriveItemId = docSetItemId ?? "";
+    const isResolving = !!(graphClient && documentSetName && !docSetItemId);
+
+    return (
+        <Container sx={{ py: 3 }}>
+            <Stack spacing={2}>
+                {!graphClient ? (
+                    <Alert severity="warning">
+                        Enter an access token, site URL, and library (list) name to load
+                        documents from SharePoint via Microsoft Graph.
+                    </Alert>
+                ) : null}
+
+                {resolveError ? (
+                    <Alert severity="error">{resolveError}</Alert>
+                ) : null}
+
+                {graphClient && isResolving ? (
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            height: 200,
+                        }}
+                    >
+                        <Typography color="text.secondary">
+                            Loading Data..
+                        </Typography>
+                    </Box>
+                ) : null}
+
+                {graphClient && !isResolving ? (
+                    <DocumentLibraryGrid
+                        client={graphClient}
+                        parentDriveItemId={parentDriveItemId}
+                        libraryRootLabel={listName || "Library"}
+                        initialSegmentName={
+                            docSetItemId ? documentSetName || undefined : undefined
+                        }
+                        documentClientUrlFieldKey="DocumentClientUrl"
+                        columns={gridColumns}
+                        uploadColumns={uploadColumns}
+                        uploadPrefillProperties={uploadPrefillProperties}
+                    />
+                ) : null}
+            </Stack>
+        </Container>
+    );
+}
