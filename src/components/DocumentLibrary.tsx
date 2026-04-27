@@ -26,6 +26,7 @@ type Props = {
     libraryRootLabel?: string;
     initialSegmentName?: string;
     showActions?: boolean;
+    showBreadcrumb?: boolean;
     documentClientUrlFieldKey: string;
     columns: DocumentLibraryColumn[];
     uploadColumns: DocumentLibraryUploadColumn[];
@@ -40,6 +41,7 @@ export default function DocumentLibrary(props: Props) {
         libraryRootLabel = "Library",
         initialSegmentName,
         showActions = true,
+        showBreadcrumb = true,
         documentClientUrlFieldKey,
         columns,
         uploadColumns,
@@ -256,6 +258,7 @@ export default function DocumentLibrary(props: Props) {
         <Box>
             <UploadPannel
                 uploadsEnabled={uploadsEnabled}
+                showBreadcrumb={showBreadcrumb}
                 loading={loading}
                 segments={segments}
                 onBreadcrumbClick={onBreadcrumbClick}

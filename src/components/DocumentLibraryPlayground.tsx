@@ -22,12 +22,21 @@ export type DocumentLibraryPlaygroundProps = {
     documentSetName?: string;
     columns?: unknown;
     showActions?: boolean;
+    showBreadcrumb?: boolean;
 };
 
 export default function DocumentLibraryPlayground(
     props: DocumentLibraryPlaygroundProps,
 ) {
-    const { graphToken, siteUrl, listName, documentSetName, columns, showActions = true } = props;
+    const {
+        graphToken,
+        siteUrl,
+        listName,
+        documentSetName,
+        columns,
+        showActions = true,
+        showBreadcrumb = true,
+    } = props;
     const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
     const [resolveError, setResolveError] = useState<string | null>(null);
 
@@ -159,6 +168,7 @@ export default function DocumentLibraryPlayground(
                             docSetItemId ? documentSetName || undefined : undefined
                         }
                         showActions={showActions}
+                        showBreadcrumb={showBreadcrumb}
                         documentClientUrlFieldKey="DocumentClientUrl"
                         columns={gridColumns}
                         uploadColumns={uploadColumns}

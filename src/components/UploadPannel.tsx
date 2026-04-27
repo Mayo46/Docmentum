@@ -14,6 +14,7 @@ import type { BreadcrumbSegment } from "./../common/helpers";
 
 type UploadPannelProps = {
     uploadsEnabled: boolean;
+    showBreadcrumb?: boolean;
     loading: boolean;
     segments: BreadcrumbSegment[];
     onBreadcrumbClick: (index: number) => void;
@@ -24,6 +25,7 @@ type UploadPannelProps = {
 
 export default function UploadPannel({
     uploadsEnabled,
+    showBreadcrumb = true,
     loading,
     segments,
     onBreadcrumbClick,
@@ -91,38 +93,40 @@ export default function UploadPannel({
                         Documents
                     </Typography>
 
-                    <Breadcrumbs sx={{ mt: 0.5, mb: 0.5 }} aria-label="Folder path">
-                        {segments.map((seg, index) => {
-                            const isLast = index === segments.length - 1;
-                            const key = `${seg.id ?? "root"}-${index}`;
-                            if (isLast) {
+                    {showBreadcrumb ? (
+                        <Breadcrumbs sx={{ mt: 0.5, mb: 0.5 }} aria-label="Folder path">
+                            {segments.map((seg, index) => {
+                                const isLast = index === segments.length - 1;
+                                const key = `${seg.id ?? "root"}-${index}`;
+                                if (isLast) {
+                                    return (
+                                        <Typography
+                                            key={key}
+                                            color="text.primary"
+                                            variant="body2"
+                                            sx={{ fontWeight: 600 }}
+                                        >
+                                            {seg.name}
+                                        </Typography>
+                                    );
+                                }
                                 return (
-                                    <Typography
+                                    <Link
                                         key={key}
-                                        color="text.primary"
+                                        component="button"
+                                        type="button"
                                         variant="body2"
-                                        sx={{ fontWeight: 600 }}
+                                        underline="hover"
+                                        color="inherit"
+                                        onClick={() => onBreadcrumbClick(index)}
+                                        sx={{ cursor: "pointer" }}
                                     >
                                         {seg.name}
-                                    </Typography>
+                                    </Link>
                                 );
-                            }
-                            return (
-                                <Link
-                                    key={key}
-                                    component="button"
-                                    type="button"
-                                    variant="body2"
-                                    underline="hover"
-                                    color="inherit"
-                                    onClick={() => onBreadcrumbClick(index)}
-                                    sx={{ cursor: "pointer" }}
-                                >
-                                    {seg.name}
-                                </Link>
-                            );
-                        })}
-                    </Breadcrumbs>
+                            })}
+                        </Breadcrumbs>
+                    ) : null}
 
                     <Typography variant="body2" color="text.secondary">
                         {uploadsEnabled
