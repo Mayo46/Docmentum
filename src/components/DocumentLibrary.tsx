@@ -25,6 +25,7 @@ type Props = {
     parentDriveItemId: string;
     libraryRootLabel?: string;
     initialSegmentName?: string;
+    showActions?: boolean;
     documentClientUrlFieldKey: string;
     columns: DocumentLibraryColumn[];
     uploadColumns: DocumentLibraryUploadColumn[];
@@ -38,6 +39,7 @@ export default function DocumentLibrary(props: Props) {
         parentDriveItemId,
         libraryRootLabel = "Library",
         initialSegmentName,
+        showActions = true,
         documentClientUrlFieldKey,
         columns,
         uploadColumns,
@@ -195,42 +197,44 @@ export default function DocumentLibrary(props: Props) {
             },
         }));
 
-        defs.push({
-            headerName: "Actions",
-            flex: 0.9,
-            minWidth: 180,
-            sortable: false,
-            resizable: false,
-            pinned: "left",
-            lockPinned: true,
-            cellRenderer: (params: ICellRendererParams<DocumentLibraryItemRow>) => {
-                const row = params.data;
-                if (!row) return undefined;
-                return (
-                    <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-                        {!row.isContainer ? (
-                            <Button size="small" onClick={() => openVersionHistory(row)}>
-                                Versions
-                            </Button>
-                        ) : null}
+        if (showActions) {
+            defs.push({
+                headerName: "Actions",
+                flex: 0.9,
+                minWidth: 180,
+                sortable: false,
+                resizable: false,
+                pinned: "left",
+                lockPinned: true,
+                cellRenderer: (params: ICellRendererParams<DocumentLibraryItemRow>) => {
+                    const row = params.data;
+                    if (!row) return undefined;
+                    return (
+                        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                            {!row.isContainer ? (
+                                <Button size="small" onClick={() => openVersionHistory(row)}>
+                                    Versions
+                                </Button>
+                            ) : null}
 
-                        <Button
-                            size="small"
-                            color="error"
-                            onClick={() => {
-                                setDeleteTarget(row);
-                                setDeleteOpen(true);
-                            }}
-                        >
-                            Delete
-                        </Button>
-                    </Stack>
-                );
-            },
-        });
+                            <Button
+                                size="small"
+                                color="error"
+                                onClick={() => {
+                                    setDeleteTarget(row);
+                                    setDeleteOpen(true);
+                                }}
+                            >
+                                Delete
+                            </Button>
+                        </Stack>
+                    );
+                },
+            });
+        }
 
         return defs;
-    }, [columns, documentUrlFromRow, navigateInto, openVersionHistory]);
+    }, [columns, documentUrlFromRow, navigateInto, openVersionHistory, showActions]);
 
     const handleDeleteConfirm = useCallback(async () => {
         if (!deleteTarget) return;

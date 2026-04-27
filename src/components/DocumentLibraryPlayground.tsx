@@ -21,12 +21,13 @@ export type DocumentLibraryPlaygroundProps = {
     listName: string;
     documentSetName?: string;
     columns?: unknown;
+    showActions?: boolean;
 };
 
 export default function DocumentLibraryPlayground(
     props: DocumentLibraryPlaygroundProps,
 ) {
-    const { graphToken, siteUrl, listName, documentSetName, columns } = props;
+    const { graphToken, siteUrl, listName, documentSetName, columns, showActions = true } = props;
     const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
     const [resolveError, setResolveError] = useState<string | null>(null);
 
@@ -157,6 +158,7 @@ export default function DocumentLibraryPlayground(
                         initialSegmentName={
                             docSetItemId ? documentSetName || undefined : undefined
                         }
+                        showActions={showActions}
                         documentClientUrlFieldKey="DocumentClientUrl"
                         columns={gridColumns}
                         uploadColumns={uploadColumns}
