@@ -46,7 +46,6 @@ export default function DocumentLibraryPlayground(
         setDocSetItemId(undefined);
         setResolveError(null);
     }, [documentSetName]);
-
     const defaultGridColumns = useMemo<DocumentLibraryColumn[]>(
         () => [
             {

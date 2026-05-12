@@ -37,6 +37,26 @@ export type DocumentLibraryItemRow = {
     contentTypeName?: string
 }
 
+/** Full-width header row when grid grouping is enabled (AG Grid). */
+export type DocumentLibraryGroupRow = {
+    rowType: 'group'
+    id: string
+    level: number
+    fieldKey: string
+    fieldHeaderName: string
+    groupValue: string
+    childCount: number
+    expanded: boolean
+}
+
+/** Data row in the grid when grouping is enabled (includes tree depth for indentation). */
+export type DocumentLibraryDataGridRow = DocumentLibraryItemRow & {
+    rowType: 'data'
+    treeLevel: number
+}
+
+export type DocumentLibraryGridRow = DocumentLibraryGroupRow | DocumentLibraryDataGridRow
+
 /** Mirrors Microsoft Graph `driveItemVersion` (no createdDateTime/comment on that type). */
 export type DocumentLibraryVersion = {
     id: string
