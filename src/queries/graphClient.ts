@@ -1,4 +1,5 @@
 import axios from "axios";
+import { displayNameFromGraphAccessToken } from "../common/helpers";
 import type {
   DocumentLibraryGraphClient,
   DocumentLibraryItemRow,
@@ -11,7 +12,15 @@ type GraphClientOptions = {
   siteUrl?: string;
   listName?: string;
   columns?: unknown;
-  graphBaseUrl?: string; /**
+  graphBaseUrl?: string;
+  /**
+   * Map decoded token display name onto **existing** SharePoint list columns during upload.
+   * Use the columns’ **internal names** (List settings → column → column name).
+   * Omit this entirely if you do not have writable text columns for this (the grid can still
+   * show “Created by” from Microsoft Graph on `listChildren`, which does not use list fields).
+   */
+  uploadIdentityFieldKeys?: { created?: string; modified?: string };
+  /**
    * Return a valid access token for Microsoft Graph.
    */
   getAccessToken: () => Promise<string>;
@@ -92,6 +101,19 @@ function parseSiteUrl(siteUrl: string) {
 
 function escapeODataString(value: string) {
   return value.replace(/'/g, "''");
+}
+
+function buildUploadIdentityStamp(
+  identityName: string | undefined,
+  keys: GraphClientOptions["uploadIdentityFieldKeys"],
+): Record<string, unknown> {
+  if (!identityName || !keys) return {};
+  const out: Record<string, unknown> = {};
+  const created = keys.created?.trim();
+  const modified = keys.modified?.trim();
+  if (created) out[created] = identityName;
+  if (modified) out[modified] = identityName;
+  return out;
 }
 
 export function createGraphClient(
@@ -281,9 +303,10 @@ export function createGraphClient(
       const uploadedItemIds: string[] = [];
       const failures: UploadFailure[] = []; //Apply same properties to all files (as requested)
 
+      const identityName = displayNameFromGraphAccessToken(accessToken);
       const patchProperties: Record<string, unknown> = {
-        ...properties, //Placeholder for future mapping to actual SharePoint "content type"
-        // contentType,
+        ...buildUploadIdentityStamp(identityName, opts.uploadIdentityFieldKeys),
+        ...properties,
       };
 
       for (const file of files) {
@@ -323,20 +346,22 @@ export function createGraphClient(
             `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
             `/items/${encodeURIComponent(newItemId)}/listItem/fields`;
 
-          try {
-            await axios.patch(patchUrl, patchProperties, {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
-              },
-            });
-          } catch (error: any) {
-            let message = error.response
-              ? `${error.response.status} ${error.response.statusText}`
-              : error.message;
-            const err = error.response?.data;
-            message = err?.error?.message ?? err?.message ?? message;
-            throw new Error(message);
+          if (Object.keys(patchProperties).length > 0) {
+            try {
+              await axios.patch(patchUrl, patchProperties, {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              });
+            } catch (error: any) {
+              let message = error.response
+                ? `${error.response.status} ${error.response.statusText}`
+                : error.message;
+              const err = error.response?.data;
+              message = err?.error?.message ?? err?.message ?? message;
+              throw new Error(message);
+            }
           }
 
           uploadedItemIds.push(newItemId);

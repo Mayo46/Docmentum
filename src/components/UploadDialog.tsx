@@ -63,12 +63,10 @@ export default function UploadDialog(props: Props) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Upload documents</DialogTitle>
+      <DialogTitle>Upload Documents</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            {fileSummary}
-          </Typography>
+          
 
           <FormControl fullWidth>
             <InputLabel id="content-type-label">Content type</InputLabel>
@@ -79,7 +77,7 @@ export default function UploadDialog(props: Props) {
               onChange={(e) => setContentType(String(e.target.value))}
               disabled
             >
-              <MenuItem value="document">document</MenuItem>
+              <MenuItem value="document">Document</MenuItem>
             </Select>
           </FormControl>
 
@@ -102,6 +100,9 @@ export default function UploadDialog(props: Props) {
               />
             ))}
           </Box>
+          <Typography variant="body2" color="text.secondary">
+            {fileSummary}
+          </Typography>
 
           {error ? (
             <Typography color="error" sx={{ whiteSpace: 'pre-wrap' }}>
