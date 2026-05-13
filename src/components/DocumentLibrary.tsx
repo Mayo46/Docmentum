@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ColDef, ICellRendererParams, ValueGetterParams } from "ag-grid-community";
-import { Alert, Box, Button, Snackbar, Stack, Typography } from "@mui/material";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { Alert, Box, Snackbar } from "@mui/material";
 import type {
     DocumentLibraryColumn,
     DocumentLibraryGraphClient,
+    DocumentLibraryGridRow,
     DocumentLibraryItemRow,
     DocumentLibraryUploadColumn,
 } from "../types";
@@ -11,14 +11,21 @@ import DeleteDialog from "./DeleteDialog";
 import DocumentsTable from "./DocumentsTable";
 import {
     buildInitialSegments,
-    formatDate,
     toastFromFailures,
     type BreadcrumbSegment,
 } from "../common/helpers";
 import UploadPannel from "./UploadPannel";
 import UploadDialog from "./UploadDialog";
 import VersionHistoryDialog from "./VersionHistoryDialog";
-import { getCellValue } from "../utils/columns";
+import {
+    buildGroupTree,
+    collectAllGroupIds,
+    columnHeaderMap,
+    flattenGroupTree,
+    resolveGroupByKeys,
+} from "../utils/groupTree";
+import type { DocumentLibraryGridAgContext } from "../common/GroupRowRenderer";
+import { useDocumentLibraryColumnDefs } from "../hooks/useDocumentLibraryColumnDefs";
 
 type Props = {
     client: DocumentLibraryGraphClient;
@@ -72,12 +79,70 @@ export default function DocumentLibrary(props: Props) {
         buildInitialSegments(libraryRootLabel, parentDriveItemId, initialSegmentName),
     );
 
+    const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
+    const [userGroupByKey, setUserGroupByKey] = useState<string | null>("ContentType");
+
     useEffect(() => {
         setSegments(buildInitialSegments(libraryRootLabel, parentDriveItemId, initialSegmentName));
     }, [libraryRootLabel, parentDriveItemId, initialSegmentName]);
 
     const currentParentDriveItemId = segments[segments.length - 1]?.id ?? undefined;
     const uploadsEnabled = !!currentParentDriveItemId;
+
+    const resolvedGroupBy = useMemo(
+        () => (userGroupByKey ? resolveGroupByKeys([userGroupByKey], columns) : []),
+        [userGroupByKey, columns],
+    );
+
+    useEffect(() => {
+        if (!userGroupByKey) return;
+        const stillValid = resolveGroupByKeys([userGroupByKey], columns);
+        if (stillValid.length === 0) setUserGroupByKey(null);
+    }, [columns, userGroupByKey]);
+    const groupingEnabled = resolvedGroupBy.length > 0;
+    const columnHeaderByKey = useMemo(() => columnHeaderMap(columns), [columns]);
+
+    const groupTree = useMemo(
+        () => buildGroupTree(rows, resolvedGroupBy, columnHeaderByKey, "root"),
+        [rows, resolvedGroupBy, columnHeaderByKey],
+    );
+
+    const allGroupIds = useMemo(() => collectAllGroupIds(groupTree), [groupTree]);
+
+    useLayoutEffect(() => {
+        if (!groupingEnabled) {
+            setExpandedGroupIds(new Set());
+            return;
+        }
+        setExpandedGroupIds(new Set(allGroupIds));
+    }, [groupingEnabled, allGroupIds]);
+
+    const toggleGroupId = useCallback((id: string) => {
+        setExpandedGroupIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }, []);
+
+    const gridContext: DocumentLibraryGridAgContext = useMemo(
+        () => ({ toggleGroupId }),
+        [toggleGroupId],
+    );
+
+    const gridRows: DocumentLibraryGridRow[] = useMemo(() => {
+        if (!groupingEnabled) {
+            return rows.map((r) => ({
+                rowType: "data" as const,
+                treeLevel: 0,
+                ...r,
+            }));
+        }
+        const out: DocumentLibraryGridRow[] = [];
+        flattenGroupTree(groupTree, expandedGroupIds, 0, out);
+        return out;
+    }, [rows, groupingEnabled, groupTree, expandedGroupIds]);
 
     const navigateInto = useCallback((row: DocumentLibraryItemRow) => {
         if (!row.isContainer) return;
@@ -132,113 +197,20 @@ export default function DocumentLibrary(props: Props) {
         [uploadsEnabled],
     );
 
-    const columnDefs: ColDef<DocumentLibraryItemRow>[] = useMemo(() => {
-        const defs: ColDef<DocumentLibraryItemRow>[] = columns.map((c) => ({
-            headerName: c.headerName,
-            flex: 1,
-            resizable: true,
-            sortable: true,
-            minWidth: 140,
-            valueGetter: (params: ValueGetterParams<DocumentLibraryItemRow>) =>
-                getCellValue(params.data, c.key),
-            cellRenderer: c.useDocumentClientUrl
-                ? (params: ICellRendererParams<DocumentLibraryItemRow>) => {
-                      const row = params.data;
-                      if (!row) return undefined;
-                      const label = String(params.value ?? "");
-                      if (row.isContainer) {
-                          return (
-                              <Button
-                                  type="button"
-                                  variant="text"
-                                  size="small"
-                                  onClick={() => navigateInto(row)}
-                                  sx={{
-                                      textTransform: "none",
-                                      fontWeight: 600,
-                                      p: 0,
-                                      minWidth: 0,
-                                      justifyContent: "flex-start",
-                                  }}
-                              >
-                                  {label}
-                              </Button>
-                          );
-                      }
-                      const url = documentUrlFromRow(row);
-                      return (
-                          <Stack
-                              direction="row"
-                              spacing={0.75}
-                              useFlexGap
-                              flexWrap="wrap"
-                              alignItems="center"
-                              sx={{ minWidth: 0 }}
-                          >
-                              {url ? (
-                                  <a href={url} target="_blank" rel="noreferrer">
-                                      {label}
-                                  </a>
-                              ) : (
-                                  <Typography component="span" variant="body2">
-                                      {label}
-                                  </Typography>
-                              )}
-                          </Stack>
-                      );
-                  }
-                : undefined,
-            valueFormatter: (params) => {
-                const kind = c.kind ?? "text";
-                if (kind === "date") return formatDate(params.value);
-                if (kind === "number") {
-                    return params.value === "" || params.value === null || params.value === undefined
-                        ? ""
-                        : String(params.value);
-                }
-                if (kind === "user") return params.value ? String(params.value) : "";
-                return params.value ? String(params.value) : "";
-            },
-        }));
+    const onDeleteRow = useCallback((row: DocumentLibraryItemRow) => {
+        setDeleteTarget(row);
+        setDeleteOpen(true);
+    }, []);
 
-        if (showActions) {
-            defs.push({
-                headerName: "Actions",
-                flex: 0.9,
-                minWidth: 180,
-                sortable: false,
-                resizable: false,
-                pinned: "left",
-                lockPinned: true,
-                cellRenderer: (params: ICellRendererParams<DocumentLibraryItemRow>) => {
-                    const row = params.data;
-                    if (!row) return undefined;
-                    return (
-                        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-                            {!row.isContainer ? (
-                                <Button size="small" onClick={() => openVersionHistory(row)}>
-                                    Versions
-                                </Button>
-                            ) : null}
-
-                            <Button
-                                size="small"
-                                color="error"
-                                onClick={() => {
-                                    setDeleteTarget(row);
-                                    setDeleteOpen(true);
-                                }}
-                            >
-                                Delete
-                            </Button>
-                        </Stack>
-                    );
-                },
-            });
-        }
-
-        return defs;
-    }, [columns, documentUrlFromRow, navigateInto, openVersionHistory, showActions]);
+    const columnDefs = useDocumentLibraryColumnDefs({
+        columns,
+        groupingEnabled,
+        showActions,
+        navigateInto,
+        documentUrlFromRow,
+        openVersionHistory,
+        onDeleteRow,
+    });
 
     const handleDeleteConfirm = useCallback(async () => {
         if (!deleteTarget) return;
@@ -267,12 +239,19 @@ export default function DocumentLibrary(props: Props) {
                 onBreadcrumbClick={onBreadcrumbClick}
                 onSelectFiles={onSelectFiles}
                 onRefresh={refresh}
+                groupByMenu={{
+                    columns: columns.map((c) => ({ key: c.key, headerName: c.headerName })),
+                    selectedKey: userGroupByKey,
+                    onChange: setUserGroupByKey,
+                }}
             >
                 <DocumentsTable
-                    rows={rows}
+                    rows={gridRows}
                     columnDefs={columnDefs}
                     loading={loading}
                     error={error}
+                    groupingEnabled={groupingEnabled}
+                    gridContext={gridContext}
                 />
             </UploadPannel>
 

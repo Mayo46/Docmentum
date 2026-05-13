@@ -24,6 +24,12 @@ export type DocumentLibraryPlaygroundProps = {
     showActions?: boolean;
     showBreadcrumb?: boolean;
     showUploadControls?: boolean;
+    /**
+     * Internal names of existing SharePoint **text** (or compatible) columns to fill with the
+     * signed-in user’s display name from the token on upload. Required if you want that metadata;
+     * the stock library does not expose list fields named `CreatedBy`.
+     */
+    uploadIdentityFieldKeys?: { created?: string; modified?: string };
 };
 
 export default function DocumentLibraryPlayground(
@@ -38,6 +44,7 @@ export default function DocumentLibraryPlayground(
         showActions = true,
         showBreadcrumb = true,
         showUploadControls = true,
+        uploadIdentityFieldKeys,
     } = props;
     const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
     const [resolveError, setResolveError] = useState<string | null>(null);
@@ -46,7 +53,6 @@ export default function DocumentLibraryPlayground(
         setDocSetItemId(undefined);
         setResolveError(null);
     }, [documentSetName]);
-
     const defaultGridColumns = useMemo<DocumentLibraryColumn[]>(
         () => [
             {
@@ -110,8 +116,9 @@ export default function DocumentLibraryPlayground(
             listName,
             columns: normalizedColumns,
             getAccessToken: async () => graphToken,
+            uploadIdentityFieldKeys,
         });
-    }, [graphToken, siteUrl, listName, normalizedColumns]);
+    }, [graphToken, siteUrl, listName, normalizedColumns, uploadIdentityFieldKeys]);
 
     useEffect(() => {
         if (graphClient && documentSetName && !docSetItemId) {

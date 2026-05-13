@@ -27,7 +27,7 @@ export default function DeleteDialog({
             <DialogContent>
                 <Typography>
                     {deleteTarget
-                        ? `Are you sure you want to delete "${deleteTarget.name}"?`
+                        ? `Are you sure you want to delete "${deleteTarget.fields?.Title || deleteTarget.name}"?`
                         : "Are you sure?"}
                 </Typography>
             </DialogContent>

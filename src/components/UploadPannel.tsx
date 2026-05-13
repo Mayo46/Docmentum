@@ -1,16 +1,28 @@
 import { useCallback, useRef, useState } from "react";
-import type { ChangeEvent, DragEvent, ReactNode } from "react";
+import type { ChangeEvent, DragEvent, MouseEvent, ReactNode } from "react";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import CheckIcon from "@mui/icons-material/Check";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
     Box,
     Breadcrumbs,
     Button,
+    IconButton,
     Link,
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
     Stack,
     Tooltip,
     Typography,
 } from "@mui/material";
 import type { BreadcrumbSegment } from "./../common/helpers";
+
+export type GroupByMenuOption = {
+    key: string;
+    headerName: string;
+};
 
 type UploadPannelProps = {
     uploadsEnabled: boolean;
@@ -21,6 +33,12 @@ type UploadPannelProps = {
     onBreadcrumbClick: (index: number) => void;
     onSelectFiles: (files: FileList | null) => void;
     onRefresh: () => void;
+    /** Group-by dropdown: columns from grid props (or defaults); null = no grouping. */
+    groupByMenu?: {
+        columns: GroupByMenuOption[];
+        selectedKey: string | null;
+        onChange: (key: string | null) => void;
+    };
     children: ReactNode;
 };
 
@@ -33,11 +51,18 @@ export default function UploadPannel({
     onBreadcrumbClick,
     onSelectFiles,
     onRefresh,
+    groupByMenu,
     children,
 }: UploadPannelProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [groupMenuAnchor, setGroupMenuAnchor] = useState<null | HTMLElement>(null);
     const uploadControlsEnabled = uploadsEnabled && showUploadControls;
+
+    const openGroupMenu = useCallback((e: MouseEvent<HTMLElement>) => {
+        setGroupMenuAnchor(e.currentTarget);
+    }, []);
+    const closeGroupMenu = useCallback(() => setGroupMenuAnchor(null), []);
 
     const handleFileInputChange = useCallback(
         (e: ChangeEvent<HTMLInputElement>) => {
@@ -163,6 +188,65 @@ export default function UploadPannel({
                                     </Button>
                                 </span>
                             </Tooltip>
+                        </>
+                    ) : null}
+
+                    {groupByMenu ? (
+                        <>
+                            <Tooltip title="Group by column">
+                                <IconButton
+                                    color={groupByMenu.selectedKey ? "primary" : "default"}
+                                    aria-label="Group by column"
+                                    aria-controls={groupMenuAnchor ? "group-by-menu" : undefined}
+                                    aria-haspopup="true"
+                                    aria-expanded={groupMenuAnchor ? "true" : undefined}
+                                    onClick={openGroupMenu}
+                                    disabled={loading}
+                                    sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}
+                                >
+                                    <FilterListIcon />
+                                </IconButton>
+                            </Tooltip>
+                            <Menu
+                                id="group-by-menu"
+                                anchorEl={groupMenuAnchor}
+                                open={Boolean(groupMenuAnchor)}
+                                onClose={closeGroupMenu}
+                                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                                transformOrigin={{ vertical: "top", horizontal: "right" }}
+                            >
+                                <MenuItem
+                                    onClick={() => {
+                                        groupByMenu.onChange(null);
+                                        closeGroupMenu();
+                                    }}
+                                    selected={groupByMenu.selectedKey === null}
+                                >
+                                    <ListItemIcon sx={{ minWidth: 36 }}>
+                                        {groupByMenu.selectedKey === null ? (
+                                            <CheckIcon fontSize="small" />
+                                        ) : null}
+                                    </ListItemIcon>
+                                    <ListItemText primary="No grouping" />
+                                </MenuItem>
+                                {groupByMenu.columns.map((col) => (
+                                    <MenuItem
+                                        key={col.key}
+                                        onClick={() => {
+                                            groupByMenu.onChange(col.key);
+                                            closeGroupMenu();
+                                        }}
+                                        selected={groupByMenu.selectedKey === col.key}
+                                    >
+                                        <ListItemIcon sx={{ minWidth: 36 }}>
+                                            {groupByMenu.selectedKey === col.key ? (
+                                                <CheckIcon fontSize="small" />
+                                            ) : null}
+                                        </ListItemIcon>
+                                        <ListItemText primary={col.headerName || col.key} />
+                                    </MenuItem>
+                                ))}
+                            </Menu>
                         </>
                     ) : null}
 
