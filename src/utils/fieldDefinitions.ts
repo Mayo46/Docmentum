@@ -1,0 +1,125 @@
+import type { DocumentLibraryFieldDefinition } from "../types";
+import { normalizeLookupKey } from "./columns";
+
+/** List fields handled by dedicated upload UI — omit from editable property form on upload. */
+const UPLOAD_RESERVED_FIELD_KEYS = new Set(["contenttype"]);
+
+type GraphListColumn = {
+    name?: string;
+    displayName?: string;
+    columnType?: string;
+    choice?: {
+        choices?: string[];
+        allowTextEntry?: boolean;
+        displayAs?: string;
+    };
+    text?: { allowMultipleLines?: boolean };
+    number?: unknown;
+    dateTime?: unknown;
+    boolean?: unknown;
+};
+
+export function parseGraphListColumn(col: GraphListColumn): DocumentLibraryFieldDefinition | null {
+    const key = col.name?.trim();
+    if (!key) return null;
+
+    const displayName = col.displayName?.trim() || key;
+    const columnType = (col.columnType ?? "").toLowerCase();
+
+    if (columnType === "choice" && col.choice?.choices?.length) {
+        return {
+            key,
+            displayName,
+            fieldType: "choice",
+            choices: [...col.choice.choices],
+            allowMultipleChoices: false,
+        };
+    }
+
+    if (columnType === "number" || columnType === "currency") {
+        return { key, displayName, fieldType: "number" };
+    }
+
+    if (columnType === "datetime" || columnType === "date") {
+        return { key, displayName, fieldType: "date" };
+    }
+
+    if (columnType === "boolean") {
+        return { key, displayName, fieldType: "boolean" };
+    }
+
+    if (columnType === "text" || columnType === "note" || columnType === "") {
+        const multiline =
+            columnType === "note" || col.text?.allowMultipleLines === true;
+        return { key, displayName, fieldType: multiline ? "multiline" : "text" };
+    }
+
+    return { key, displayName, fieldType: "text" };
+}
+
+/** Fallback when Graph column metadata is unavailable (e.g. custom field). */
+export function fallbackFieldDefinition(key: string, label?: string): DocumentLibraryFieldDefinition {
+    return {
+        key,
+        displayName: label?.trim() || key,
+        fieldType: "text",
+    };
+}
+
+export function formatFieldValueForInput(
+    def: DocumentLibraryFieldDefinition,
+    raw: unknown,
+): string | boolean | string[] {
+    if (raw === null || raw === undefined) {
+        return def.fieldType === "boolean" ? false : def.allowMultipleChoices ? [] : "";
+    }
+
+    if (def.fieldType === "boolean") {
+        return raw === true || raw === "true" || raw === 1 || raw === "1";
+    }
+
+    if (def.allowMultipleChoices) {
+        if (Array.isArray(raw)) return raw.map(String);
+        if (typeof raw === "string") {
+            return raw
+                .split(/[;,]/)
+                .map((s) => s.trim())
+                .filter(Boolean);
+        }
+        return [];
+    }
+
+    if (def.fieldType === "date" && typeof raw === "string") {
+        const d = raw.includes("T") ? raw.split("T")[0] : raw;
+        return d;
+    }
+
+    return String(raw);
+}
+
+export function formatFieldValueForPatch(
+    def: DocumentLibraryFieldDefinition,
+    value: string | boolean | string[],
+): unknown {
+    if (def.fieldType === "boolean") return !!value;
+
+    if (def.allowMultipleChoices && Array.isArray(value)) {
+        return value.length > 0 ? value : [];
+    }
+
+    if (def.fieldType === "number") {
+        const n = typeof value === "string" ? Number(value) : Number(value);
+        return Number.isFinite(n) ? n : value;
+    }
+
+    if (typeof value === "string") return value;
+    return value;
+}
+
+export function filterFieldDefinitionsForUpload(
+    definitions: DocumentLibraryFieldDefinition[],
+): DocumentLibraryFieldDefinition[] {
+    return definitions.filter(
+        (d) => !UPLOAD_RESERVED_FIELD_KEYS.has(normalizeLookupKey(d.key)),
+    );
+}

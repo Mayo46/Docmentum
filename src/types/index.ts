@@ -17,6 +17,36 @@ export type DocumentLibraryUploadColumn = {
     inputType?: 'text' | 'number' | 'date'
 }
 
+/** Host-configured list columns that can be edited on upload or via the properties drawer. */
+export type DocumentLibraryEditableProperty = {
+    /** SharePoint internal column name (e.g. `Title`, `Category`). */
+    key: string
+    /** Optional label override when Graph display name is unavailable. */
+    label?: string
+}
+
+export type DocumentLibraryFieldType =
+    | 'text'
+    | 'multiline'
+    | 'choice'
+    | 'number'
+    | 'date'
+    | 'boolean'
+
+/** Resolved from Microsoft Graph list column definitions. */
+export type DocumentLibraryFieldDefinition = {
+    key: string
+    displayName: string
+    fieldType: DocumentLibraryFieldType
+    choices?: string[]
+    allowMultipleChoices?: boolean
+}
+
+export type FieldUpdateFailure = {
+    itemId: string
+    message: string
+}
+
 export type DocumentLibraryItemRow = {
     itemId: string
     name: string
@@ -76,6 +106,17 @@ export type UploadFailure = {
 export type DocumentLibraryGraphClient = {
     getDriveItemIdByName: (params: { name: string }) => Promise<string>
     listChildren: (params: { parentDriveItemId?: string }) => Promise<DocumentLibraryItemRow[]>
+    getFieldDefinitions: (params: {
+        fieldKeys: string[]
+    }) => Promise<DocumentLibraryFieldDefinition[]>
+    getListItemFieldValues: (params: {
+        itemId: string
+        fieldKeys: string[]
+    }) => Promise<Record<string, unknown>>
+    updateListItemFields: (params: {
+        itemIds: string[]
+        properties: Record<string, unknown>
+    }) => Promise<{ failures: FieldUpdateFailure[] }>
     deleteItem: (params: { itemId: string }) => Promise<void>
     listVersions: (params: { itemId: string }) => Promise<DocumentLibraryVersion[]>
     restoreVersion: (params: { itemId: string; versionId: string }) => Promise<void>
