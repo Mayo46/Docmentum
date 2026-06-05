@@ -10,7 +10,6 @@ import DocumentLibraryGrid from "./DocumentLibrary";
 import type {
     DocumentLibraryColumn,
     DocumentLibraryGraphClient,
-    DocumentLibraryUploadColumn,
 } from "../types";
 import { createGraphClient } from "../queries/graphClient";
 import { normalizeColumnsInput, normalizeLookupKey } from "../utils/columns";
@@ -19,17 +18,15 @@ export type DocumentLibraryPlaygroundProps = {
     graphToken: string;
     siteUrl: string;
     listName: string;
+    /** Source library used to fetch dropdown content types for editable `ContentType`. */
+    contentTypesLibrary?: string;
     documentSetName?: string;
     columns?: unknown;
     showActions?: boolean;
     showBreadcrumb?: boolean;
     showUploadControls?: boolean;
-    /**
-     * Internal names of existing SharePoint **text** (or compatible) columns to fill with the
-     * signed-in user’s display name from the token on upload. Required if you want that metadata;
-     * the stock library does not expose list fields named `CreatedBy`.
-     */
-    uploadIdentityFieldKeys?: { created?: string; modified?: string };
+    /** Columns editable on upload and via right-click (same shapes as `columns`). */
+    editableProperties?: unknown;
 };
 
 export default function DocumentLibraryPlayground(
@@ -39,12 +36,13 @@ export default function DocumentLibraryPlayground(
         graphToken,
         siteUrl,
         listName,
+        contentTypesLibrary,
         documentSetName,
         columns,
         showActions = true,
         showBreadcrumb = true,
         showUploadControls = true,
-        uploadIdentityFieldKeys,
+        editableProperties = ["Title"],
     } = props;
     const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
     const [resolveError, setResolveError] = useState<string | null>(null);
@@ -69,11 +67,6 @@ export default function DocumentLibraryPlayground(
             { key: "CreatedBy", headerName: "Created By", kind: "user" },
             { key: "ModifiedBy", headerName: "Last Modified", kind: "user" },
         ],
-        [],
-    );
-
-    const uploadColumns = useMemo<DocumentLibraryUploadColumn[]>(
-        () => [{ key: "Title", label: "Title", inputType: "text" }],
         [],
     );
 
@@ -114,11 +107,11 @@ export default function DocumentLibraryPlayground(
         return createGraphClient({
             siteUrl,
             listName,
+            contentTypesLibrary,
             columns: normalizedColumns,
             getAccessToken: async () => graphToken,
-            uploadIdentityFieldKeys,
         });
-    }, [graphToken, siteUrl, listName, normalizedColumns, uploadIdentityFieldKeys]);
+    }, [graphToken, siteUrl, listName, contentTypesLibrary, normalizedColumns]);
 
     useEffect(() => {
         if (graphClient && documentSetName && !docSetItemId) {
@@ -181,7 +174,7 @@ export default function DocumentLibraryPlayground(
                         showUploadControls={showUploadControls}
                         documentClientUrlFieldKey="DocumentClientUrl"
                         columns={gridColumns}
-                        uploadColumns={uploadColumns}
+                        editableProperties={editableProperties}
                         uploadPrefillProperties={uploadPrefillProperties}
                     />
                 ) : null}

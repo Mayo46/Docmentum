@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Alert, Box, Snackbar } from "@mui/material";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { CellContextMenuEvent } from "ag-grid-community";
+import { Alert, Box, ListItemText, Menu, MenuItem, Snackbar } from "@mui/material";
 import type {
     DocumentLibraryColumn,
     DocumentLibraryGraphClient,
@@ -12,20 +13,27 @@ import DocumentsTable from "./DocumentsTable";
 import {
     buildInitialSegments,
     toastFromFailures,
+    toastFromFieldUpdateFailures,
     type BreadcrumbSegment,
 } from "../common/helpers";
 import UploadPannel from "./UploadPannel";
 import UploadDialog from "./UploadDialog";
 import VersionHistoryDialog from "./VersionHistoryDialog";
+import PropertiesDrawer from "./PropertiesDrawer";
 import {
     buildGroupTree,
     collectAllGroupIds,
+    collectItemIdsInGroup,
+    getGroupLabel,
     columnHeaderMap,
     flattenGroupTree,
     resolveGroupByKeys,
 } from "../utils/groupTree";
 import type { DocumentLibraryGridAgContext } from "../common/GroupRowRenderer";
 import { useDocumentLibraryColumnDefs } from "../hooks/useDocumentLibraryColumnDefs";
+import { useEditableFieldDefinitions } from "../hooks/useEditableFieldDefinitions";
+import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
+import { getCellValue } from "../utils/columns";
 
 type Props = {
     client: DocumentLibraryGraphClient;
@@ -37,10 +45,24 @@ type Props = {
     showUploadControls?: boolean;
     documentClientUrlFieldKey: string;
     columns: DocumentLibraryColumn[];
-    uploadColumns: DocumentLibraryUploadColumn[];
+    uploadColumns?: DocumentLibraryUploadColumn[];
+    /** SharePoint columns editable on upload and via right-click (same shapes as `columns`). */
+    editableProperties?: unknown;
     uploadPrefillProperties?: Record<string, unknown>;
     titleColumnKey?: string;
 };
+
+type PropertiesEditTarget =
+    | { kind: "item"; itemId: string; name: string }
+    | { kind: "bulk"; groupId: string; label: string };
+
+function resolveBulkSelectedItemIds(
+    groupTree: ReturnType<typeof buildGroupTree>,
+    groupId: string,
+    selectedItemIds: Set<string>,
+): string[] {
+    return collectItemIdsInGroup(groupTree, groupId).filter((id) => selectedItemIds.has(id));
+}
 
 export default function DocumentLibrary(props: Props) {
     const {
@@ -53,9 +75,23 @@ export default function DocumentLibrary(props: Props) {
         showUploadControls = true,
         documentClientUrlFieldKey,
         columns,
-        uploadColumns,
+        uploadColumns = [],
+        editableProperties,
         uploadPrefillProperties,
     } = props;
+
+    const editableKeys = useMemo(
+        () => normalizeEditablePropertiesInput(editableProperties).keys,
+        [JSON.stringify(editableProperties ?? null)],
+    );
+    const editableKeysSignature = editableKeys.join("|");
+    const hasEditableProperties = editableKeys.length > 0;
+    const uploadPrefillSignature = useMemo(
+        () => JSON.stringify(uploadPrefillProperties ?? {}),
+        [uploadPrefillProperties],
+    );
+    const { definitions: fieldDefinitions, loading: fieldDefinitionsLoading } =
+        useEditableFieldDefinitions({ client, editableProperties });
 
     const [rows, setRows] = useState<DocumentLibraryItemRow[]>([]);
     const [loading, setLoading] = useState(false);
@@ -75,12 +111,27 @@ export default function DocumentLibrary(props: Props) {
         message: string;
     } | null>(null);
 
+    const [contextMenu, setContextMenu] = useState<{
+        mouseX: number;
+        mouseY: number;
+        target: PropertiesEditTarget;
+    } | null>(null);
+
+    const [propertiesTarget, setPropertiesTarget] = useState<PropertiesEditTarget | null>(null);
+    const [propertiesInitialValues, setPropertiesInitialValues] = useState<
+        Record<string, unknown> | undefined
+    >();
+    const [propertiesValuesLoading, setPropertiesValuesLoading] = useState(false);
+    const [propertiesSubmitting, setPropertiesSubmitting] = useState(false);
+
     const [segments, setSegments] = useState<BreadcrumbSegment[]>(() =>
         buildInitialSegments(libraryRootLabel, parentDriveItemId, initialSegmentName),
     );
 
     const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
     const [userGroupByKey, setUserGroupByKey] = useState<string | null>("ContentType");
+    const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(() => new Set());
+    const [selectionRevision, setSelectionRevision] = useState(0);
 
     useEffect(() => {
         setSegments(buildInitialSegments(libraryRootLabel, parentDriveItemId, initialSegmentName));
@@ -117,6 +168,14 @@ export default function DocumentLibrary(props: Props) {
         setExpandedGroupIds(new Set(allGroupIds));
     }, [groupingEnabled, allGroupIds]);
 
+    useEffect(() => {
+        if (!groupingEnabled) {
+            setSelectedItemIds(new Set());
+            return;
+        }
+        setSelectedItemIds(new Set(rows.map((r) => r.itemId)));
+    }, [groupingEnabled, rows]);
+
     const toggleGroupId = useCallback((id: string) => {
         setExpandedGroupIds((prev) => {
             const next = new Set(prev);
@@ -126,10 +185,216 @@ export default function DocumentLibrary(props: Props) {
         });
     }, []);
 
-    const gridContext: DocumentLibraryGridAgContext = useMemo(
-        () => ({ toggleGroupId }),
-        [toggleGroupId],
+    const openPropertiesEditor = useCallback((target: PropertiesEditTarget) => {
+        setPropertiesTarget(target);
+        setPropertiesInitialValues(undefined);
+        setContextMenu(null);
+    }, []);
+
+    const bumpSelectionRevision = useCallback(() => {
+        setSelectionRevision((n) => n + 1);
+    }, []);
+
+    const isItemSelected = useCallback(
+        (itemId: string) => selectedItemIds.has(itemId),
+        [selectedItemIds],
     );
+
+    const toggleItemSelection = useCallback(
+        (itemId: string) => {
+            setSelectedItemIds((prev) => {
+                const next = new Set(prev);
+                if (next.has(itemId)) next.delete(itemId);
+                else next.add(itemId);
+                return next;
+            });
+            bumpSelectionRevision();
+        },
+        [bumpSelectionRevision],
+    );
+
+    const getGroupItemIds = useCallback(
+        (groupId: string) => collectItemIdsInGroup(groupTree, groupId),
+        [groupTree],
+    );
+
+    const isGroupFullySelected = useCallback(
+        (groupId: string) => {
+            const ids = getGroupItemIds(groupId);
+            return ids.length > 0 && ids.every((id) => selectedItemIds.has(id));
+        },
+        [getGroupItemIds, selectedItemIds],
+    );
+
+    const isGroupPartiallySelected = useCallback(
+        (groupId: string) => {
+            const ids = getGroupItemIds(groupId);
+            const selectedCount = ids.filter((id) => selectedItemIds.has(id)).length;
+            return selectedCount > 0 && selectedCount < ids.length;
+        },
+        [getGroupItemIds, selectedItemIds],
+    );
+
+    const toggleGroupSelection = useCallback(
+        (groupId: string) => {
+            const ids = getGroupItemIds(groupId);
+            setSelectedItemIds((prev) => {
+                const next = new Set(prev);
+                const allSelected = ids.length > 0 && ids.every((id) => next.has(id));
+                for (const id of ids) {
+                    if (allSelected) next.delete(id);
+                    else next.add(id);
+                }
+                return next;
+            });
+            bumpSelectionRevision();
+        },
+        [getGroupItemIds, bumpSelectionRevision],
+    );
+
+    const areAllItemsSelected = useCallback(() => {
+        if (rows.length === 0) return false;
+        return rows.every((r) => selectedItemIds.has(r.itemId));
+    }, [rows, selectedItemIds]);
+
+    const areSomeItemsSelected = useCallback(() => {
+        return rows.some((r) => selectedItemIds.has(r.itemId));
+    }, [rows, selectedItemIds]);
+
+    const toggleSelectAllItems = useCallback(() => {
+        setSelectedItemIds((prev) => {
+            const allSelected = rows.length > 0 && rows.every((r) => prev.has(r.itemId));
+            if (allSelected) return new Set();
+            return new Set(rows.map((r) => r.itemId));
+        });
+        bumpSelectionRevision();
+    }, [rows, bumpSelectionRevision]);
+
+    const handleGroupContextMenu = useCallback(
+        (event: React.MouseEvent, groupId: string) => {
+            if (!hasEditableProperties || !groupingEnabled) return;
+            setContextMenu({
+                mouseX: event.clientX,
+                mouseY: event.clientY,
+                target: {
+                    kind: "bulk",
+                    groupId,
+                    label: getGroupLabel(groupTree, groupId),
+                },
+            });
+        },
+        [hasEditableProperties, groupingEnabled, groupTree],
+    );
+
+    const contextMenuBulkSelectedCount = useMemo(() => {
+        if (contextMenu?.target.kind !== "bulk") return 0;
+        return resolveBulkSelectedItemIds(
+            groupTree,
+            contextMenu.target.groupId,
+            selectedItemIds,
+        ).length;
+    }, [contextMenu, groupTree, selectedItemIds]);
+
+    const bulkPropertiesItemIds = useMemo(() => {
+        if (propertiesTarget?.kind !== "bulk") return [];
+        return resolveBulkSelectedItemIds(
+            groupTree,
+            propertiesTarget.groupId,
+            selectedItemIds,
+        );
+    }, [propertiesTarget, groupTree, selectedItemIds]);
+
+    const gridContext: DocumentLibraryGridAgContext = useMemo(
+        () => ({
+            toggleGroupId,
+            canEditProperties: hasEditableProperties,
+            onGroupContextMenu: groupingEnabled ? handleGroupContextMenu : undefined,
+            selectionEnabled: groupingEnabled,
+            isItemSelected,
+            toggleItemSelection,
+            isGroupFullySelected,
+            isGroupPartiallySelected,
+            toggleGroupSelection,
+            areAllItemsSelected,
+            areSomeItemsSelected,
+            toggleSelectAllItems,
+            selectionRevision,
+            groupActionsColumnWidth: 0,
+        }),
+        [
+            toggleGroupId,
+            hasEditableProperties,
+            groupingEnabled,
+            showActions,
+            handleGroupContextMenu,
+            isItemSelected,
+            toggleItemSelection,
+            isGroupFullySelected,
+            isGroupPartiallySelected,
+            toggleGroupSelection,
+            areAllItemsSelected,
+            areSomeItemsSelected,
+            toggleSelectAllItems,
+            selectionRevision,
+        ],
+    );
+
+    const rowsRef = useRef(rows);
+    rowsRef.current = rows;
+
+    const propertiesItemId =
+        propertiesTarget?.kind === "item" ? propertiesTarget.itemId : null;
+    const propertiesBulkKey =
+        propertiesTarget?.kind === "bulk"
+            ? `${propertiesTarget.groupId}:${bulkPropertiesItemIds.join(",")}`
+            : null;
+
+    useEffect(() => {
+        if (!propertiesTarget) return;
+
+        if (propertiesTarget.kind === "bulk") {
+            setPropertiesInitialValues(
+                uploadPrefillProperties ?? {},
+            );
+            return;
+        }
+
+        if (!propertiesItemId || editableKeys.length === 0) return;
+
+        let cancelled = false;
+        setPropertiesValuesLoading(true);
+        client
+            .getListItemFieldValues({
+                itemId: propertiesItemId,
+                fieldKeys: editableKeys,
+            })
+            .then((values) => {
+                if (!cancelled) setPropertiesInitialValues(values);
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    const row = rowsRef.current.find((r) => r.itemId === propertiesItemId);
+                    const fallback: Record<string, unknown> = {};
+                    for (const key of editableKeys) {
+                        fallback[key] = row ? getCellValue(row, key) : "";
+                    }
+                    setPropertiesInitialValues(fallback);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) setPropertiesValuesLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        propertiesItemId,
+        propertiesBulkKey,
+        editableKeysSignature,
+        client,
+        uploadPrefillSignature,
+    ]);
 
     const gridRows: DocumentLibraryGridRow[] = useMemo(() => {
         if (!groupingEnabled) {
@@ -202,6 +467,62 @@ export default function DocumentLibrary(props: Props) {
         setDeleteOpen(true);
     }, []);
 
+    const onRowContextMenu = useCallback(
+        (event: CellContextMenuEvent<DocumentLibraryGridRow>) => {
+            if (!hasEditableProperties) return;
+            const data = event.data;
+            if (!data || data.rowType === "group") return;
+            event.event?.preventDefault();
+            const mouseEvent = event.event as MouseEvent | undefined;
+            setContextMenu({
+                mouseX: mouseEvent?.clientX ?? 0,
+                mouseY: mouseEvent?.clientY ?? 0,
+                target: { kind: "item", itemId: data.itemId, name: data.name },
+            });
+        },
+        [hasEditableProperties],
+    );
+
+    const handleSaveProperties = useCallback(
+        async (properties: Record<string, unknown>) => {
+            if (!propertiesTarget) return;
+            setPropertiesSubmitting(true);
+            try {
+                const itemIds =
+                    propertiesTarget.kind === "item"
+                        ? [propertiesTarget.itemId]
+                        : bulkPropertiesItemIds;
+                if (itemIds.length === 0) {
+                    setToast({
+                        kind: "error",
+                        message: "No items selected to update.",
+                    });
+                    return;
+                }
+                const result = await client.updateListItemFields({ itemIds, properties });
+                if (result.failures.length > 0) {
+                    setToast({
+                        kind: "error",
+                        message: `Failed to update some items:\n${toastFromFieldUpdateFailures(result.failures)}`,
+                    });
+                } else {
+                    setToast({
+                        kind: "success",
+                        message:
+                            itemIds.length === 1
+                                ? "Properties updated."
+                                : `Updated properties on ${itemIds.length} items.`,
+                    });
+                    setPropertiesTarget(null);
+                    await refresh();
+                }
+            } finally {
+                setPropertiesSubmitting(false);
+            }
+        },
+        [client, propertiesTarget, bulkPropertiesItemIds, refresh],
+    );
+
     const columnDefs = useDocumentLibraryColumnDefs({
         columns,
         groupingEnabled,
@@ -252,6 +573,7 @@ export default function DocumentLibrary(props: Props) {
                     error={error}
                     groupingEnabled={groupingEnabled}
                     gridContext={gridContext}
+                    onRowContextMenu={hasEditableProperties ? onRowContextMenu : undefined}
                 />
             </UploadPannel>
 
@@ -267,7 +589,9 @@ export default function DocumentLibrary(props: Props) {
             <UploadDialog
                 open={uploadOpen && uploadsEnabled && showUploadControls}
                 files={uploadFiles}
-                uploadColumns={uploadColumns}
+                uploadColumns={hasEditableProperties ? [] : uploadColumns}
+                fieldDefinitions={hasEditableProperties ? fieldDefinitions : []}
+                definitionsLoading={hasEditableProperties && fieldDefinitionsLoading}
                 initialProperties={uploadPrefillProperties}
                 onClose={() => setUploadOpen(false)}
                 onUpload={async ({ files, contentType, properties }) => {
@@ -300,6 +624,62 @@ export default function DocumentLibrary(props: Props) {
                 deleteTarget={deleteTarget}
                 onClose={() => setDeleteOpen(false)}
                 onConfirm={handleDeleteConfirm}
+            />
+
+            <Menu
+                open={contextMenu !== null}
+                onClose={() => setContextMenu(null)}
+                anchorReference="anchorPosition"
+                anchorPosition={
+                    contextMenu
+                        ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                        : undefined
+                }
+            >
+                <MenuItem
+                    disabled={
+                        contextMenu?.target.kind === "bulk" &&
+                        contextMenuBulkSelectedCount === 0
+                    }
+                    onClick={() => {
+                        if (contextMenu) openPropertiesEditor(contextMenu.target);
+                    }}
+                >
+                    <ListItemText
+                        primary={
+                            contextMenu?.target.kind === "bulk"
+                                ? `Edit properties (${contextMenuBulkSelectedCount} selected)`
+                                : "Edit properties"
+                        }
+                    />
+                </MenuItem>
+            </Menu>
+
+            <PropertiesDrawer
+                open={!!propertiesTarget}
+                title={
+                    propertiesTarget?.kind === "bulk"
+                        ? "Edit properties (group)"
+                        : "Edit properties"
+                }
+                subtitle={
+                    propertiesTarget?.kind === "bulk"
+                        ? `${propertiesTarget.label} — ${bulkPropertiesItemIds.length} item(s)`
+                        : propertiesTarget?.kind === "item"
+                          ? propertiesTarget.name
+                          : undefined
+                }
+                submitDisabled={
+                    propertiesTarget?.kind === "bulk" &&
+                    bulkPropertiesItemIds.length === 0
+                }
+                definitions={fieldDefinitions}
+                definitionsLoading={fieldDefinitionsLoading}
+                initialValues={propertiesInitialValues}
+                valuesLoading={propertiesValuesLoading}
+                submitting={propertiesSubmitting}
+                onClose={() => setPropertiesTarget(null)}
+                onSubmit={handleSaveProperties}
             />
 
             <Snackbar

@@ -169,3 +169,39 @@ export function columnHeaderMap(columns: DocumentLibraryColumn[]): Map<string, s
     }
     return m;
 }
+
+function findGroupNode(nodes: GroupTreeNode[], groupId: string): Extract<GroupTreeNode, { kind: "group" }> | null {
+    for (const node of nodes) {
+        if (node.kind === "group") {
+            if (node.id === groupId) return node;
+            const nested = findGroupNode(node.children, groupId);
+            if (nested) return nested;
+        }
+    }
+    return null;
+}
+
+function collectLeafItemIds(nodes: GroupTreeNode[]): string[] {
+    const ids: string[] = [];
+    for (const node of nodes) {
+        if (node.kind === "leaf") ids.push(node.row.itemId);
+        else ids.push(...collectLeafItemIds(node.children));
+    }
+    return ids;
+}
+
+/** All drive item ids under a group row (for bulk metadata update). */
+export function collectItemIdsInGroup(
+    groupTree: GroupTreeNode[],
+    groupId: string,
+): string[] {
+    const group = findGroupNode(groupTree, groupId);
+    if (!group) return [];
+    return collectLeafItemIds(group.children);
+}
+
+export function getGroupLabel(groupTree: GroupTreeNode[], groupId: string): string {
+    const group = findGroupNode(groupTree, groupId);
+    if (!group) return "Group";
+    return `${group.fieldHeaderName}: ${group.groupValue}`;
+}

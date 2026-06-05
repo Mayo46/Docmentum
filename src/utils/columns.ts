@@ -18,7 +18,7 @@ function canonicalColumnKey(column: string) {
     return column;
 }
 
-function toCanonicalKey(value: unknown): string {
+export function toCanonicalKey(value: unknown): string {
     if (typeof value !== "string") return "";
     const trimmed = value.trim();
     if (!trimmed) return "";

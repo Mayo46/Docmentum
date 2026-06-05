@@ -15,12 +15,25 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import type { DocumentLibraryUploadColumn, UploadFailure } from './../types'
+import type {
+  DocumentLibraryFieldDefinition,
+  DocumentLibraryUploadColumn,
+  UploadFailure,
+} from './../types'
+import PropertiesFormFields, {
+  buildInitialFormValues,
+  formValuesToPatchPayload,
+  type PropertyFormValues,
+} from './PropertiesFormFields'
+import { filterFieldDefinitionsForUpload } from '../utils/fieldDefinitions'
 
 type Props = {
   open: boolean
   files: File[]
-  uploadColumns: DocumentLibraryUploadColumn[]
+  /** Legacy static fields when `fieldDefinitions` is not used. */
+  uploadColumns?: DocumentLibraryUploadColumn[]
+  fieldDefinitions?: DocumentLibraryFieldDefinition[]
+  definitionsLoading?: boolean
   initialProperties?: Record<string, unknown>
   initialContentType?: string
   onClose: () => void
@@ -35,25 +48,41 @@ export default function UploadDialog(props: Props) {
   const {
     open,
     files,
-    uploadColumns,
+    uploadColumns = [],
+    fieldDefinitions = [],
+    definitionsLoading = false,
     initialProperties,
     initialContentType,
     onClose,
     onUpload,
   } = props
 
+  const uploadFieldDefinitions = useMemo(
+    () => filterFieldDefinitionsForUpload(fieldDefinitions),
+    [fieldDefinitions],
+  )
+  const useDynamicFields = uploadFieldDefinitions.length > 0
+  const fieldDefinitionsKey = useMemo(
+    () => uploadFieldDefinitions.map((d) => d.key).join('|'),
+    [uploadFieldDefinitions],
+  )
+
   const [contentType, setContentType] = useState(initialContentType ?? 'document')
-  const [values, setValues] = useState<Record<string, unknown>>(initialProperties ?? {})
+  const [legacyValues, setLegacyValues] = useState<Record<string, unknown>>(initialProperties ?? {})
+  const [dynamicValues, setDynamicValues] = useState<PropertyFormValues>({})
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setContentType(initialContentType ?? 'document')
-    setValues(initialProperties ?? {})
+    setLegacyValues(initialProperties ?? {})
+    setDynamicValues(
+      buildInitialFormValues(uploadFieldDefinitions, initialProperties),
+    )
     setError(null)
     setSubmitting(false)
-  }, [open, initialProperties, initialContentType])
+  }, [open, initialProperties, initialContentType, fieldDefinitionsKey])
 
   const fileSummary = useMemo(() => {
     if (!files.length) return ''
@@ -61,13 +90,18 @@ export default function UploadDialog(props: Props) {
     return `${files.length} files selected`
   }, [files])
 
+  const resolvedProperties = useMemo(() => {
+    if (useDynamicFields) {
+      return formValuesToPatchPayload(uploadFieldDefinitions, dynamicValues)
+    }
+    return legacyValues
+  }, [useDynamicFields, uploadFieldDefinitions, dynamicValues, legacyValues])
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Upload Documents</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          
-
           <FormControl fullWidth>
             <InputLabel id="content-type-label">Content type</InputLabel>
             <Select
@@ -81,27 +115,42 @@ export default function UploadDialog(props: Props) {
             </Select>
           </FormControl>
 
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {uploadColumns.map((c) => (
-              <TextField
-                key={c.key}
-                label={c.label}
-                value={values[c.key] === undefined || values[c.key] === null ? '' : String(values[c.key])}
-                type={c.inputType === 'number' ? 'number' : c.inputType === 'date' ? 'date' : 'text'}
-                InputLabelProps={{ shrink: true }}
-                onChange={(e) => {
-                  const next = e.target.value
-                  setValues((prev) => ({
-                    ...prev,
-                    [c.key]: next,
-                  }))
-                }}
-                size="small"
-              />
-            ))}
-          </Box>
+          {definitionsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : useDynamicFields ? (
+            <PropertiesFormFields
+              definitions={uploadFieldDefinitions}
+              values={dynamicValues}
+              onChange={setDynamicValues}
+              disabled={submitting}
+            />
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {uploadColumns.map((c) => (
+                <TextField
+                  key={c.key}
+                  label={c.label}
+                  value={legacyValues[c.key] === undefined || legacyValues[c.key] === null ? '' : String(legacyValues[c.key])}
+                  type={c.inputType === 'number' ? 'number' : c.inputType === 'date' ? 'date' : 'text'}
+                  InputLabelProps={{ shrink: true }}
+                  onChange={(e) => {
+                    const next = e.target.value
+                    setLegacyValues((prev) => ({
+                      ...prev,
+                      [c.key]: next,
+                    }))
+                  }}
+                  size="small"
+                />
+              ))}
+            </Box>
+          )}
+
           <Typography variant="body2" color="text.secondary">
             {fileSummary}
+            {files.length > 1 ? ' — the same properties will apply to all files.' : ''}
           </Typography>
 
           {error ? (
@@ -123,10 +172,9 @@ export default function UploadDialog(props: Props) {
               const result = await onUpload({
                 files,
                 contentType,
-                properties: values,
+                properties: resolvedProperties,
               })
 
-              // Keep dialog open if only some files failed; grid will toast.
               if (result.failures.length === 0) onClose()
             } catch (e) {
               setError(e instanceof Error ? e.message : 'Upload failed')
@@ -135,7 +183,7 @@ export default function UploadDialog(props: Props) {
             }
           }}
           variant="contained"
-          disabled={submitting || files.length === 0}
+          disabled={submitting || definitionsLoading || files.length === 0}
           startIcon={submitting ? <CircularProgress size={16} /> : null}
         >
           Upload
@@ -144,4 +192,3 @@ export default function UploadDialog(props: Props) {
     </Dialog>
   )
 }
-

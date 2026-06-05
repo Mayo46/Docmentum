@@ -1,45 +1,5 @@
-import type { UploadFailure } from "./../types";
-import { jwtDecode } from "jwt-decode";
+import type { FieldUpdateFailure, UploadFailure } from "./../types";
 import moment from "moment";
-
-/** Claims commonly present on Microsoft / Graph access tokens (v1 and v2). */
-type GraphAccessTokenClaims = {
-    name?: string;
-    preferred_username?: string;
-    unique_name?: string;
-    email?: string;
-    upn?: string;
-    given_name?: string;
-    family_name?: string;
-};
-
-/**
- * Best-effort display name from a JWT access token payload (no signature verification).
- * Used to stamp Created By / Modified By–style metadata on upload.
- */
-export function displayNameFromGraphAccessToken(accessToken: string): string | undefined {
-    try {
-        const claims = jwtDecode<GraphAccessTokenClaims>(accessToken);
-        const name = claims.name?.trim();
-        if (name) return name;
-        const preferred = claims.preferred_username?.trim();
-        if (preferred) return preferred;
-        const unique = claims.unique_name?.trim();
-        if (unique) return unique;
-        const email = claims.email?.trim();
-        if (email) return email;
-        const upn = claims.upn?.trim();
-        if (upn) return upn;
-        const given = claims.given_name?.trim();
-        const family = claims.family_name?.trim();
-        if (given && family) return `${given} ${family}`;
-        if (given) return given;
-        if (family) return family;
-        return undefined;
-    } catch {
-        return undefined;
-    }
-}
 
 export type BreadcrumbSegment = { name: string; id: string | undefined };
 
@@ -89,4 +49,7 @@ export function toastFromFailures(failures: UploadFailure[]) {
     return failures.map((f) => `${f.fileName}: ${f.message}`).join("\n");
 }
 
-
+export function toastFromFieldUpdateFailures(failures: FieldUpdateFailure[]) {
+    if (failures.length === 0) return "";
+    return failures.map((f) => `${f.itemId}: ${f.message}`).join("\n");
+}
