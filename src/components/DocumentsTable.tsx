@@ -163,8 +163,11 @@ export default function DocumentsTable({
                     suppressRowClickSelection
                     preventDefaultOnContextMenu={!!onRowContextMenu}
                     onCellContextMenu={onRowContextMenu}
-                    // autoHeight ignores fixed row heights for full-width rows → clipped group headers.
-                    domLayout={groupingEnabled ? "normal" : "autoHeight"}
+                    pagination
+                    paginationPageSize={20}
+                    paginationPageSizeSelector={false}
+                    // Fixed height layout required for pagination and full-width group rows.
+                    domLayout="normal"
                 />
             </Box>
         </>
