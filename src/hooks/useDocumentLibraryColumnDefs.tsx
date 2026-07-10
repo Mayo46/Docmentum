@@ -22,6 +22,7 @@ const SELECTION_CELL_CLASS = "doc-library-selection-cell";
 type UseDocumentLibraryColumnDefsParams = {
     columns: DocumentLibraryColumn[];
     groupingEnabled: boolean;
+    showRowCheckbox: boolean;
     showActions: boolean;
     navigateInto: (row: DocumentLibraryItemRow) => void;
     documentUrlFromRow: (row: DocumentLibraryItemRow) => string | undefined;
@@ -32,6 +33,7 @@ type UseDocumentLibraryColumnDefsParams = {
 export function useDocumentLibraryColumnDefs({
     columns,
     groupingEnabled,
+    showRowCheckbox,
     showActions,
     navigateInto,
     documentUrlFromRow,
@@ -40,6 +42,7 @@ export function useDocumentLibraryColumnDefs({
 }: UseDocumentLibraryColumnDefsParams): ColDef<DocumentLibraryGridRow>[] {
     return useMemo(() => {
         const defs: ColDef<DocumentLibraryGridRow>[] = [];
+        const showSelectionColumn = groupingEnabled || showRowCheckbox;
 
         const actionsColDef: ColDef<DocumentLibraryGridRow> = {
             headerName: "Actions",
@@ -70,7 +73,7 @@ export function useDocumentLibraryColumnDefs({
             },
         };
 
-        if (groupingEnabled) {
+        if (showSelectionColumn) {
             defs.push({
                 colId: GROUP_SELECTION_COL_ID,
                 headerName: "",
@@ -176,7 +179,7 @@ export function useDocumentLibraryColumnDefs({
         })),
         );
 
-        if (showActions && !groupingEnabled) {
+        if (showActions && !showSelectionColumn) {
             defs.push(actionsColDef);
         }
 
@@ -184,6 +187,7 @@ export function useDocumentLibraryColumnDefs({
     }, [
         columns,
         groupingEnabled,
+        showRowCheckbox,
         showActions,
         navigateInto,
         documentUrlFromRow,

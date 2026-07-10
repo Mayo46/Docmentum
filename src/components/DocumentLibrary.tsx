@@ -43,6 +43,8 @@ type Props = {
     showActions?: boolean;
     showBreadcrumb?: boolean;
     showUploadControls?: boolean;
+    /** When grouping is off, show a per-row selection checkbox column. Default false. */
+    showRowCheckbox?: boolean;
     documentClientUrlFieldKey: string;
     columns: DocumentLibraryColumn[];
     uploadColumns?: DocumentLibraryUploadColumn[];
@@ -73,6 +75,7 @@ export default function DocumentLibrary(props: Props) {
         showActions = true,
         showBreadcrumb = true,
         showUploadControls = true,
+        showRowCheckbox = false,
         documentClientUrlFieldKey,
         columns,
         uploadColumns = [],
@@ -132,6 +135,7 @@ export default function DocumentLibrary(props: Props) {
     const [userGroupByKey, setUserGroupByKey] = useState<string | null>("ContentType");
     const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(() => new Set());
     const [selectionRevision, setSelectionRevision] = useState(0);
+    const prevGroupingEnabledRef = useRef(true);
 
     useEffect(() => {
         setSegments(buildInitialSegments(libraryRootLabel, parentDriveItemId, initialSegmentName));
@@ -151,6 +155,7 @@ export default function DocumentLibrary(props: Props) {
         if (stillValid.length === 0) setUserGroupByKey(null);
     }, [columns, userGroupByKey]);
     const groupingEnabled = resolvedGroupBy.length > 0;
+    const rowSelectionEnabled = groupingEnabled || showRowCheckbox;
     const columnHeaderByKey = useMemo(() => columnHeaderMap(columns), [columns]);
 
     const groupTree = useMemo(
@@ -169,12 +174,33 @@ export default function DocumentLibrary(props: Props) {
     }, [groupingEnabled, allGroupIds]);
 
     useEffect(() => {
-        if (!groupingEnabled) {
-            setSelectedItemIds(new Set());
+        const wasGrouped = prevGroupingEnabledRef.current;
+        prevGroupingEnabledRef.current = groupingEnabled;
+
+        if (groupingEnabled) {
+            setSelectedItemIds(new Set(rows.map((r) => r.itemId)));
+            if (!wasGrouped) setSelectionRevision((n) => n + 1);
             return;
         }
-        setSelectedItemIds(new Set(rows.map((r) => r.itemId)));
-    }, [groupingEnabled, rows]);
+
+        if (wasGrouped || !showRowCheckbox) {
+            setSelectedItemIds(new Set());
+            if (wasGrouped) setSelectionRevision((n) => n + 1);
+            return;
+        }
+
+        const validIds = new Set(rows.map((r) => r.itemId));
+        let selectionPruned = false;
+        setSelectedItemIds((prev) => {
+            const next = new Set<string>();
+            for (const id of prev) {
+                if (validIds.has(id)) next.add(id);
+            }
+            selectionPruned = next.size !== prev.size;
+            return next;
+        });
+        if (selectionPruned) setSelectionRevision((n) => n + 1);
+    }, [groupingEnabled, showRowCheckbox, rows]);
 
     const toggleGroupId = useCallback((id: string) => {
         setExpandedGroupIds((prev) => {
@@ -309,7 +335,7 @@ export default function DocumentLibrary(props: Props) {
             toggleGroupId,
             canEditProperties: hasEditableProperties,
             onGroupContextMenu: groupingEnabled ? handleGroupContextMenu : undefined,
-            selectionEnabled: groupingEnabled,
+            selectionEnabled: rowSelectionEnabled,
             isItemSelected,
             toggleItemSelection,
             isGroupFullySelected,
@@ -325,6 +351,7 @@ export default function DocumentLibrary(props: Props) {
             toggleGroupId,
             hasEditableProperties,
             groupingEnabled,
+            rowSelectionEnabled,
             showActions,
             handleGroupContextMenu,
             isItemSelected,
@@ -526,6 +553,7 @@ export default function DocumentLibrary(props: Props) {
     const columnDefs = useDocumentLibraryColumnDefs({
         columns,
         groupingEnabled,
+        showRowCheckbox,
         showActions,
         navigateInto,
         documentUrlFromRow,
@@ -666,8 +694,8 @@ export default function DocumentLibrary(props: Props) {
                     propertiesTarget?.kind === "bulk"
                         ? `${propertiesTarget.label} — ${bulkPropertiesItemIds.length} item(s)`
                         : propertiesTarget?.kind === "item"
-                          ? propertiesTarget.name
-                          : undefined
+                            ? propertiesTarget.name
+                            : undefined
                 }
                 submitDisabled={
                     propertiesTarget?.kind === "bulk" &&

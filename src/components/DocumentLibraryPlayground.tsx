@@ -25,6 +25,7 @@ export type DocumentLibraryPlaygroundProps = {
     showActions?: boolean;
     showBreadcrumb?: boolean;
     showUploadControls?: boolean;
+    showRowCheckbox?: boolean;
     /** Columns editable on upload and via right-click (same shapes as `columns`). */
     editableProperties?: unknown;
 };
@@ -42,6 +43,7 @@ export default function DocumentLibraryPlayground(
         showActions = true,
         showBreadcrumb = true,
         showUploadControls = true,
+        showRowCheckbox = false,
         editableProperties = ["Title"],
     } = props;
     const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
@@ -172,6 +174,7 @@ export default function DocumentLibraryPlayground(
                         showActions={showActions}
                         showBreadcrumb={showBreadcrumb}
                         showUploadControls={showUploadControls}
+                        showRowCheckbox={showRowCheckbox}
                         documentClientUrlFieldKey="DocumentClientUrl"
                         columns={gridColumns}
                         editableProperties={editableProperties}
