@@ -24,9 +24,14 @@ type DocumentsTableProps = {
     loading: boolean;
     error: string | null;
     groupingEnabled?: boolean;
+    gridHeight?: number | string;
     gridContext?: DocumentLibraryGridAgContext;
     onRowContextMenu?: (event: CellContextMenuEvent<DocumentLibraryGridRow>) => void;
 };
+
+function toCssHeight(value: number | string) {
+    return typeof value === "number" ? `${value}px` : value;
+}
 
 export default function DocumentsTable({
     rows,
@@ -34,19 +39,22 @@ export default function DocumentsTable({
     loading,
     error,
     groupingEnabled = false,
+    gridHeight,
     gridContext,
     onRowContextMenu,
 }: DocumentsTableProps) {
     const gridApiRef = useRef<GridApi<DocumentLibraryGridRow> | null>(null);
     const selectionRevision = gridContext?.selectionRevision;
+    const useAutoHeight = gridHeight === undefined;
+    const resolvedHeight = gridHeight === undefined ? undefined : toCssHeight(gridHeight);
 
     useEffect(() => {
         if (selectionRevision === undefined) return;
         const api = gridApiRef.current;
         if (!api) return;
-        // Full-width group rows do not update from refreshCells alone.
         api.refreshCells({ force: true });
         api.redrawRows();
+        api.refreshHeader();
     }, [selectionRevision]);
 
     return (
@@ -60,7 +68,7 @@ export default function DocumentsTable({
             {loading ? (
                 <Box
                     sx={{
-                        height: 260,
+                        minHeight: 200,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -74,9 +82,17 @@ export default function DocumentsTable({
                 className="ag-theme-alpine doc-library-ag-grid"
                 sx={{
                     width: "100%",
-                    height: 520,
-                    overflow: "auto",
-                    // Full-width group rows: remove default cell padding and clipping (fixes top-cut text).
+                    maxWidth: "100%",
+                    minWidth: 0,
+                    ...(useAutoHeight
+                        ? { minHeight: rows.length === 0 ? 160 : undefined }
+                        : {
+                              height: resolvedHeight,
+                              minHeight: 280,
+                              overflow: "hidden",
+                          }),
+                    "& .ag-root-wrapper": { width: "100%" },
+                    "& .ag-root-wrapper-body": { width: "100%" },
                     "& .ag-full-width-row": { overflow: "visible" },
                     "& .ag-full-width-row .ag-cell": {
                         overflow: "visible",
@@ -97,7 +113,6 @@ export default function DocumentsTable({
                             display: "flex",
                             alignItems: "center",
                         },
-                    // Selection column: same padding and centering in header and body cells.
                     "& .doc-library-selection-cell": {
                         overflow: "visible",
                         paddingLeft: "4px",
@@ -137,6 +152,7 @@ export default function DocumentsTable({
                 }}
             >
                 <AgGridReact<DocumentLibraryGridRow>
+                    theme="legacy"
                     rowData={rows}
                     columnDefs={columnDefs}
                     context={gridContext}
@@ -166,8 +182,7 @@ export default function DocumentsTable({
                     pagination
                     paginationPageSize={20}
                     paginationPageSizeSelector={false}
-                    // Fixed height layout required for pagination and full-width group rows.
-                    domLayout="normal"
+                    domLayout={useAutoHeight ? "autoHeight" : "normal"}
                 />
             </Box>
         </>

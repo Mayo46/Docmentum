@@ -205,3 +205,14 @@ export function getGroupLabel(groupTree: GroupTreeNode[], groupId: string): stri
     if (!group) return "Group";
     return `${group.fieldHeaderName}: ${group.groupValue}`;
 }
+
+/** Selected item ids that belong to a group row. */
+export function resolveBulkSelectedItemIds(
+    groupTree: GroupTreeNode[],
+    groupId: string,
+    selectedItemIds: Set<string>,
+): string[] {
+    return collectItemIdsInGroup(groupTree, groupId).filter((id) =>
+        selectedItemIds.has(id),
+    );
+}

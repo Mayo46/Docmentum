@@ -135,3 +135,10 @@ export type DocumentLibraryGraphClient = {
     }) => Promise<{ uploadedItemIds: string[]; failures: UploadFailure[] }>
 }
 
+export type {
+    DocumentLibraryProps,
+    DocumentLibraryPropertiesEditTarget,
+    DocumentLibraryContextMenuState,
+    DocumentLibraryToast,
+} from "./documentLibrary";
+
