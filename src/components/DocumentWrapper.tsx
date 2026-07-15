@@ -14,7 +14,7 @@ import type {
 import { createGraphClient } from "../queries/graphClient";
 import { normalizeColumnsInput, normalizeLookupKey } from "../utils/columns";
 
-export type DocumentLibraryPlaygroundProps = {
+export type DocumentWrapperProps = {
     graphToken: string;
     siteUrl: string;
     listName: string;
@@ -30,9 +30,10 @@ export type DocumentLibraryPlaygroundProps = {
     editableProperties?: unknown;
 };
 
-export default function DocumentLibraryPlayground(
-    props: DocumentLibraryPlaygroundProps,
-) {
+/** @deprecated Use `DocumentWrapperProps` instead. */
+export type DocumentLibraryPlaygroundProps = DocumentWrapperProps;
+
+export default function DocumentWrapper(props: DocumentWrapperProps) {
     const {
         graphToken,
         siteUrl,

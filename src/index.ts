@@ -1,3 +1,3 @@
-export { default as DocumentLibraryGrid } from './components/DocumentLibrary';
-export { default as DocumentLibraryPlayground } from './components/DocumentLibraryPlayground';
+export { default as DocumentWrapper } from './components/DocumentWrapper';
+
 export * from './types';
