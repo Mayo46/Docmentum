@@ -1,6 +1,8 @@
+import type { DocumentLibraryActions } from "./action";
 import type {
     DocumentLibraryColumn,
     DocumentLibraryGraphClient,
+    DocumentLibraryGridRow,
     DocumentLibraryUploadColumn,
 } from "./index";
 
@@ -18,6 +20,8 @@ export type DocumentLibraryToast = {
     kind: "success" | "error";
     message: string;
 };
+
+export type OnToast = (next: DocumentLibraryToast) => void;
 
 export type DocumentLibraryProps = {
     client: DocumentLibraryGraphClient;
@@ -39,4 +43,7 @@ export type DocumentLibraryProps = {
     uploadPrefillProperties?: Record<string, unknown>;
     /** Reserved for future use. */
     titleColumnKey?: string;
+    onSelectionChange?: (row: DocumentLibraryGridRow[]) => void;
+    showHamburger?: boolean;
+    actions?: DocumentLibraryActions;
 };

@@ -10,9 +10,11 @@ import DocumentLibraryGrid from "./DocumentLibrary";
 import type {
     DocumentLibraryColumn,
     DocumentLibraryGraphClient,
+    DocumentLibraryGridRow,
 } from "../types";
 import { createGraphClient } from "../queries/graphClient";
 import { normalizeColumnsInput, normalizeLookupKey } from "../utils/columns";
+import type { DocumentLibraryActions } from "../types/action";
 
 export type DocumentWrapperProps = {
     graphToken: string;
@@ -28,6 +30,9 @@ export type DocumentWrapperProps = {
     showRowCheckbox?: boolean;
     /** Columns editable on upload and via right-click (same shapes as `columns`). */
     editableProperties?: unknown;
+    onSelectionChange?: (row: DocumentLibraryGridRow[]) => void;
+    showHamburger?: boolean;
+    actions?: DocumentLibraryActions;
 };
 
 /** @deprecated Use `DocumentWrapperProps` instead. */
@@ -46,6 +51,9 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
         showUploadControls = true,
         showRowCheckbox = false,
         editableProperties = ["Title"],
+        onSelectionChange,
+        showHamburger = false,
+        actions,
     } = props;
     const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
     const [resolveError, setResolveError] = useState<string | null>(null);
@@ -97,8 +105,8 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
                     lower === "createdby" || lower === "modifiedby"
                         ? "user"
                         : lower === "modified" || lower === "created"
-                          ? "date"
-                          : "text",
+                            ? "date"
+                            : "text",
                 useDocumentClientUrl: lower === "title" || lower === "name",
             };
         });
@@ -180,6 +188,9 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
                         columns={gridColumns}
                         editableProperties={editableProperties}
                         uploadPrefillProperties={uploadPrefillProperties}
+                        onSelectionChange={onSelectionChange}
+                        showHamburger={showHamburger}
+                        actions={actions}
                     />
                 ) : null}
             </Stack>

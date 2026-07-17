@@ -103,6 +103,8 @@ export type UploadFailure = {
     message: string
 }
 
+export type onRefresh = () => void;
+
 export type DocumentLibraryGraphClient = {
     getDriveItemIdByName: (params: { name: string }) => Promise<string>
     listChildren: (params: { parentDriveItemId?: string }) => Promise<DocumentLibraryItemRow[]>
@@ -132,7 +134,11 @@ export type DocumentLibraryGraphClient = {
          */
         properties: Record<string, unknown>
         conflictBehavior?: 'rename' | 'replace' | 'fail'
-    }) => Promise<{ uploadedItemIds: string[]; failures: UploadFailure[] }>
+    }) => Promise<{ uploadedItemIds: string[]; failures: UploadFailure[] }>;
+    checkoutItem: (params: { itemId: string }) => Promise<void>;
+    cancelCheckoutItem: (params: { itemId: string }) => Promise<void>;
+    favoriteItem: (params: { itemId: string }) => Promise<void>;
+    unfavoriteItem: (params: { itemId: string }) => Promise<void>;
 }
 
 export type {

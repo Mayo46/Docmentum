@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Snackbar } from "@mui/material";
 import type { DocumentLibraryItemRow, DocumentLibraryProps, DocumentLibraryToast } from "../types";
 import { toastFromFailures } from "../common/helpers";
@@ -34,6 +34,9 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         uploadColumns = [],
         editableProperties,
         uploadPrefillProperties,
+        onSelectionChange,
+        actions,
+        showHamburger
     } = props;
 
     const [toast, setToast] = useState<DocumentLibraryToast | null>(null);
@@ -158,6 +161,20 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         }
     }, [client, deleteTarget, refresh, onToast]);
 
+    const selectedRows = useMemo(
+        () =>
+            grouping.gridRows.filter(
+                (row) =>
+                    row.rowType === "data" &&
+                    selection.selectedItemIds.has(row.itemId),
+            ),
+        [grouping.gridRows, selection.selectedItemIds],
+    );
+
+    useEffect(() => {
+        onSelectionChange?.(selectedRows);
+    }, [selectedRows, onSelectionChange]);
+
     const {
         fieldDefinitions,
         fieldDefinitionsLoading,
@@ -194,6 +211,11 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
                     selectedKey: grouping.userGroupByKey,
                     onChange: grouping.setUserGroupByKey,
                 }}
+                showHamburger={showHamburger}
+                actions={actions}
+                selectedRows={selectedRows}
+                client={client}
+                onToast={onToast}
             >
                 <DocumentsTable
                     rows={grouping.gridRows}
@@ -274,8 +296,8 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
                     propertiesTarget?.kind === "bulk"
                         ? `${propertiesTarget.label} — ${bulkPropertiesItemIds.length} item(s)`
                         : propertiesTarget?.kind === "item"
-                          ? propertiesTarget.name
-                          : undefined
+                            ? propertiesTarget.name
+                            : undefined
                 }
                 submitDisabled={
                     propertiesTarget?.kind === "bulk" && bulkPropertiesItemIds.length === 0

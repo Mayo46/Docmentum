@@ -497,7 +497,7 @@ export function createGraphClient(
       if (normalized.unresolvedContentTypeName) {
         throw new Error(
           `Unable to resolve content type '${normalized.unresolvedContentTypeName}' for this library. ` +
-            "Ensure this content type exists on the target list.",
+          "Ensure this content type exists on the target list.",
         );
       }
       for (const itemId of itemIds) {
@@ -506,7 +506,7 @@ export function createGraphClient(
             const listItemUrl =
               `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
               `/items/${encodeURIComponent(itemId)}/listItem`;
-            
+
             await graphRequest({
               url: listItemUrl,
               method: "PATCH",
@@ -541,7 +541,33 @@ export function createGraphClient(
       const url = `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(itemId)}`;
       await graphRequestNoJson({ url, method: "DELETE", accessToken });
     },
+    async checkoutItem({ itemId }) {
+      const { accessToken, driveId } = await getContext();
 
+      const url =
+        `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
+        `/items/${encodeURIComponent(itemId)}/checkout`;
+
+      await graphRequestNoJson({
+        url,
+        method: "POST",
+        accessToken,
+      });
+    },
+
+    async cancelCheckoutItem({ itemId }) {
+      const { accessToken, driveId } = await getContext();
+
+      const url =
+        `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
+        `/items/${encodeURIComponent(itemId)}/discardCheckout`;
+
+      await graphRequestNoJson({
+        url,
+        method: "POST",
+        accessToken,
+      });
+    },
     async listVersions({ itemId }) {
       const { accessToken, driveId } = await getContext();
       // driveItemVersion supports id, lastModifiedDateTime, size, lastModifiedBy, publication, content — not createdDateTime/comment.
@@ -588,10 +614,10 @@ export function createGraphClient(
       if (normalized.unresolvedContentTypeName) {
         throw new Error(
           `Unable to resolve content type '${normalized.unresolvedContentTypeName}' for this library. ` +
-            "Ensure this content type exists on the target list.",
+          "Ensure this content type exists on the target list.",
         );
       }
-     
+
       for (const file of files) {
         try {
           const fileNameEncoded = encodeURIComponent(file.name);
@@ -629,7 +655,7 @@ export function createGraphClient(
             const listItemUrl =
               `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
               `/items/${encodeURIComponent(newItemId)}/listItem`;
-        
+
             try {
               await axios.patch(
                 listItemUrl,
@@ -683,6 +709,34 @@ export function createGraphClient(
       }
 
       return { uploadedItemIds, failures };
+    },
+
+    async favoriteItem({ itemId }) {
+      const { accessToken, driveId } = await getContext();
+
+      const url = `${graphBaseUrl}/drives/${encodeURIComponent(
+        driveId,
+      )}/items/${encodeURIComponent(itemId)}/follow`;
+
+      await graphRequestNoJson({
+        url,
+        method: "POST",
+        accessToken,
+      });
+    },
+
+    async unfavoriteItem({ itemId }) {
+      const { accessToken, driveId } = await getContext();
+
+      const url = `${graphBaseUrl}/drives/${encodeURIComponent(
+        driveId,
+      )}/items/${encodeURIComponent(itemId)}/unfollow`;
+
+      await graphRequestNoJson({
+        url,
+        method: "POST",
+        accessToken,
+      });
     },
   };
 }

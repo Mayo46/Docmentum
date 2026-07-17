@@ -9,8 +9,10 @@ export function normalizeLookupKey(value: string) {
 function canonicalColumnKey(column: string) {
     const normalized = normalizeLookupKey(column);
     if (normalized === "contenttype") return "ContentType";
-    if (normalized === "createdby") return "CreatedBy";
-    if (normalized === "modifiedby") return "ModifiedBy";
+    if (normalized === "createdby") return "Author";
+    if (normalized === "modifiedby") return "Editor";
+    if (normalized === "checkedoutto") return "CheckoutUser";
+    if (normalized === "checkincomment") return "_CheckinComment";
     if (normalized === "title") return "Title";
     if (normalized === "name") return "name";
     if (normalized === "created") return "Created";
@@ -106,6 +108,9 @@ export function getCellValue(
         if (fromFields) return fromFields;
         return "";
     }
+    if (key === "checkoutuser") {
+        return getFieldValueCaseInsensitive(row.fields, "CheckoutUser") ?? "";
+      }
     if (key === "modified")
         return (
             getFieldValueCaseInsensitive(row.fields, "Modified") ?? ""

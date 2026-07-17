@@ -1,0 +1,59 @@
+# ========================================
+# CURSOR IGNORE - Document Library
+# ========================================
+# Single root file - covers entire workspace
+# Place at: C:\laragon\www\document-library\.cursorignore
+# ========================================
+
+# -----------------------------------------
+# FRONTEND - Dependencies & Build
+# -----------------------------------------
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# -----------------------------------------
+# ENVIRONMENT & SECRETS (Security)
+# -----------------------------------------
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.key
+**/*.crt
+
+# -----------------------------------------
+# LOGS (Large, noisy)
+# -----------------------------------------
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# -----------------------------------------
+# IDE & SYSTEM FILES
+# -----------------------------------------
+**/.idea/
+**/.vscode/
+**/*.swp
+**/*.swo
+**/.DS_Store
+**/Thumbs.db
+**/desktop.ini
+
+# -----------------------------------------
+# TEMPORARY & BACKUP FILES
+# -----------------------------------------
+**/*.tmp
+**/*.bak
+**/*.backup
+**/*~
+
+
+# -----------------------------------------
+# DO NOT IGNORE (Important for context)
+# -----------------------------------------
+# frontend/package-lock.json  - Version info
+# frontend/tsconfig.json      - TypeScript config
+# frontend/vite.config.ts     - Build config
