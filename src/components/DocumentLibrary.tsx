@@ -17,6 +17,7 @@ import { useDocumentLibraryRows } from "../hooks/useDocumentLibraryRows";
 import { useDocumentLibrarySelection } from "../hooks/useDocumentLibrarySelection";
 import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
 import type { DocumentLibraryGridAgContext } from "../common/GroupRowRenderer";
+import DocumentLibraryToolbar from "./DocumentLibraryToolbar";
 
 export default function DocumentLibrary(props: DocumentLibraryProps) {
     const {
@@ -36,7 +37,8 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         uploadPrefillProperties,
         onSelectionChange,
         actions,
-        showHamburger
+        showToolbar,
+        dashboardName,
     } = props;
 
     const [toast, setToast] = useState<DocumentLibraryToast | null>(null);
@@ -194,6 +196,15 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
 
     return (
         <Box sx={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
+            <DocumentLibraryToolbar
+                title={dashboardName}
+                showToolbar={showToolbar}
+                actions={actions}
+                selectedRows={selectedRows}
+                client={client}
+                onToast={onToast}
+                onRefresh={refresh}
+            />
             <UploadPannel
                 uploadsEnabled={navigation.uploadsEnabled}
                 showBreadcrumb={showBreadcrumb}
@@ -211,11 +222,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
                     selectedKey: grouping.userGroupByKey,
                     onChange: grouping.setUserGroupByKey,
                 }}
-                showHamburger={showHamburger}
-                actions={actions}
-                selectedRows={selectedRows}
-                client={client}
-                onToast={onToast}
             >
                 <DocumentsTable
                     rows={grouping.gridRows}

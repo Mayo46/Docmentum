@@ -18,11 +18,6 @@ import {
     Typography,
 } from "@mui/material";
 import type { BreadcrumbSegment } from "./../common/helpers";
-import type { DocumentLibraryActions } from "../types/action";
-import ActionMenu from "./ActionMenu";
-import MenuIcon from "@mui/icons-material/Menu"
-import type { DocumentLibraryGraphClient, DocumentLibraryGridRow } from "../types";
-import type { OnToast } from "../types/documentLibrary";
 
 export type GroupByMenuOption = {
     key: string;
@@ -45,11 +40,6 @@ type UploadPannelProps = {
         onChange: (key: string | null) => void;
     };
     children: ReactNode;
-    showHamburger?: boolean;
-    actions?: DocumentLibraryActions;
-    selectedRows: DocumentLibraryGridRow[];
-    client: DocumentLibraryGraphClient;
-    onToast: OnToast
 };
 
 export default function UploadPannel({
@@ -63,30 +53,12 @@ export default function UploadPannel({
     onRefresh,
     groupByMenu,
     children,
-    showHamburger = false,
-    actions,
-    selectedRows,
-    client,
-    onToast
 }: UploadPannelProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [groupMenuAnchor, setGroupMenuAnchor] = useState<null | HTMLElement>(null);
     const uploadControlsEnabled = uploadsEnabled && showUploadControls;
-    const [menuAnchor, setMenuAnchor] =
-        useState<HTMLElement | null>(null);
-
-    const openActionMenu = (
-        event: MouseEvent<HTMLElement>,
-    ) => {
-        setMenuAnchor(event.currentTarget);
-    };
-
-    const closeActionMenu = () => {
-        setMenuAnchor(null);
-    };
-
-
+   
     const openGroupMenu = useCallback((e: MouseEvent<HTMLElement>) => {
         setGroupMenuAnchor(e.currentTarget);
     }, []);
@@ -144,29 +116,6 @@ export default function UploadPannel({
                     alignItems: "center",
                 }}
             >
-                {showHamburger && (
-                    <>
-                        <Tooltip title="Actions">
-                            <IconButton
-                                onClick={openActionMenu}
-                            >
-                                <MenuIcon />
-                            </IconButton>
-                        </Tooltip>
-
-                        <ActionMenu
-                            anchorEl={menuAnchor}
-                            open={Boolean(menuAnchor)}
-                            onClose={closeActionMenu}
-                            actions={actions}
-                            selectedRows={selectedRows}
-                            client={client}
-                            onToast={onToast}
-                            onRefresh={onRefresh}
-
-                        />
-                    </>
-                )}
 
                 <Box sx={{ minWidth: 0, flex: 1, pr: 2 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>

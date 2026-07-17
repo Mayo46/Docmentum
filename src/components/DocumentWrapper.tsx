@@ -31,8 +31,9 @@ export type DocumentWrapperProps = {
     /** Columns editable on upload and via right-click (same shapes as `columns`). */
     editableProperties?: unknown;
     onSelectionChange?: (row: DocumentLibraryGridRow[]) => void;
-    showHamburger?: boolean;
+    showToolbar?: boolean;
     actions?: DocumentLibraryActions;
+    dashboardName?: string;
 };
 
 /** @deprecated Use `DocumentWrapperProps` instead. */
@@ -52,8 +53,9 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
         showRowCheckbox = false,
         editableProperties = ["Title"],
         onSelectionChange,
-        showHamburger = false,
+        showToolbar = false,
         actions,
+        dashboardName= ""
     } = props;
     const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
     const [resolveError, setResolveError] = useState<string | null>(null);
@@ -189,8 +191,9 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
                         editableProperties={editableProperties}
                         uploadPrefillProperties={uploadPrefillProperties}
                         onSelectionChange={onSelectionChange}
-                        showHamburger={showHamburger}
+                        showToolbar={showToolbar}
                         actions={actions}
+                        dashboardName={dashboardName}
                     />
                 ) : null}
             </Stack>

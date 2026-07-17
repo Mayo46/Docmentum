@@ -44,6 +44,7 @@ export type DocumentLibraryProps = {
     /** Reserved for future use. */
     titleColumnKey?: string;
     onSelectionChange?: (row: DocumentLibraryGridRow[]) => void;
-    showHamburger?: boolean;
+    showToolbar?: boolean;
     actions?: DocumentLibraryActions;
+    dashboardName?: string;
 };
