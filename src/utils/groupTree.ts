@@ -7,14 +7,14 @@ import { getCellValue, normalizeLookupKey } from "./columns";
 
 export type GroupTreeNode =
     | {
-          kind: "group";
-          id: string;
-          fieldKey: string;
-          fieldHeaderName: string;
-          groupValue: string;
-          childCount: number;
-          children: GroupTreeNode[];
-      }
+        kind: "group";
+        id: string;
+        fieldKey: string;
+        fieldHeaderName: string;
+        groupValue: string;
+        childCount: number;
+        children: GroupTreeNode[];
+    }
     | { kind: "leaf"; row: DocumentLibraryItemRow };
 
 function formatGroupValue(raw: string): string {

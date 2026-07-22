@@ -108,6 +108,10 @@ export type onRefresh = () => void;
 export type DocumentLibraryGraphClient = {
     getDriveItemIdByName: (params: { name: string }) => Promise<string>
     listChildren: (params: { parentDriveItemId?: string }) => Promise<DocumentLibraryItemRow[]>
+    /** Favorited (followed) items in this library, with default metadata columns. */
+    listFavorites: () => Promise<DocumentLibraryItemRow[]>
+    /** Documents currently checked out in this library. */
+    listCheckoutDocuments: () => Promise<DocumentLibraryItemRow[]>
     getFieldDefinitions: (params: {
         fieldKeys: string[]
     }) => Promise<DocumentLibraryFieldDefinition[]>
@@ -136,9 +140,12 @@ export type DocumentLibraryGraphClient = {
         conflictBehavior?: 'rename' | 'replace' | 'fail'
     }) => Promise<{ uploadedItemIds: string[]; failures: UploadFailure[] }>;
     checkoutItem: (params: { itemId: string }) => Promise<void>;
+    checkinItem: (params: { itemId: string }) => Promise<void>;
     cancelCheckoutItem: (params: { itemId: string }) => Promise<void>;
     favoriteItem: (params: { itemId: string }) => Promise<void>;
     unfavoriteItem: (params: { itemId: string }) => Promise<void>;
+    /** Download file content for export / save-as. */
+    downloadItem: (params: { itemId: string }) => Promise<Blob>;
 }
 
 export type {
@@ -146,5 +153,6 @@ export type {
     DocumentLibraryPropertiesEditTarget,
     DocumentLibraryContextMenuState,
     DocumentLibraryToast,
+    DocumentLibraryDocumentType,
 } from "./documentLibrary";
 

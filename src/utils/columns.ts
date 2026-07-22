@@ -14,7 +14,7 @@ function canonicalColumnKey(column: string) {
     if (normalized === "checkedoutto") return "CheckoutUser";
     if (normalized === "checkincomment") return "_CheckinComment";
     if (normalized === "title") return "Title";
-    if (normalized === "name") return "name";
+    if (normalized === "name") return "Name";
     if (normalized === "created") return "Created";
     if (normalized === "modified") return "Modified";
     return column;

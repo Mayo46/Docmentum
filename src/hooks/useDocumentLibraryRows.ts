@@ -1,14 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
-import type { DocumentLibraryGraphClient, DocumentLibraryItemRow } from "../types";
+import type {
+    DocumentLibraryDocumentType,
+    DocumentLibraryGraphClient,
+    DocumentLibraryItemRow,
+} from "../types";
+
+export type { DocumentLibraryDocumentType };
 
 type UseDocumentLibraryRowsParams = {
     client: DocumentLibraryGraphClient;
     parentDriveItemId: string | undefined;
+    /** Which document set to load. Default: library. */
+    documentType?: DocumentLibraryDocumentType;
 };
 
 export function useDocumentLibraryRows({
     client,
     parentDriveItemId,
+    documentType = "library",
 }: UseDocumentLibraryRowsParams) {
     const [rows, setRows] = useState<DocumentLibraryItemRow[]>([]);
     const [loading, setLoading] = useState(false);
@@ -18,16 +27,32 @@ export function useDocumentLibraryRows({
         setLoading(true);
         setError(null);
         try {
-            const next = await client.listChildren({
-                parentDriveItemId,
-            });
+            let next: DocumentLibraryItemRow[];
+            switch (documentType) {
+                case "favorites":
+                    next = await client.listFavorites();
+                    break;
+                case "checkout":
+                    next = await client.listCheckoutDocuments();
+                    break;
+                case "library":
+                default:
+                    next = await client.listChildren({ parentDriveItemId });
+                    break;
+            }
             setRows(next);
         } catch (e) {
-            setError(e instanceof Error ? e.message : "Failed to load documents");
+            const fallback =
+                documentType === "favorites"
+                    ? "Failed to load favorites"
+                    : documentType === "checkout"
+                      ? "Failed to load checkout documents"
+                      : "Failed to load documents";
+            setError(e instanceof Error ? e.message : fallback);
         } finally {
             setLoading(false);
         }
-    }, [client, parentDriveItemId]);
+    }, [client, parentDriveItemId, documentType]);
 
     useEffect(() => {
         refresh();
@@ -38,5 +63,6 @@ export function useDocumentLibraryRows({
         loading,
         error,
         refresh,
+        documentType,
     };
 }

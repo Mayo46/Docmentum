@@ -68,9 +68,9 @@ export default function GroupRowRenderer(
     const onContextMenu =
         props.context?.canEditProperties && props.context?.onGroupContextMenu
             ? (e: MouseEvent) => {
-                  e.preventDefault();
-                  props.context?.onGroupContextMenu?.(e, data.id);
-              }
+                e.preventDefault();
+                props.context?.onGroupContextMenu?.(e, data.id);
+            }
             : undefined;
 
     return (
@@ -128,44 +128,44 @@ export default function GroupRowRenderer(
                     pl: `${levelPad}px`,
                 }}
             >
-            <IconButton
-                size="small"
-                aria-label={data.expanded ? "Collapse group" : "Expand group"}
-                onClick={() => toggle?.(data.id)}
-                sx={{
-                    flexShrink: 0,
-                    alignSelf: "center",
-                    width: 32,
-                    height: 32,
-                    color: "text.secondary",
-                    "&:hover": { bgcolor: "action.selected" },
-                }}
-            >
-                {data.expanded ? (
-                    <ExpandMoreIcon sx={{ fontSize: 20, display: "block" }} />
-                ) : (
-                    <ChevronRightIcon sx={{ fontSize: 20, display: "block" }} />
-                )}
-            </IconButton>
-            <Typography
-                component="div"
-                variant="body2"
-                sx={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontWeight: 700,
-                    fontSize: "0.8125rem",
-                    lineHeight: 1.35,
-                    letterSpacing: "0.01em",
-                    wordBreak: "break-word",
-                    alignSelf: "center",
-                }}
-            >
-                {data.fieldHeaderName}: {data.groupValue}{" "}
-                <Typography component="span" variant="body2" color="text.secondary" fontWeight={600}>
-                    ({data.childCount})
+                <IconButton
+                    size="small"
+                    aria-label={data.expanded ? "Collapse group" : "Expand group"}
+                    onClick={() => toggle?.(data.id)}
+                    sx={{
+                        flexShrink: 0,
+                        alignSelf: "center",
+                        width: 32,
+                        height: 32,
+                        color: "text.secondary",
+                        "&:hover": { bgcolor: "action.selected" },
+                    }}
+                >
+                    {data.expanded ? (
+                        <ExpandMoreIcon sx={{ fontSize: 20, display: "block" }} />
+                    ) : (
+                        <ChevronRightIcon sx={{ fontSize: 20, display: "block" }} />
+                    )}
+                </IconButton>
+                <Typography
+                    component="div"
+                    variant="body2"
+                    sx={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontWeight: 700,
+                        fontSize: "0.8125rem",
+                        lineHeight: 1.35,
+                        letterSpacing: "0.01em",
+                        wordBreak: "break-word",
+                        alignSelf: "center",
+                    }}
+                >
+                    {data.fieldHeaderName}: {data.groupValue}{" "}
+                    <Typography component="span" variant="body2" color="text.secondary" fontWeight={600}>
+                        ({data.childCount})
+                    </Typography>
                 </Typography>
-            </Typography>
             </Box>
         </Box>
     );

@@ -1,0 +1,35 @@
+export type GraphClientOptions = {
+  driveId?: string;
+  siteUrl?: string;
+  listName?: string;
+  /** Library/list display name used to source Content Type dropdown values. */
+  contentTypesLibrary?: string;
+  columns?: unknown;
+  graphBaseUrl?: string;
+  /** SharePoint user lookup id — scopes checkout queries to that user's checked-out items. */
+  spUserId?: number;
+  /** Return a valid access token for Microsoft Graph. */
+  getAccessToken: () => Promise<string>;
+};
+
+export type LibraryContext = {
+  driveId: string;
+  siteId: string;
+  listId: string;
+};
+
+export type GraphRequestContext = LibraryContext & {
+  accessToken: string;
+};
+
+export type NormalizedPatchProperties = {
+  fieldProperties: Record<string, unknown>;
+  contentTypeId?: string;
+  unresolvedContentTypeName?: string;
+};
+
+export type GraphClientDeps = {
+  graphBaseUrl: string;
+  opts: GraphClientOptions;
+  getContext: () => Promise<GraphRequestContext>;
+};

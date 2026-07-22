@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Snackbar } from "@mui/material";
-import type { DocumentLibraryItemRow, DocumentLibraryProps, DocumentLibraryToast } from "../types";
+import type {
+    DocumentLibraryItemRow,
+    DocumentLibraryProps,
+    DocumentLibraryToast,
+} from "../types";
 import { toastFromFailures } from "../common/helpers";
 import DeleteDialog from "./DeleteDialog";
 import DocumentLibraryContextMenu from "./DocumentLibraryContextMenu";
@@ -39,17 +43,24 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         actions,
         showToolbar,
         dashboardName,
+        onActionLoadingChange,
+        documentType = "library",
     } = props;
 
     const [toast, setToast] = useState<DocumentLibraryToast | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState<DocumentLibraryItemRow | null>(null);
+    const [deleteTarget, setDeleteTarget] =
+        useState<DocumentLibraryItemRow | null>(null);
     const [versionsOpen, setVersionsOpen] = useState(false);
-    const [versionsTarget, setVersionsTarget] = useState<DocumentLibraryItemRow | null>(null);
+    const [versionsTarget, setVersionsTarget] =
+        useState<DocumentLibraryItemRow | null>(null);
     const [uploadOpen, setUploadOpen] = useState(false);
     const [uploadFiles, setUploadFiles] = useState<File[]>([]);
 
-    const onToast = useCallback((next: DocumentLibraryToast) => setToast(next), []);
+    const onToast = useCallback(
+        (next: DocumentLibraryToast) => setToast(next),
+        [],
+    );
 
     const navigation = useDocumentLibraryNavigation({
         libraryRootLabel,
@@ -60,9 +71,14 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     const { rows, loading, error, refresh } = useDocumentLibraryRows({
         client,
         parentDriveItemId: navigation.currentParentDriveItemId,
+        documentType,
     });
 
-    const grouping = useDocumentLibraryGrouping({ rows, columns });
+    const isFlatDashboardView =
+        documentType === "favorites" || documentType === "checkout";
+    const activeColumns = columns;
+
+    const grouping = useDocumentLibraryGrouping({ rows, columns: activeColumns });
 
     const hasEditableProperties = useMemo(
         () => normalizeEditablePropertiesInput(editableProperties).keys.length > 0,
@@ -126,11 +142,13 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     }, []);
 
     const columnDefs = useDocumentLibraryColumnDefs({
-        columns,
+        columns: activeColumns,
         groupingEnabled: grouping.groupingEnabled,
         showRowCheckbox,
-        showActions,
-        navigateInto: navigation.navigateInto,
+        showActions: showActions && !isFlatDashboardView,
+        navigateInto: isFlatDashboardView
+            ? () => undefined
+            : navigation.navigateInto,
         documentUrlFromRow,
         openVersionHistory,
         onDeleteRow,
@@ -167,8 +185,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         () =>
             grouping.gridRows.filter(
                 (row) =>
-                    row.rowType === "data" &&
-                    selection.selectedItemIds.has(row.itemId),
+                    row.rowType === "data" && selection.selectedItemIds.has(row.itemId),
             ),
         [grouping.gridRows, selection.selectedItemIds],
     );
@@ -190,6 +207,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         propertiesValuesLoading,
         propertiesSubmitting,
         openPropertiesEditor,
+        openPropertiesEditorForSelection,
         onRowContextMenu,
         handleSaveProperties,
     } = properties;
@@ -204,18 +222,20 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
                 client={client}
                 onToast={onToast}
                 onRefresh={refresh}
+                onEditProperties={openPropertiesEditorForSelection}
+                onActionLoadingChange={onActionLoadingChange}
             />
             <UploadPannel
-                uploadsEnabled={navigation.uploadsEnabled}
-                showBreadcrumb={showBreadcrumb}
-                showUploadControls={showUploadControls}
+                uploadsEnabled={navigation.uploadsEnabled && !isFlatDashboardView}
+                showBreadcrumb={showBreadcrumb && !isFlatDashboardView}
+                showUploadControls={showUploadControls && !isFlatDashboardView}
                 loading={loading}
                 segments={navigation.segments}
                 onBreadcrumbClick={navigation.onBreadcrumbClick}
                 onSelectFiles={onSelectFiles}
                 onRefresh={refresh}
                 groupByMenu={{
-                    columns: columns.map((c) => ({
+                    columns: activeColumns.map((c) => ({
                         key: c.key,
                         headerName: c.headerName,
                     })),
@@ -231,7 +251,9 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
                     groupingEnabled={grouping.groupingEnabled}
                     gridHeight={gridHeight}
                     gridContext={gridContext}
-                    onRowContextMenu={hasEditableProperties ? onRowContextMenu : undefined}
+                    onRowContextMenu={
+                        hasEditableProperties ? onRowContextMenu : undefined
+                    }
                 />
             </UploadPannel>
 
@@ -296,7 +318,9 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
                 title={
                     propertiesTarget?.kind === "bulk"
                         ? "Edit All properties (group)"
-                        : "Edit properties"
+                        : propertiesTarget?.kind === "selection"
+                            ? "Edit properties (selected)"
+                            : "Edit properties"
                 }
                 subtitle={
                     propertiesTarget?.kind === "bulk"
@@ -306,7 +330,9 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
                             : undefined
                 }
                 submitDisabled={
-                    propertiesTarget?.kind === "bulk" && bulkPropertiesItemIds.length === 0
+                    (propertiesTarget?.kind === "bulk" ||
+                        propertiesTarget?.kind === "selection") &&
+                    bulkPropertiesItemIds.length === 0
                 }
                 definitions={fieldDefinitions}
                 definitionsLoading={fieldDefinitionsLoading}
