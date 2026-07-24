@@ -11,40 +11,19 @@ import type { GraphClientDeps } from "./types";
 
 const DRIVE_ITEM_SELECT = DEFAULT_DRIVE_SELECT_COLUMNS.join(",");
 
-function hasCheckoutUser(fields: Record<string, unknown> | undefined): boolean {
-  if (!fields) return false;
+// function hasCheckoutUser(fields: Record<string, unknown> | undefined): boolean {
+//   if (!fields) return false;
 
-  const lookupId = fields.CheckoutUserLookupId ?? fields.CheckedOutByLookupId;
-  if (lookupId !== null && lookupId !== undefined && lookupId !== "") {
-    return true;
-  }
+//   const lookupId = fields.CheckoutUserLookupId ?? fields.CheckedOutByLookupId;
+//   if (lookupId !== null && lookupId !== undefined && lookupId !== "") {
+//     return true;
+//   }
 
-  const user = fields.CheckoutUser ?? fields.CheckedOutBy ?? fields.CheckedOutTo;
-  if (user === null || user === undefined || user === "") return false;
-  if (typeof user === "object") return Object.keys(user as object).length > 0;
-  return true;
-}
-
-function matchesCheckoutUserFilter(
-  fields: Record<string, unknown> | undefined,
-  spUserId: number | undefined,
-): boolean {
-  if (!fields) return false;
-
-  if (spUserId !== undefined) {
-    const lookupId = fields.CheckoutUserLookupId ?? fields.CheckedOutByLookupId;
-    return String(lookupId) === String(spUserId);
-  }
-
-  return hasCheckoutUser(fields);
-}
-
-function buildCheckoutFilter(spUserId: number | undefined): string {
-  if (spUserId !== undefined) {
-    return `fields/CheckoutUserLookupId eq ${spUserId}`;
-  }
-  return "fields/CheckoutUserLookupId ne null";
-}
+//   const user = fields.CheckoutUser ?? fields.CheckedOutBy ?? fields.CheckedOutTo;
+//   if (user === null || user === undefined || user === "") return false;
+//   if (typeof user === "object") return Object.keys(user as object).length > 0;
+//   return true;
+// }
 
 function mapCheckedOutListItem(
   listItem: Record<string, any>,
@@ -88,25 +67,39 @@ async function fetchListItemPages(params: {
 
 /**
  * Lists documents currently checked out in this library.
- * When `opts.spUserId` is set, only items checked out by that user are returned.
+ * Uses list items where CheckoutUserLookupId is set.
  */
 export function createCheckoutApi(deps: GraphClientDeps) {
-  const { graphBaseUrl, opts, getContext } = deps;
+  const {
+    graphBaseUrl,
+    opts,
+    getContext,
+    getCheckoutUserId,
+  } = deps;
 
   return {
     async listCheckoutDocuments(): Promise<DocumentLibraryItemRow[]> {
       const { accessToken, siteId, listId } = await getContext();
+
       if (!siteId || !listId) {
         throw new Error(
           "Site and list context are required to load checkout documents.",
         );
       }
 
-      const spUserId = opts.spUserId;
+      const checkoutUserId = await getCheckoutUserId();
+
+      if (checkoutUserId === null) {
+        throw new Error(
+          "Unable to resolve the current SharePoint user for checkout documents.",
+        );
+      }
+
       const configuredFields = buildFieldSelect(opts.columns)
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+
       const fieldSelect = Array.from(
         new Set([
           ...configuredFields,
@@ -118,6 +111,7 @@ export function createCheckoutApi(deps: GraphClientDeps) {
           "CheckedOutBy",
         ]),
       ).join(",");
+
       const expand =
         `fields($select=${encodeURIComponent(fieldSelect)})` +
         `,driveItem($select=${encodeURIComponent(DRIVE_ITEM_SELECT)})`;
@@ -126,43 +120,42 @@ export function createCheckoutApi(deps: GraphClientDeps) {
         `${graphBaseUrl}/sites/${encodeURIComponent(siteId)}` +
         `/lists/${encodeURIComponent(listId)}/items`;
 
-      const checkoutFilter = buildCheckoutFilter(spUserId);
-      const filteredUrl =
+      /*
+       * CheckoutUserLookupId is indexed in the supported libraries,
+       * so filter by the current site's resolved SharePoint user ID.
+       */
+      const checkoutUrl =
         `${baseUrl}?$expand=${expand}` +
-        `&$filter=${encodeURIComponent(checkoutFilter)}` +
+        `&$filter=${encodeURIComponent(
+          `fields/CheckoutUserLookupId eq ${checkoutUserId}`,
+        )}` +
         `&$top=200`;
 
       let listItems: Array<Record<string, any>>;
+
       try {
         listItems = await fetchListItemPages({
-          startUrl: filteredUrl,
+          startUrl: checkoutUrl,
           accessToken,
-          preferFilterHeader: true,
         });
-      } catch {
-        // Some libraries reject lookup filters — scan and filter client-side.
-        try {
-          listItems = (
-            await fetchListItemPages({
-              startUrl: `${baseUrl}?$expand=${expand}&$top=200`,
-              accessToken,
-            })
-          ).filter((item) =>
-            matchesCheckoutUserFilter(item.fields, spUserId),
-          );
-        } catch (error) {
-          throw new Error(getAxiosErrorMessage(error));
-        }
+      } catch (error) {
+        throw new Error(getAxiosErrorMessage(error));
       }
 
       const rows: DocumentLibraryItemRow[] = [];
       const seen = new Set<string>();
+
       for (const listItem of listItems) {
         const row = mapCheckedOutListItem(listItem);
-        if (!row || seen.has(row.itemId)) continue;
+
+        if (!row || seen.has(row.itemId)) {
+          continue;
+        }
+
         seen.add(row.itemId);
         rows.push(row);
       }
+
       return rows;
     },
   };

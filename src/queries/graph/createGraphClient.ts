@@ -22,8 +22,8 @@ export function createGraphClient(
   const contentTypesLibraryName =
     opts.contentTypesLibrary?.trim() || "ContentTypesLibraryTest";
 
-  const { getContext } = createLibraryResolver({ graphBaseUrl, opts });
-  const deps = { graphBaseUrl, opts, getContext };
+  const { getContext, getCheckoutUserId } = createLibraryResolver({ graphBaseUrl, opts });
+  const deps = { graphBaseUrl, opts, getContext, getCheckoutUserId };
 
   const contentTypes = createContentTypeHelpers({
     graphBaseUrl,

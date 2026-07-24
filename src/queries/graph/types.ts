@@ -1,3 +1,5 @@
+import type { DocumentLibraryDocumentType } from "../../types";
+
 export type GraphClientOptions = {
   driveId?: string;
   siteUrl?: string;
@@ -5,11 +7,12 @@ export type GraphClientOptions = {
   /** Library/list display name used to source Content Type dropdown values. */
   contentTypesLibrary?: string;
   columns?: unknown;
-  graphBaseUrl?: string;
-  /** SharePoint user lookup id — scopes checkout queries to that user's checked-out items. */
-  spUserId?: number;
+    graphBaseUrl?: string;
   /** Return a valid access token for Microsoft Graph. */
   getAccessToken: () => Promise<string>;
+  /** SharePoint user lookup email — scopes checkout queries to that user's checked-out items. */
+  userEmail?: string;
+  documentType?: DocumentLibraryDocumentType;
 };
 
 export type LibraryContext = {
@@ -32,4 +35,5 @@ export type GraphClientDeps = {
   graphBaseUrl: string;
   opts: GraphClientOptions;
   getContext: () => Promise<GraphRequestContext>;
+  getCheckoutUserId: () => Promise<number | null>;
 };

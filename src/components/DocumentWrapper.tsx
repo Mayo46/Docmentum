@@ -62,8 +62,8 @@ export type DocumentWrapperProps = {
   /** Which document source to fetch @default "library" */
   documentType?: DocumentLibraryDocumentType;
   
-  /** When provided, only documents checked out by this SharePoint user are shown. */
-  spUserId?: number;
+  /** When provided, only documents checked out by this user are shown. */
+  userEmail?: string;
 };
 
 export default function DocumentWrapper(props: DocumentWrapperProps) {
@@ -85,7 +85,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     onActionLoadingChange,
     dashboardName = "",
     documentType = "library",
-    spUserId,
+    userEmail,
   } = props;
   const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
   const [resolveError, setResolveError] = useState<string | null>(null);
@@ -157,7 +157,8 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
       listName,
       contentTypesLibrary,
       columns: normalizedColumns,
-      spUserId,
+      userEmail,
+      documentType,
       getAccessToken: async () => graphToken,
     });
   }, [
@@ -166,7 +167,8 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     listName,
     contentTypesLibrary,
     normalizedColumns,
-    spUserId,
+    userEmail,
+    documentType,
   ]);
 
   useEffect(() => {

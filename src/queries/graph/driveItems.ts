@@ -26,27 +26,38 @@ export function createDriveItemsApi(deps: GraphClientDeps) {
 
     async listChildren({ parentDriveItemId }: { parentDriveItemId?: string }) {
       const { accessToken, driveId } = await getContext();
+
       const selectClause = buildDriveItemSelect(opts.columns);
       const fieldSelectClause = buildFieldSelect(opts.columns);
+
       let nextUrl =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
         `${parentDriveItemId ? `/items/${encodeURIComponent(parentDriveItemId)}` : "/root"}/children` +
         `?$select=${encodeURIComponent(selectClause)}` +
         `&$expand=listItem($expand=fields($select=${encodeURIComponent(fieldSelectClause)}))`;
+
       const rows: DocumentLibraryItemRow[] = [];
 
       while (nextUrl) {
-        let json: { value?: unknown[]; ["@odata.nextLink"]?: string };
+        let json: {
+          value?: unknown[];
+          ["@odata.nextLink"]?: string;
+        };
+
         try {
           const res = await axios.get(nextUrl, {
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           });
+
           json = res.data;
         } catch (error) {
           throw new Error(getAxiosErrorMessage(error));
         }
 
         const items = (json?.value ?? []) as Array<Record<string, any>>;
+
         for (const item of items) {
           rows.push(mapDriveItemToRow(item));
         }
@@ -103,23 +114,21 @@ export function createDriveItemsApi(deps: GraphClientDeps) {
       await graphRequestNoJson({ url, method: "POST", accessToken });
     },
 
-    async downloadItem({ itemId }: { itemId: string }): Promise<Blob> {
+    async downloadItem({ itemId }: { itemId: string }) {
       const { accessToken, driveId } = await getContext();
+
       const url =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
         `/items/${encodeURIComponent(itemId)}/content`;
 
-      try {
-        const response = await axios.get(url, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          responseType: "blob",
-        });
-        return response.data as Blob;
-      } catch (error) {
-        throw new Error(getAxiosErrorMessage(error));
-      }
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        responseType: "blob",
+      });
+
+      return response.data;
     },
   };
 }
