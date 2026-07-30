@@ -1,5 +1,8 @@
 import axios from "axios";
-import type { DocumentLibraryItemRow } from "../../types";
+import type {
+  DocumentLibraryItemRow,
+  DocumentLibraryItemsPage,
+} from "../../types";
 import { buildDriveItemSelect, buildFieldSelect } from "../../utils/columns";
 import { getAxiosErrorMessage, graphRequestNoJson } from "./graphRequest";
 import { mapDriveItemToRow } from "./mapDriveItem";
@@ -66,6 +69,88 @@ export function createDriveItemsApi(deps: GraphClientDeps) {
       }
 
       return rows;
+    },
+
+    async getChildrenCount({
+      parentDriveItemId,
+    }: {
+      parentDriveItemId?: string;
+    }): Promise<number> {
+      const { accessToken, driveId } = await getContext();
+
+      const url = parentDriveItemId
+        ? `${graphBaseUrl}/drives/${encodeURIComponent(
+            driveId,
+          )}/items/${encodeURIComponent(parentDriveItemId)}?$select=id,folder`
+        : `${graphBaseUrl}/drives/${encodeURIComponent(
+            driveId,
+          )}/root?$select=id,folder`;
+
+      try {
+        const res = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        return res.data?.folder?.childCount ?? 0;
+      } catch (error) {
+        throw new Error(getAxiosErrorMessage(error));
+      }
+    },
+
+    async listChildrenPage({
+      parentDriveItemId,
+      nextLink,
+    }: {
+      parentDriveItemId?: string;
+      nextLink?: string;
+    }): Promise<DocumentLibraryItemsPage> {
+      const { accessToken, driveId } = await getContext();
+
+      const selectClause = buildDriveItemSelect(opts.columns);
+      const fieldSelectClause = buildFieldSelect(opts.columns);
+
+      /*
+       * If nextLink is provided, Graph has already built the URL
+       * for the next page, so use it directly.
+       *
+       * Otherwise, build the initial children request.
+       */
+      const url =
+        nextLink ??
+        `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
+          `${
+            parentDriveItemId
+              ? `/items/${encodeURIComponent(parentDriveItemId)}`
+              : "/root"
+          }/children` +
+          `?$select=${encodeURIComponent(selectClause)}` +
+          `&$expand=listItem($expand=fields($select=${encodeURIComponent(
+            fieldSelectClause,
+          )}))`;
+
+      try {
+        const res = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        const json = res.data as {
+          value?: Array<Record<string, any>>;
+          ["@odata.nextLink"]?: string;
+        };
+
+        const rows = (json.value ?? []).map((item) => mapDriveItemToRow(item));
+
+        return {
+          rows,
+          nextLink: json["@odata.nextLink"],
+        };
+      } catch (error) {
+        throw new Error(getAxiosErrorMessage(error));
+      }
     },
 
     async deleteItem({ itemId }: { itemId: string }) {

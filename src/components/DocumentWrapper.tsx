@@ -42,8 +42,12 @@ export type DocumentWrapperProps = {
   /** Controls whether row selection checkboxes are displayed. */
   showRowCheckbox?: boolean;
 
+  /** Grid viewport height as pixels or a CSS height value. */
+  gridHeight?: number | string;
+
   /** List of document properties that can be edited by users. */
   editableProperties?: unknown;
+
   /** Returns the currently selected document rows. */
   onSelectionChange?: (rows: DocumentLibraryGridRow[]) => void;
 
@@ -53,7 +57,7 @@ export type DocumentWrapperProps = {
   /** Controls which document actions are available in the action menu. */
   actions?: DocumentLibraryActions;
 
-  /** Toolbar / tab display title only  */
+  /** Toolbar / tab display title only. */
   dashboardName?: string;
 
   /** Notifies the consuming application when a document action starts or finishes. */
@@ -61,8 +65,8 @@ export type DocumentWrapperProps = {
 
   /** Which document source to fetch @default "library" */
   documentType?: DocumentLibraryDocumentType;
-  
-  /** When provided, only documents checked out by this user are shown. */
+
+  /** Current user's email/UPN used to resolve the site-specific SharePoint user ID for checkout documents. */
   userEmail?: string;
 };
 
@@ -86,6 +90,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     dashboardName = "",
     documentType = "library",
     userEmail,
+    gridHeight
   } = props;
   const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
   const [resolveError, setResolveError] = useState<string | null>(null);
@@ -157,9 +162,9 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
       listName,
       contentTypesLibrary,
       columns: normalizedColumns,
-      userEmail,
-      documentType,
       getAccessToken: async () => graphToken,
+      userEmail,
+      documentType
     });
   }, [
     graphToken,
@@ -168,7 +173,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     contentTypesLibrary,
     normalizedColumns,
     userEmail,
-    documentType,
+    documentType
   ]);
 
   useEffect(() => {
@@ -237,6 +242,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
             dashboardName={dashboardName}
             onActionLoadingChange={onActionLoadingChange}
             documentType={documentType}
+            gridHeight={gridHeight}
           />
         ) : null}
       </Stack>
