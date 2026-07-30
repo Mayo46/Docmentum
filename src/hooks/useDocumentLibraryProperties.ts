@@ -46,7 +46,9 @@ export function useDocumentLibraryProperties({
     [JSON.stringify(editableProperties ?? null)],
   );
   const editableKeysSignature = editableKeys.join("|");
-  const hasEditableProperties = editableKeys.length > 0;
+  // Property editing is always available; when no explicit keys are configured the
+  // form falls back to showing all available columns (read-only ones stay disabled).
+  const hasEditableProperties = true;
   const uploadPrefillSignature = useMemo(
     () => JSON.stringify(uploadPrefillProperties ?? {}),
     [uploadPrefillProperties],
@@ -67,6 +69,9 @@ export function useDocumentLibraryProperties({
 
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
+
+  const fieldDefinitionsRef = useRef(fieldDefinitions);
+  fieldDefinitionsRef.current = fieldDefinitions;
 
   const openPropertiesEditor = useCallback(
     (target: DocumentLibraryPropertiesEditTarget) => {
@@ -175,11 +180,12 @@ export function useDocumentLibraryProperties({
       return;
     }
 
-    if (!propertiesItemId || editableKeys.length === 0) return;
+    if (!propertiesItemId) return;
 
     let cancelled = false;
     setPropertiesValuesLoading(true);
     client
+      // Empty keys => fetch all field values for the item.
       .getListItemFieldValues({
         itemId: propertiesItemId,
         fieldKeys: editableKeys,
@@ -192,8 +198,12 @@ export function useDocumentLibraryProperties({
           const row = rowsRef.current.find(
             (r) => r.itemId === propertiesItemId,
           );
+          const fallbackKeys =
+            editableKeys.length > 0
+              ? editableKeys
+              : fieldDefinitionsRef.current.map((d) => d.key);
           const fallback: Record<string, unknown> = {};
-          for (const key of editableKeys) {
+          for (const key of fallbackKeys) {
             fallback[key] = row ? getCellValue(row, key) : "";
           }
           setPropertiesInitialValues(fallback);

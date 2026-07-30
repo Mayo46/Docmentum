@@ -19,7 +19,6 @@ import { useDocumentLibraryNavigation } from "../hooks/useDocumentLibraryNavigat
 import { useDocumentLibraryProperties } from "../hooks/useDocumentLibraryProperties";
 import { useDocumentLibraryRows } from "../hooks/useDocumentLibraryRows";
 import { useDocumentLibrarySelection } from "../hooks/useDocumentLibrarySelection";
-import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
 import type { DocumentLibraryGridAgContext } from "../common/GroupRowRenderer";
 import DocumentLibraryToolbar from "./DocumentLibraryToolbar";
 
@@ -89,10 +88,9 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
 
   const grouping = useDocumentLibraryGrouping({ rows, columns: activeColumns });
 
-  const hasEditableProperties = useMemo(
-    () => normalizeEditablePropertiesInput(editableProperties).keys.length > 0,
-    [JSON.stringify(editableProperties ?? null)],
-  );
+  // Property editing is always available; the drawer shows all columns by default
+  // (or the configured `editableProperties` subset), respecting per-field read-only.
+  const hasEditableProperties = true;
 
   const selection = useDocumentLibrarySelection({
     rows,

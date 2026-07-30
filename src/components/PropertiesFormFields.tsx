@@ -17,6 +17,16 @@ import {
 
 export type PropertyFormValues = Record<string, string | boolean | string[]>;
 
+const editableFieldSx = {
+    backgroundColor: "white",
+    borderRadius: 1,
+};
+
+const readOnlyFieldSx = {
+    backgroundColor: "#e9ecef",
+    borderRadius: 1,
+};
+
 type Props = {
     definitions: DocumentLibraryFieldDefinition[];
     values: PropertyFormValues;
@@ -41,6 +51,7 @@ export function formValuesToPatchPayload(
 ): Record<string, unknown> {
     const out: Record<string, unknown> = {};
     for (const def of definitions) {
+        if (def.readOnly) continue;
         const raw = values[def.key];
         if (raw === undefined) continue;
         if (def.fieldType === "text" || def.fieldType === "multiline") {
@@ -65,6 +76,8 @@ export default function PropertiesFormFields({
         <Stack spacing={2}>
             {definitions.map((def) => {
                 const value = values[def.key];
+                const isReadOnly = !!def.readOnly;
+                const fieldSx = isReadOnly ? readOnlyFieldSx : editableFieldSx;
 
                 if (def.fieldType === "boolean") {
                     return (
@@ -73,7 +86,7 @@ export default function PropertiesFormFields({
                             control={
                                 <Checkbox
                                     checked={!!value}
-                                    disabled={disabled}
+                                    disabled={disabled || isReadOnly}
                                     onChange={(e) => setKey(def.key, e.target.checked)}
                                 />
                             }
@@ -92,21 +105,33 @@ export default function PropertiesFormFields({
                                 options={def.choices}
                                 value={selected}
                                 disabled={disabled}
+                                readOnly={isReadOnly}
                                 onChange={(_, next) => setKey(def.key, next)}
                                 renderInput={(params) => (
-                                    <TextField {...params} label={def.displayName} size="small" />
+                                    <TextField
+                                        {...params}
+                                        label={def.displayName}
+                                        size="small"
+                                        sx={fieldSx}
+                                        slotProps={{ inputLabel: { shrink: true } }}
+                                    />
                                 )}
                             />
                         );
                     }
                     return (
                         <FormControl key={def.key} fullWidth size="small" disabled={disabled}>
-                            <InputLabel id={`${def.key}-label`}>{def.displayName}</InputLabel>
+                            <InputLabel id={`${def.key}-label`} shrink>
+                                {def.displayName}
+                            </InputLabel>
                             <Select
                                 labelId={`${def.key}-label`}
                                 label={def.displayName}
+                                readOnly={isReadOnly}
+                                displayEmpty
                                 value={typeof value === "string" ? value : ""}
                                 onChange={(e) => setKey(def.key, String(e.target.value))}
+                                sx={fieldSx}
                             >
                                 <MenuItem value="">
                                     <em>None</em>
@@ -131,7 +156,11 @@ export default function PropertiesFormFields({
                             disabled={disabled}
                             value={value === undefined || value === null ? "" : String(value)}
                             onChange={(e) => setKey(def.key, e.target.value)}
-                            InputLabelProps={{ shrink: true }}
+                            sx={fieldSx}
+                            slotProps={{
+                                input: { readOnly: isReadOnly },
+                                inputLabel: { shrink: true },
+                            }}
                         />
                     );
                 }
@@ -146,7 +175,11 @@ export default function PropertiesFormFields({
                             disabled={disabled}
                             value={typeof value === "string" ? value : ""}
                             onChange={(e) => setKey(def.key, e.target.value)}
-                            InputLabelProps={{ shrink: true }}
+                            sx={fieldSx}
+                            slotProps={{
+                                input: { readOnly: isReadOnly },
+                                inputLabel: { shrink: true },
+                            }}
                         />
                     );
                 }
@@ -161,7 +194,11 @@ export default function PropertiesFormFields({
                         minRows={def.fieldType === "multiline" ? 2 : undefined}
                         value={typeof value === "string" ? value : ""}
                         onChange={(e) => setKey(def.key, e.target.value)}
-                        InputLabelProps={{ shrink: true }}
+                        sx={fieldSx}
+                        slotProps={{
+                            input: { readOnly: isReadOnly },
+                            inputLabel: { shrink: true },
+                        }}
                     />
                 );
             })}

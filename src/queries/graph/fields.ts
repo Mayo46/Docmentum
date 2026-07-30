@@ -5,6 +5,7 @@ import type {
 import { normalizeLookupKey } from "../../utils/columns";
 import {
   fallbackFieldDefinition,
+  isHiddenGraphListColumn,
   parseGraphListColumn,
 } from "../../utils/fieldDefinitions";
 import { resolveRequestedFieldKeys } from "./helpers";
@@ -20,13 +21,16 @@ export function createFieldsApi(
   let cachedListColumns: unknown[] | null = null;
 
   return {
-    async getFieldDefinitions({ fieldKeys }: { fieldKeys: string[] }) {
+    async getFieldDefinitions({ fieldKeys = [] }: { fieldKeys?: string[] } = {}) {
       const { accessToken, siteId, listId } = await getContext();
       const requested = resolveRequestedFieldKeys(fieldKeys);
-      if (requested.size === 0) return [];
+      // No specific keys requested => surface every available (non-hidden) column.
+      const returnAll = requested.size === 0;
 
       if (!siteId || !listId) {
-        return fieldKeys.map((k) => fallbackFieldDefinition(k.trim()));
+        return returnAll
+          ? []
+          : fieldKeys.map((k) => fallbackFieldDefinition(k.trim()));
       }
 
       let columnRows = cachedListColumns;
@@ -41,6 +45,41 @@ export function createFieldsApi(
         });
         columnRows = json.value ?? [];
         cachedListColumns = columnRows;
+      }
+
+      // Resolve ContentType choices once, reused whether returning all or a subset.
+      const resolveContentTypeChoices = async () => {
+        try {
+          return await contentTypes.getContentTypeChoices({ accessToken, siteId });
+        } catch {
+          return [];
+        }
+      };
+
+      const withContentTypeChoices = async (
+        def: DocumentLibraryFieldDefinition,
+      ): Promise<DocumentLibraryFieldDefinition> => {
+        if (normalizeLookupKey(def.key) !== "contenttype") return def;
+        const choices = await resolveContentTypeChoices();
+        if (choices.length === 0) return def;
+        return {
+          ...def,
+          fieldType: "choice",
+          choices,
+          allowMultipleChoices: false,
+        };
+      };
+
+      if (returnAll) {
+        const out: DocumentLibraryFieldDefinition[] = [];
+        for (const col of columnRows) {
+          const raw = col as Parameters<typeof parseGraphListColumn>[0];
+          if (isHiddenGraphListColumn(raw)) continue;
+          const def = parseGraphListColumn(raw);
+          if (!def) continue;
+          out.push(await withContentTypeChoices(def));
+        }
+        return out;
       }
 
       const parsed = new Map<string, DocumentLibraryFieldDefinition>();
@@ -59,26 +98,7 @@ export function createFieldsApi(
       for (const [, canonKey] of requested) {
         const norm = normalizeLookupKey(canonKey);
         const baseDef = parsed.get(norm) ?? fallbackFieldDefinition(canonKey);
-        if (norm === "contenttype") {
-          try {
-            const choices = await contentTypes.getContentTypeChoices({
-              accessToken,
-              siteId,
-            });
-            if (choices.length > 0) {
-              out.push({
-                ...baseDef,
-                fieldType: "choice",
-                choices,
-                allowMultipleChoices: false,
-              });
-              continue;
-            }
-          } catch {
-            // Keep original field definition as fallback when CT lookup fails.
-          }
-        }
-        out.push(baseDef);
+        out.push(await withContentTypeChoices(baseDef));
       }
       return out;
     },
@@ -92,13 +112,16 @@ export function createFieldsApi(
     }) {
       const { accessToken, driveId } = await getContext();
       const keys = fieldKeys.map((k) => k.trim()).filter(Boolean);
-      if (keys.length === 0) return {};
 
-      const select = keys.map(encodeURIComponent).join(",");
-      const url =
+      const baseUrl =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
-        `/items/${encodeURIComponent(itemId)}/listItem/fields` +
-        `?$select=${select}`;
+        `/items/${encodeURIComponent(itemId)}/listItem/fields`;
+
+      // No explicit keys => return every field value for the item.
+      const url =
+        keys.length === 0
+          ? baseUrl
+          : `${baseUrl}?$select=${keys.map(encodeURIComponent).join(",")}`;
 
       return graphRequest<Record<string, unknown>>({
         url,

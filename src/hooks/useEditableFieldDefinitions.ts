@@ -32,7 +32,7 @@ export function useEditableFieldDefinitions({
     const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
-        if (!client || keys.length === 0) {
+        if (!client) {
             setDefinitions([]);
             setError(null);
             return;
@@ -40,12 +40,15 @@ export function useEditableFieldDefinitions({
         setLoading(true);
         setError(null);
         try {
+            // Empty keys => load all available columns (respecting per-field read-only).
             const defs = await client.getFieldDefinitions({ fieldKeys: keys });
             setDefinitions(
-                defs.map((d) => ({
-                    ...d,
-                    displayName: labelOverrides.get(d.key) ?? d.displayName,
-                })),
+                labelOverrides.size === 0
+                    ? defs
+                    : defs.map((d) => ({
+                          ...d,
+                          displayName: labelOverrides.get(d.key) ?? d.displayName,
+                      })),
             );
         } catch (e) {
             setError(e instanceof Error ? e.message : "Failed to load field definitions");

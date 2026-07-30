@@ -40,6 +40,8 @@ export type DocumentLibraryFieldDefinition = {
     fieldType: DocumentLibraryFieldType
     choices?: string[]
     allowMultipleChoices?: boolean
+    /** True when the SharePoint column is read-only; rendered disabled and excluded from updates. */
+    readOnly?: boolean
 }
 
 export type FieldUpdateFailure = {
@@ -113,7 +115,8 @@ export type DocumentLibraryGraphClient = {
     /** Documents currently checked out in this library. */
     listCheckoutDocuments: () => Promise<DocumentLibraryItemRow[]>
     getFieldDefinitions: (params: {
-        fieldKeys: string[]
+        /** When omitted or empty, returns all available (non-hidden) list columns. */
+        fieldKeys?: string[]
     }) => Promise<DocumentLibraryFieldDefinition[]>
     getListItemFieldValues: (params: {
         itemId: string

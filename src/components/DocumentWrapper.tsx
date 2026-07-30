@@ -82,7 +82,8 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     showBreadcrumb = true,
     showUploadControls = true,
     showRowCheckbox = true,
-    editableProperties = ["Title"],
+    // When omitted, the properties form shows all available columns (read-only respected).
+    editableProperties,
     onSelectionChange,
     showToolbar = false,
     actions,

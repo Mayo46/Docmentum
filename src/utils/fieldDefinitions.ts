@@ -8,6 +8,8 @@ type GraphListColumn = {
     name?: string;
     displayName?: string;
     columnType?: string;
+    readOnly?: boolean;
+    hidden?: boolean;
     choice?: {
         choices?: string[];
         allowTextEntry?: boolean;
@@ -19,17 +21,17 @@ type GraphListColumn = {
     boolean?: unknown;
 };
 
-export function parseGraphListColumn(col: GraphListColumn): DocumentLibraryFieldDefinition | null {
-    const key = col.name?.trim();
-    if (!key) return null;
+/** True when a Graph list column should never be surfaced in the properties form. */
+export function isHiddenGraphListColumn(col: GraphListColumn): boolean {
+    return col.hidden === true;
+}
 
-    const displayName = col.displayName?.trim() || key;
-    const columnType = (col.columnType ?? "").toLowerCase();
-
+function resolveFieldType(
+    columnType: string,
+    col: GraphListColumn,
+): Pick<DocumentLibraryFieldDefinition, "fieldType" | "choices" | "allowMultipleChoices"> {
     if (columnType === "choice" && col.choice?.choices?.length) {
         return {
-            key,
-            displayName,
             fieldType: "choice",
             choices: [...col.choice.choices],
             allowMultipleChoices: false,
@@ -37,24 +39,39 @@ export function parseGraphListColumn(col: GraphListColumn): DocumentLibraryField
     }
 
     if (columnType === "number" || columnType === "currency") {
-        return { key, displayName, fieldType: "number" };
+        return { fieldType: "number" };
     }
 
     if (columnType === "datetime" || columnType === "date") {
-        return { key, displayName, fieldType: "date" };
+        return { fieldType: "date" };
     }
 
     if (columnType === "boolean") {
-        return { key, displayName, fieldType: "boolean" };
+        return { fieldType: "boolean" };
     }
 
     if (columnType === "text" || columnType === "note" || columnType === "") {
         const multiline =
             columnType === "note" || col.text?.allowMultipleLines === true;
-        return { key, displayName, fieldType: multiline ? "multiline" : "text" };
+        return { fieldType: multiline ? "multiline" : "text" };
     }
 
-    return { key, displayName, fieldType: "text" };
+    return { fieldType: "text" };
+}
+
+export function parseGraphListColumn(col: GraphListColumn): DocumentLibraryFieldDefinition | null {
+    const key = col.name?.trim();
+    if (!key) return null;
+
+    const displayName = col.displayName?.trim() || key;
+    const columnType = (col.columnType ?? "").toLowerCase();
+
+    return {
+        key,
+        displayName,
+        readOnly: col.readOnly === true,
+        ...resolveFieldType(columnType, col),
+    };
 }
 
 /** Fallback when Graph column metadata is unavailable (e.g. custom field). */
@@ -120,6 +137,8 @@ export function filterFieldDefinitionsForUpload(
     definitions: DocumentLibraryFieldDefinition[],
 ): DocumentLibraryFieldDefinition[] {
     return definitions.filter(
-        (d) => !UPLOAD_RESERVED_FIELD_KEYS.has(normalizeLookupKey(d.key)),
+        (d) =>
+            !d.readOnly &&
+            !UPLOAD_RESERVED_FIELD_KEYS.has(normalizeLookupKey(d.key)),
     );
 }
