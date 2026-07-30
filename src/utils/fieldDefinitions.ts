@@ -4,6 +4,23 @@ import { normalizeLookupKey } from "./columns";
 /** List fields handled by dedicated upload UI — omit from editable property form on upload. */
 const UPLOAD_RESERVED_FIELD_KEYS = new Set(["contenttype"]);
 
+/**
+ * Fields that identify a single item (the file name) and therefore cannot be applied
+ * across a bulk/multi-selection update — doing so makes SharePoint reject the request
+ * with `nameAlreadyExists` since two files can't share a name in the same folder.
+ */
+const PER_ITEM_UNIQUE_FIELD_KEYS = new Set([
+    "name",
+    "fileleafref",
+    "filename",
+    "linkfilename",
+    "linkfilenamenomenu",
+]);
+
+export function isPerItemUniqueField(key: string): boolean {
+    return PER_ITEM_UNIQUE_FIELD_KEYS.has(normalizeLookupKey(key));
+}
+
 type GraphListColumn = {
     name?: string;
     displayName?: string;

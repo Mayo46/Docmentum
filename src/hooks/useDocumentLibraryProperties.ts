@@ -12,6 +12,7 @@ import { toastFromFieldUpdateFailures } from "../common/helpers";
 import { useEditableFieldDefinitions } from "./useEditableFieldDefinitions";
 import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
 import { getCellValue } from "../utils/columns";
+import { isPerItemUniqueField } from "../utils/fieldDefinitions";
 import {
   getGroupLabel,
   resolveBulkSelectedItemIds,
@@ -160,34 +161,44 @@ export function useDocumentLibraryProperties({
     return [];
   }, [propertiesTarget, groupTree, selectedItemIds]);
 
-  const propertiesItemId =
-    propertiesTarget?.kind === "item" ? propertiesTarget.itemId : null;
-  const propertiesBulkKey =
-    propertiesTarget?.kind === "bulk"
-      ? `${propertiesTarget.groupId}:${bulkPropertiesItemIds.join(",")}`
+  // The item whose current values seed the drawer. For bulk/selection targets we
+  // prefill from the first selected item so users edit against real values, not blanks.
+  const primaryItemId =
+    propertiesTarget?.kind === "item"
+      ? propertiesTarget.itemId
       : propertiesTarget?.kind === "selection"
-        ? `selection:${propertiesTarget.itemIds.join(",")}`
-        : null;
+        ? propertiesTarget.itemIds[0] ?? null
+        : propertiesTarget?.kind === "bulk"
+          ? bulkPropertiesItemIds[0] ?? null
+          : null;
+
+  const isMultiItemTarget =
+    propertiesTarget?.kind === "bulk" || propertiesTarget?.kind === "selection";
+
+  // The file-name field can't be applied to multiple items (it must stay unique per
+  // item), so surface it as read-only when editing a bulk/multi selection.
+  const propertiesDefinitions = useMemo(() => {
+    if (!isMultiItemTarget) return fieldDefinitions;
+    return fieldDefinitions.map((def) =>
+      isPerItemUniqueField(def.key) ? { ...def, readOnly: true } : def,
+    );
+  }, [fieldDefinitions, isMultiItemTarget]);
 
   useEffect(() => {
     if (!propertiesTarget) return;
 
-    if (
-      propertiesTarget.kind === "bulk" ||
-      propertiesTarget.kind === "selection"
-    ) {
+    // No resolvable item (e.g. empty selection) — fall back to any configured prefill.
+    if (!primaryItemId) {
       setPropertiesInitialValues(uploadPrefillProperties ?? {});
       return;
     }
-
-    if (!propertiesItemId) return;
 
     let cancelled = false;
     setPropertiesValuesLoading(true);
     client
       // Empty keys => fetch all field values for the item.
       .getListItemFieldValues({
-        itemId: propertiesItemId,
+        itemId: primaryItemId,
         fieldKeys: editableKeys,
       })
       .then((values) => {
@@ -195,9 +206,7 @@ export function useDocumentLibraryProperties({
       })
       .catch(() => {
         if (!cancelled) {
-          const row = rowsRef.current.find(
-            (r) => r.itemId === propertiesItemId,
-          );
+          const row = rowsRef.current.find((r) => r.itemId === primaryItemId);
           const fallbackKeys =
             editableKeys.length > 0
               ? editableKeys
@@ -217,8 +226,7 @@ export function useDocumentLibraryProperties({
       cancelled = true;
     };
   }, [
-    propertiesItemId,
-    propertiesBulkKey,
+    primaryItemId,
     editableKeysSignature,
     client,
     uploadPrefillSignature,
@@ -242,9 +250,19 @@ export function useDocumentLibraryProperties({
           });
           return;
         }
+        // Never bulk-apply the file-name field: it must stay unique per item, otherwise
+        // SharePoint rejects the request with `nameAlreadyExists`.
+        const payload =
+          itemIds.length > 1
+            ? Object.fromEntries(
+                Object.entries(properties).filter(
+                  ([key]) => !isPerItemUniqueField(key),
+                ),
+              )
+            : properties;
         const result = await client.updateListItemFields({
           itemIds,
-          properties,
+          properties: payload,
         });
         if (result.failures.length > 0) {
           onToast({
@@ -272,6 +290,7 @@ export function useDocumentLibraryProperties({
   return {
     hasEditableProperties,
     fieldDefinitions,
+    propertiesDefinitions,
     fieldDefinitionsLoading,
     contextMenu,
     setContextMenu,

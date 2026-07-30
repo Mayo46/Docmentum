@@ -203,6 +203,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
 
   const {
     fieldDefinitions,
+    propertiesDefinitions,
     fieldDefinitionsLoading,
     contextMenu,
     setContextMenu,
@@ -346,7 +347,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
             propertiesTarget?.kind === "selection") &&
           bulkPropertiesItemIds.length === 0
         }
-        definitions={fieldDefinitions}
+        definitions={propertiesDefinitions}
         definitionsLoading={fieldDefinitionsLoading}
         initialValues={propertiesInitialValues}
         valuesLoading={propertiesValuesLoading}
