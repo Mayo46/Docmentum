@@ -1,0 +1,70 @@
+---
+description: React Frontend Development Standards
+globs: frontend/src/**/*.{tsx,ts}
+alwaysApply: false
+---
+
+# React Frontend Rules
+
+## Component Standards
+- Functional components only
+- Props interface defined above component
+- Memoize with React.memo() when appropriate
+- Use named exports
+
+## TypeScript Standards
+- No `any` types - use `unknown` if type truly unknown
+- Define interfaces for all props, state, API responses
+- Use enums for fixed value sets
+- Prefer `type` for unions, `interface` for objects
+
+## Hook Standards
+- Custom hooks start with `use` prefix
+- Extract complex state logic to custom hooks
+- Use useCallback for event handlers passed to children
+- Use useMemo for expensive computations
+
+## API Integration
+- Use axios or fetch with typed responses
+- Handle loading, error, success states
+- Use React Query or SWR for caching (if added)
+- Centralize API calls in services/ folder
+
+## Component Pattern
+```tsx
+interface ContractorCardProps {
+  contractor: Contractor;
+  onSelect: (id: number) => void;
+}
+
+export const ContractorCard = memo(function ContractorCard({
+  contractor,
+  onSelect,
+}: ContractorCardProps) {
+  const handleClick = useCallback(() => {
+    onSelect(contractor.id);
+  }, [contractor.id, onSelect]);
+
+  return (
+    <Card onClick={handleClick}>
+      <Typography>{contractor.company_name}</Typography>
+    </Card>
+  );
+});
+```
+
+## State Management
+- Use React Context for global state (auth, theme)
+- Use useState for component-local state
+- Use useReducer for complex state logic
+- Avoid prop drilling > 2 levels deep
+
+## Error Handling
+- Use Error Boundaries for component errors
+- Display user-friendly error messages
+- Log errors for debugging
+- Provide retry mechanisms where appropriate
+
+## Line of Code 
+- component code not exceed the 250 line 
+- use modularize approach

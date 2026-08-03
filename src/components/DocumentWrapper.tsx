@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Box, Container, Stack, Typography } from "@mui/material";
+import { Alert, Box, Stack, Typography } from "@mui/material";
 import DocumentLibraryGrid from "./DocumentLibrary";
 import type {
   DocumentLibraryColumn,
@@ -116,7 +116,6 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     [],
   );
 
-  const uploadPrefillProperties = useMemo(() => ({ Title: "New upload" }), []);
   const columnsSignature = JSON.stringify(columns ?? null);
   const normalizedColumns = useMemo(
     () => normalizeColumnsInput(columns),
@@ -197,7 +196,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
   const isResolving = !!(graphClient && documentSetName && !docSetItemId);
 
   return (
-    <Container sx={{ py: 3 }}>
+    <Box sx={{ py: 3, width: "100%" }}>
       <Stack spacing={2}>
         {!graphClient ? (
           <Alert severity="warning">
@@ -236,7 +235,6 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
             documentClientUrlFieldKey="DocumentClientUrl"
             columns={gridColumns}
             editableProperties={editableProperties}
-            uploadPrefillProperties={uploadPrefillProperties}
             onSelectionChange={onSelectionChange}
             showToolbar={showToolbar}
             actions={actions}
@@ -247,6 +245,6 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
           />
         ) : null}
       </Stack>
-    </Container>
+    </Box>
   );
 }

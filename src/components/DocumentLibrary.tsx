@@ -5,12 +5,11 @@ import type {
   DocumentLibraryProps,
   DocumentLibraryToast,
 } from "../types";
-import { toastFromFailures } from "../common/helpers";
 import DeleteDialog from "./DeleteDialog";
 import DocumentLibraryContextMenu from "./DocumentLibraryContextMenu";
 import DocumentsTable from "./DocumentsTable";
+import FileSelectionDialog from "./FileSelectionDialog";
 import PropertiesDrawer from "./PropertiesDrawer";
-import UploadDialog from "./UploadDialog";
 import UploadPannel from "./UploadPannel";
 import VersionHistoryDialog from "./VersionHistoryDialog";
 import { useDocumentLibraryColumnDefs } from "../hooks/useDocumentLibraryColumnDefs";
@@ -19,6 +18,7 @@ import { useDocumentLibraryNavigation } from "../hooks/useDocumentLibraryNavigat
 import { useDocumentLibraryProperties } from "../hooks/useDocumentLibraryProperties";
 import { useDocumentLibraryRows } from "../hooks/useDocumentLibraryRows";
 import { useDocumentLibrarySelection } from "../hooks/useDocumentLibrarySelection";
+import { useUploadDialog } from "../hooks/useUploadDialog";
 import type { DocumentLibraryGridAgContext } from "../common/GroupRowRenderer";
 import DocumentLibraryToolbar from "./DocumentLibraryToolbar";
 
@@ -35,7 +35,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     gridHeight,
     documentClientUrlFieldKey,
     columns,
-    uploadColumns = [],
     editableProperties,
     uploadPrefillProperties,
     onSelectionChange,
@@ -53,8 +52,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [versionsTarget, setVersionsTarget] =
     useState<DocumentLibraryItemRow | null>(null);
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
 
   const onToast = useCallback(
     (next: DocumentLibraryToast) => setToast(next),
@@ -105,13 +102,17 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     client,
     editableProperties,
     uploadPrefillProperties,
+    parentDriveItemId: navigation.currentParentDriveItemId,
     rows,
     groupTree: grouping.groupTree,
     selectedItemIds: selection.selectedItemIds,
     groupingEnabled: grouping.groupingEnabled,
     refresh,
     onToast,
+    clearSelection: selection.clearSelection,
   });
+
+  const uploadDialog = useUploadDialog();
 
   const gridContext: DocumentLibraryGridAgContext = useMemo(
     () => ({
@@ -161,16 +162,53 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     onDeleteRow,
   });
 
+  // Step 1 entry points: opening the file-selection dialog. Files dropped directly on
+  // the panel pre-fill the dialog; the Import button opens it empty for a fresh start.
   const onSelectFiles = useCallback(
     (files: FileList | null) => {
       if (!navigation.uploadsEnabled) return;
       if (!files || files.length === 0) return;
       const arr = Array.from(files).filter((f) => f.size >= 0);
-      setUploadFiles(arr);
-      setUploadOpen(true);
+      uploadDialog.openDialog(arr);
     },
-    [navigation.uploadsEnabled],
+    [navigation.uploadsEnabled, uploadDialog.openDialog],
   );
+
+  const onImportClick = useCallback(() => {
+    if (!navigation.uploadsEnabled) return;
+    uploadDialog.openDialog([]);
+  }, [navigation.uploadsEnabled, uploadDialog.openDialog]);
+
+  // Step 1 -> Step 2: hand the selection to the Edit Properties drawer, keeping the
+  // pending files so the user can navigate back to this exact selection.
+  const handleGoToEditProperties = useCallback(() => {
+    if (uploadDialog.files.length === 0) return;
+    properties.openUploadEditor(uploadDialog.files);
+    uploadDialog.hideDialog();
+  }, [uploadDialog.files, uploadDialog.hideDialog, properties.openUploadEditor]);
+
+  // Step 2 -> Step 1: only reachable before any file has been uploaded. Closes the
+  // drawer and reopens the dialog with the still-pending selection.
+  const handleBackToFileSelection = useCallback(() => {
+    properties.closeDrawer();
+    uploadDialog.reopenDialog();
+  }, [properties.closeDrawer, uploadDialog.reopenDialog]);
+
+  // Cancelling the drawer in upload mode abandons the flow entirely, so clear the
+  // pending selection too. If step-by-step upload already committed some files to
+  // SharePoint (bulkActionLocked), refresh so the grid reflects those uploads even
+  // though the user bailed out before finishing every file.
+  const handleUploadDrawerCancel = useCallback(() => {
+    const hadPartialUploads = properties.bulkActionLocked;
+    properties.closeDrawer();
+    uploadDialog.closeDialog();
+    if (hadPartialUploads) void refresh();
+  }, [
+    properties.closeDrawer,
+    properties.bulkActionLocked,
+    uploadDialog.closeDialog,
+    refresh,
+  ]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!deleteTarget) return;
@@ -203,13 +241,13 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
 
   const {
     fieldDefinitions,
+    uploadFieldDefinitions,
     fieldDefinitionsLoading,
     contextMenu,
     setContextMenu,
     contextMenuBulkSelectedCount,
     bulkPropertiesItemIds,
     propertiesTarget,
-    setPropertiesTarget,
     propertiesInitialValues,
     propertiesValuesLoading,
     propertiesSubmitting,
@@ -217,13 +255,23 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     stepCurrent,
     stepTotal,
     isLastStep,
+    bulkActionLocked,
     primaryItemName,
+    drawerMode,
+    drawerOpen,
+    uploadFiles,
+    uploadTitle,
     openPropertiesEditor,
     openPropertiesEditorForSelection,
+    closeDrawer,
     onRowContextMenu,
     handleSaveProperties,
     handleSaveAndNext,
+    handleUpload,
+    handleUploadAndNext,
   } = properties;
+
+  const isUploadMode = drawerMode === "upload";
 
   return (
     <Box sx={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
@@ -246,6 +294,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         segments={navigation.segments}
         onBreadcrumbClick={navigation.onBreadcrumbClick}
         onSelectFiles={onSelectFiles}
+        onImportClick={onImportClick}
         onRefresh={refresh}
         groupByMenu={{
           columns: activeColumns.map((c) => ({
@@ -275,6 +324,15 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         />
       </UploadPannel>
 
+      <FileSelectionDialog
+        open={uploadDialog.open}
+        files={uploadDialog.files}
+        onAddFiles={uploadDialog.addFiles}
+        onRemoveFile={uploadDialog.removeFileAt}
+        onCancel={uploadDialog.closeDialog}
+        onContinue={handleGoToEditProperties}
+      />
+
       <VersionHistoryDialog
         open={versionsOpen}
         itemId={versionsTarget?.itemId ?? null}
@@ -282,39 +340,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         client={client}
         onClose={() => setVersionsOpen(false)}
         onRestored={refresh}
-      />
-
-      <UploadDialog
-        open={uploadOpen && navigation.uploadsEnabled && showUploadControls}
-        files={uploadFiles}
-        uploadColumns={hasEditableProperties ? [] : uploadColumns}
-        fieldDefinitions={hasEditableProperties ? fieldDefinitions : []}
-        definitionsLoading={hasEditableProperties && fieldDefinitionsLoading}
-        initialProperties={uploadPrefillProperties}
-        onClose={() => setUploadOpen(false)}
-        onUpload={async ({ files, contentType, properties: uploadProps }) => {
-          const result = await client.uploadFiles({
-            parentDriveItemId: navigation.currentParentDriveItemId,
-            files,
-            contentType,
-            properties: uploadProps,
-          });
-
-          if (result.failures.length > 0) {
-            onToast({
-              kind: "error",
-              message: `Upload failed for:\n${toastFromFailures(result.failures)}`,
-            });
-          } else {
-            onToast({
-              kind: "success",
-              message: `Uploaded ${files.length} file(s).`,
-            });
-          }
-
-          await refresh();
-          return result;
-        }}
       />
 
       <DeleteDialog
@@ -332,39 +357,54 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
       />
 
       <PropertiesDrawer
-        open={!!propertiesTarget}
+        open={drawerOpen}
+        mode={drawerMode}
+        files={uploadFiles}
         title={
-          propertiesTarget?.kind === "bulk"
-            ? "Edit All properties (group)"
-            : propertiesTarget?.kind === "selection"
-              ? "Edit properties (selected)"
-              : "Edit properties"
+          isUploadMode
+            ? (uploadTitle ?? "Upload Documents")
+            : propertiesTarget?.kind === "bulk"
+              ? "Edit All properties (group)"
+              : propertiesTarget?.kind === "selection"
+                ? "Edit properties (selected)"
+                : "Edit properties"
         }
         subtitle={
-          propertiesTarget?.kind === "bulk"
-            ? `${propertiesTarget.label} — ${bulkPropertiesItemIds.length} item(s)`
-            : propertiesTarget?.kind === "item"
-              ? propertiesTarget.name
-              : undefined
+          isUploadMode
+            ? isMultiItemTarget
+              ? undefined
+              : uploadFiles[0]?.name
+            : propertiesTarget?.kind === "bulk"
+              ? `${propertiesTarget.label} — ${bulkPropertiesItemIds.length} item(s)`
+              : propertiesTarget?.kind === "item"
+                ? propertiesTarget.name
+                : undefined
         }
         submitDisabled={
+          !isUploadMode &&
           (propertiesTarget?.kind === "bulk" ||
             propertiesTarget?.kind === "selection") &&
           bulkPropertiesItemIds.length === 0
         }
-        definitions={fieldDefinitions}
+        definitions={isUploadMode ? uploadFieldDefinitions : fieldDefinitions}
         definitionsLoading={fieldDefinitionsLoading}
         initialValues={propertiesInitialValues}
-        valuesLoading={propertiesValuesLoading}
+        valuesLoading={isUploadMode ? false : propertiesValuesLoading}
         submitting={propertiesSubmitting}
         multiItem={isMultiItemTarget}
+        bulkActionDisabled={bulkActionLocked}
         stepCurrent={stepCurrent}
         stepTotal={stepTotal}
         isLastStep={isLastStep}
         stepItemName={primaryItemName}
-        onClose={() => setPropertiesTarget(null)}
-        onSubmit={handleSaveProperties}
-        onSaveAndNext={handleSaveAndNext}
+        onClose={isUploadMode ? handleUploadDrawerCancel : closeDrawer}
+        onSubmit={isUploadMode ? handleUpload : handleSaveProperties}
+        onSaveAndNext={isUploadMode ? handleUploadAndNext : handleSaveAndNext}
+        onBack={
+          isUploadMode && !bulkActionLocked
+            ? handleBackToFileSelection
+            : undefined
+        }
       />
 
       <Snackbar

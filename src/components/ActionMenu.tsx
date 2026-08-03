@@ -112,7 +112,7 @@ export default function ActionMenu({
       show: actions?.addDocumentsToFavorites,
       label: "Add Selected Docs to Favorites",
       onClick: () =>
-         executeAction(() =>
+        executeAction(() =>
           handleFavorite(selectedRows, client, onToast, onRefresh),
         ),
     },
@@ -120,7 +120,7 @@ export default function ActionMenu({
       show: actions?.removeDocumentsToFavorites,
       label: "Remove Selected Docs to Favorites",
       onClick: () =>
-         executeAction(() =>
+        executeAction(() =>
           handleUnfavorite(selectedRows, client, onToast, onRefresh),
         ),
     },

@@ -1,46 +1,32 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CellContextMenuEvent } from "ag-grid-community";
+import { useMemo, useState } from "react";
 import type {
-  DocumentLibraryContextMenuState,
-  DocumentLibraryGraphClient,
-  DocumentLibraryGridRow,
-  DocumentLibraryItemRow,
   DocumentLibraryPropertiesEditTarget,
-  DocumentLibraryToast,
 } from "../types";
-import { toastFromFieldUpdateFailures } from "../common/helpers";
 import { useEditableFieldDefinitions } from "./useEditableFieldDefinitions";
 import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
-import { getCellValue } from "../utils/columns";
-import { isPerItemUniqueField } from "../utils/fieldDefinitions";
-import {
-  getGroupLabel,
-  resolveBulkSelectedItemIds,
-  type GroupTreeNode,
-} from "../utils/groupTree";
+import { filterFieldDefinitionsForUpload } from "../utils/fieldDefinitions";
+import type { UseDocumentLibraryPropertiesParams } from "../types/documentLibraryProperties";
+import { useContextMenu } from "./documentLibraryProperties/useContextMenu";
+import { useDrawerControls } from "./documentLibraryProperties/useDrawerControls";
+import { useStepNavigation } from "./documentLibraryProperties/useStepNavigation";
+import { useDrawerValueSeeding } from "./documentLibraryProperties/useDrawerValueSeeding";
+import { useEditSubmitHandlers } from "./documentLibraryProperties/useEditSubmitHandlers";
+import { useUploadSubmitHandlers } from "./documentLibraryProperties/useUploadSubmitHandlers";
 
-type UseDocumentLibraryPropertiesParams = {
-  client: DocumentLibraryGraphClient;
-  editableProperties?: unknown;
-  uploadPrefillProperties?: Record<string, unknown>;
-  rows: DocumentLibraryItemRow[];
-  groupTree: GroupTreeNode[];
-  selectedItemIds: Set<string>;
-  groupingEnabled: boolean;
-  refresh: () => Promise<void>;
-  onToast: (toast: DocumentLibraryToast) => void;
-};
+export type { UseDocumentLibraryPropertiesParams } from "../types/documentLibraryProperties";
 
 export function useDocumentLibraryProperties({
   client,
   editableProperties,
   uploadPrefillProperties,
+  parentDriveItemId,
   rows,
   groupTree,
   selectedItemIds,
   groupingEnabled,
   refresh,
   onToast,
+  clearSelection,
 }: UseDocumentLibraryPropertiesParams) {
   const editableKeys = useMemo(
     () => normalizeEditablePropertiesInput(editableProperties).keys,
@@ -58,10 +44,16 @@ export function useDocumentLibraryProperties({
   const { definitions: fieldDefinitions, loading: fieldDefinitionsLoading } =
     useEditableFieldDefinitions({ client, editableProperties });
 
-  const [contextMenu, setContextMenu] =
-    useState<DocumentLibraryContextMenuState | null>(null);
+  // Upload reuses the same form but drops read-only / content-type-only columns.
+  const uploadFieldDefinitions = useMemo(
+    () => filterFieldDefinitionsForUpload(fieldDefinitions),
+    [fieldDefinitions],
+  );
+
   const [propertiesTarget, setPropertiesTarget] =
     useState<DocumentLibraryPropertiesEditTarget | null>(null);
+  // Non-null while the drawer is open in upload mode for the given files.
+  const [uploadSession, setUploadSession] = useState<File[] | null>(null);
   const [propertiesInitialValues, setPropertiesInitialValues] = useState<
     Record<string, unknown> | undefined
   >();
@@ -70,281 +62,113 @@ export function useDocumentLibraryProperties({
   // Index of the document currently shown when stepping through a multi-selection
   // via "Save and Move to Next Doc".
   const [stepIndex, setStepIndex] = useState(0);
+  // True once per-file step processing ("Save/Upload & Next") has begun, so the
+  // bulk "Save/Upload Multiple" action is disabled to prevent duplicate submissions.
+  const [bulkActionLocked, setBulkActionLocked] = useState(false);
 
-  const rowsRef = useRef(rows);
-  rowsRef.current = rows;
+  const {
+    contextMenu,
+    setContextMenu,
+    handleGroupContextMenu,
+    onRowContextMenu,
+    contextMenuBulkSelectedCount,
+  } = useContextMenu({
+    enabled: hasEditableProperties,
+    groupingEnabled,
+    groupTree,
+    selectedItemIds,
+  });
 
-  const fieldDefinitionsRef = useRef(fieldDefinitions);
-  fieldDefinitionsRef.current = fieldDefinitions;
+  const {
+    openPropertiesEditor,
+    openUploadEditor,
+    closeDrawer,
+    openPropertiesEditorForSelection,
+  } = useDrawerControls({
+    enabled: hasEditableProperties,
+    rows,
+    setPropertiesTarget,
+    setUploadSession,
+    setPropertiesInitialValues,
+    setStepIndex,
+    setBulkActionLocked,
+    setContextMenu,
+  });
 
-  const openPropertiesEditor = useCallback(
-    (target: DocumentLibraryPropertiesEditTarget) => {
-      setPropertiesTarget(target);
-      setPropertiesInitialValues(undefined);
-      setStepIndex(0);
-      setContextMenu(null);
-    },
-    [],
-  );
-
-  const openPropertiesEditorForSelection = useCallback(
-    (itemIds: string[], label?: string) => {
-      if (!hasEditableProperties || itemIds.length === 0) return;
-
-      if (itemIds.length === 1) {
-        const itemId = itemIds[0]!;
-        const row = rowsRef.current.find((r) => r.itemId === itemId);
-        openPropertiesEditor({
-          kind: "item",
-          itemId,
-          name: row?.name ?? itemId,
-        });
-        return;
-      }
-
-      openPropertiesEditor({
-        kind: "selection",
-        itemIds,
-        label: label ?? `${itemIds.length} selected`,
-      });
-    },
-    [hasEditableProperties, openPropertiesEditor],
-  );
-
-  const handleGroupContextMenu = useCallback(
-    (event: React.MouseEvent, groupId: string) => {
-      if (!hasEditableProperties || !groupingEnabled) return;
-      setContextMenu({
-        mouseX: event.clientX,
-        mouseY: event.clientY,
-        target: {
-          kind: "bulk",
-          groupId,
-          label: getGroupLabel(groupTree, groupId),
-        },
-      });
-    },
-    [hasEditableProperties, groupingEnabled, groupTree],
-  );
-
-  const onRowContextMenu = useCallback(
-    (event: CellContextMenuEvent<DocumentLibraryGridRow>) => {
-      if (!hasEditableProperties) return;
-      const data = event.data;
-      if (!data || data.rowType === "group") return;
-      event.event?.preventDefault();
-      const mouseEvent = event.event as MouseEvent | undefined;
-      setContextMenu({
-        mouseX: mouseEvent?.clientX ?? 0,
-        mouseY: mouseEvent?.clientY ?? 0,
-        target: { kind: "item", itemId: data.itemId, name: data.name },
-      });
-    },
-    [hasEditableProperties],
-  );
-
-  const contextMenuBulkSelectedCount = useMemo(() => {
-    if (contextMenu?.target.kind !== "bulk") return 0;
-    return resolveBulkSelectedItemIds(
-      groupTree,
-      contextMenu.target.groupId,
-      selectedItemIds,
-    ).length;
-  }, [contextMenu, groupTree, selectedItemIds]);
-
-  const bulkPropertiesItemIds = useMemo(() => {
-    if (!propertiesTarget) return [];
-    if (propertiesTarget?.kind === "selection") return propertiesTarget.itemIds;
-    if (propertiesTarget?.kind === "bulk") {
-      return resolveBulkSelectedItemIds(
-        groupTree,
-        propertiesTarget.groupId,
-        selectedItemIds,
-      );
-    }
-    return [];
-  }, [propertiesTarget, groupTree, selectedItemIds]);
-
-  // Ordered list of every item the current target will update.
-  const targetItemIds = useMemo(() => {
-    if (!propertiesTarget) return [];
-    if (propertiesTarget.kind === "item") return [propertiesTarget.itemId];
-    return bulkPropertiesItemIds;
-  }, [propertiesTarget, bulkPropertiesItemIds]);
-
-  const isMultiItemTarget = targetItemIds.length > 1;
-  const stepTotal = targetItemIds.length;
-  const safeStepIndex = Math.min(stepIndex, Math.max(targetItemIds.length - 1, 0));
-  const isLastStep = safeStepIndex >= targetItemIds.length - 1;
-
-  // The item whose current values seed the drawer. For multi-item targets this is the
-  // document currently being stepped through, so users edit against real values.
-  const primaryItemId = targetItemIds[safeStepIndex] ?? null;
-
-  const primaryItemName = useMemo(
-    () =>
-      primaryItemId
-        ? rowsRef.current.find((r) => r.itemId === primaryItemId)?.name
-        : undefined,
-    [primaryItemId],
-  );
-
-  useEffect(() => {
-    if (!propertiesTarget) return;
-
-    // No resolvable item (e.g. empty selection) — fall back to any configured prefill.
-    if (!primaryItemId) {
-      setPropertiesInitialValues(uploadPrefillProperties ?? {});
-      return;
-    }
-
-    let cancelled = false;
-    setPropertiesValuesLoading(true);
-    client
-      // Empty keys => fetch all field values for the item.
-      .getListItemFieldValues({
-        itemId: primaryItemId,
-        fieldKeys: editableKeys,
-      })
-      .then((values) => {
-        if (!cancelled) setPropertiesInitialValues(values);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          const row = rowsRef.current.find((r) => r.itemId === primaryItemId);
-          const fallbackKeys =
-            editableKeys.length > 0
-              ? editableKeys
-              : fieldDefinitionsRef.current.map((d) => d.key);
-          const fallback: Record<string, unknown> = {};
-          for (const key of fallbackKeys) {
-            fallback[key] = row ? getCellValue(row, key) : "";
-          }
-          setPropertiesInitialValues(fallback);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setPropertiesValuesLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
+  const {
+    bulkPropertiesItemIds,
+    targetItemIds,
+    isMultiItemTarget,
+    stepTotal,
+    safeStepIndex,
+    isLastStep,
     primaryItemId,
-    editableKeysSignature,
-    client,
-    uploadPrefillSignature,
+    primaryItemName,
+    uploadTitle,
+  } = useStepNavigation({
     propertiesTarget,
-    editableKeys.length,
-  ]);
+    uploadSession,
+    groupTree,
+    selectedItemIds,
+    stepIndex,
+    rows,
+  });
 
-  const handleSaveProperties = useCallback(
-    async (properties: Record<string, unknown>) => {
-      if (!propertiesTarget) return;
-      setPropertiesSubmitting(true);
-      try {
-        const itemIds =
-          propertiesTarget.kind === "item"
-            ? [propertiesTarget.itemId]
-            : bulkPropertiesItemIds;
-        if (itemIds.length === 0) {
-          onToast({
-            kind: "error",
-            message: "No items selected to update.",
-          });
-          return;
-        }
-        // Never bulk-apply the file-name field: it must stay unique per item, otherwise
-        // SharePoint rejects the request with `nameAlreadyExists`.
-        const payload =
-          itemIds.length > 1
-            ? Object.fromEntries(
-                Object.entries(properties).filter(
-                  ([key]) => !isPerItemUniqueField(key),
-                ),
-              )
-            : properties;
-        const result = await client.updateListItemFields({
-          itemIds,
-          properties: payload,
-        });
-        if (result.failures.length > 0) {
-          onToast({
-            kind: "error",
-            message: `Failed to update some items:\n${toastFromFieldUpdateFailures(result.failures)}`,
-          });
-        } else {
-          onToast({
-            kind: "success",
-            message:
-              itemIds.length === 1
-                ? "Properties updated."
-                : `Updated properties on ${itemIds.length} items.`,
-          });
-          setPropertiesTarget(null);
-          await refresh();
-        }
-      } finally {
-        setPropertiesSubmitting(false);
-      }
-    },
-    [client, propertiesTarget, bulkPropertiesItemIds, refresh, onToast],
-  );
+  useDrawerValueSeeding({
+    client,
+    propertiesTarget,
+    uploadSession,
+    primaryItemId,
+    safeStepIndex,
+    editableKeys,
+    editableKeysSignature,
+    uploadPrefillProperties,
+    uploadPrefillSignature,
+    rows,
+    fieldDefinitions,
+    setPropertiesInitialValues,
+    setPropertiesValuesLoading,
+  });
 
-  // Saves only the document currently shown, then advances to the next selected
-  // document (or closes + refreshes once the last one is saved).
-  const handleSaveAndNext = useCallback(
-    async (properties: Record<string, unknown>) => {
-      if (!propertiesTarget) return;
-      const itemId = targetItemIds[safeStepIndex];
-      if (!itemId) return;
-      setPropertiesSubmitting(true);
-      try {
-        const result = await client.updateListItemFields({
-          itemIds: [itemId],
-          properties,
-        });
-        if (result.failures.length > 0) {
-          onToast({
-            kind: "error",
-            message: `Failed to update document:\n${toastFromFieldUpdateFailures(result.failures)}`,
-          });
-          return;
-        }
-        if (isLastStep) {
-          onToast({
-            kind: "success",
-            message: `Updated all ${stepTotal} documents.`,
-          });
-          setPropertiesTarget(null);
-          await refresh();
-        } else {
-          onToast({
-            kind: "success",
-            message: `Saved document ${safeStepIndex + 1} of ${stepTotal}.`,
-          });
-          setStepIndex(safeStepIndex + 1);
-        }
-      } finally {
-        setPropertiesSubmitting(false);
-      }
-    },
-    [
-      client,
-      propertiesTarget,
-      targetItemIds,
-      safeStepIndex,
-      isLastStep,
-      stepTotal,
-      refresh,
-      onToast,
-    ],
-  );
+  const { handleSaveProperties, handleSaveAndNext } = useEditSubmitHandlers({
+    client,
+    propertiesTarget,
+    bulkPropertiesItemIds,
+    targetItemIds,
+    safeStepIndex,
+    isLastStep,
+    stepTotal,
+    refresh,
+    onToast,
+    clearSelection,
+    setPropertiesSubmitting,
+    setPropertiesTarget,
+    setBulkActionLocked,
+    setStepIndex,
+  });
+
+  const { handleUpload, handleUploadAndNext } = useUploadSubmitHandlers({
+    client,
+    uploadSession,
+    safeStepIndex,
+    isLastStep,
+    stepTotal,
+    parentDriveItemId,
+    refresh,
+    onToast,
+    setPropertiesSubmitting,
+    setUploadSession,
+    setBulkActionLocked,
+    setStepIndex,
+  });
+
+  const drawerMode: "edit" | "upload" = uploadSession ? "upload" : "edit";
+  const drawerOpen = !!propertiesTarget || !!uploadSession;
 
   return {
     hasEditableProperties,
     fieldDefinitions,
+    uploadFieldDefinitions,
     fieldDefinitionsLoading,
     contextMenu,
     setContextMenu,
@@ -359,12 +183,21 @@ export function useDocumentLibraryProperties({
     stepCurrent: safeStepIndex + 1,
     stepTotal,
     isLastStep,
+    bulkActionLocked,
     primaryItemName,
+    drawerMode,
+    drawerOpen,
+    uploadFiles: uploadSession ?? [],
+    uploadTitle,
     openPropertiesEditor,
     openPropertiesEditorForSelection,
+    openUploadEditor,
+    closeDrawer,
     handleGroupContextMenu,
     onRowContextMenu,
     handleSaveProperties,
     handleSaveAndNext,
+    handleUpload,
+    handleUploadAndNext,
   };
 }

@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react";
-import type { ChangeEvent, DragEvent, MouseEvent, ReactNode } from "react";
+import { useCallback, useState } from "react";
+import type { DragEvent, MouseEvent, ReactNode } from "react";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import CheckIcon from "@mui/icons-material/Check";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
@@ -31,7 +31,10 @@ type UploadPannelProps = {
   loading: boolean;
   segments: BreadcrumbSegment[];
   onBreadcrumbClick: (index: number) => void;
+  /** Files dropped directly onto the panel; opens the file-selection dialog pre-filled. */
   onSelectFiles: (files: FileList | null) => void;
+  /** Opens the file-selection dialog (Step 1 of the upload flow). */
+  onImportClick: () => void;
   onRefresh: () => void;
   /** Group-by dropdown: columns from grid props (or defaults); null = no grouping. */
   groupByMenu?: {
@@ -50,11 +53,11 @@ export default function UploadPannel({
   segments,
   onBreadcrumbClick,
   onSelectFiles,
+  onImportClick,
   onRefresh,
   groupByMenu,
   children,
 }: UploadPannelProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [groupMenuAnchor, setGroupMenuAnchor] = useState<null | HTMLElement>(
     null,
@@ -65,18 +68,10 @@ export default function UploadPannel({
   }, []);
   const closeGroupMenu = useCallback(() => setGroupMenuAnchor(null), []);
 
-  const handleFileInputChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      onSelectFiles(e.target.files);
-      e.target.value = "";
-    },
-    [onSelectFiles],
-  );
-
-  const handleUploadButtonClick = useCallback(() => {
+  const handleImportClick = useCallback(() => {
     if (!uploadControlsEnabled) return;
-    fileInputRef.current?.click();
-  }, [uploadControlsEnabled]);
+    onImportClick();
+  }, [uploadControlsEnabled, onImportClick]);
 
   const handleDrop = useCallback(
     (e: DragEvent) => {
@@ -173,28 +168,18 @@ export default function UploadPannel({
 
         <Stack direction="row" spacing={1} alignItems={"center"}>
           {showUploadControls ? (
-            <>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                style={{ display: "none" }}
-                onChange={handleFileInputChange}
-              />
-
-              <Tooltip title="Pick files to upload">
-                <span>
-                  <Button
-                    variant="contained"
-                    startIcon={<UploadFileIcon />}
-                    onClick={handleUploadButtonClick}
-                    disabled={!uploadsEnabled}
-                  >
-                    Upload
-                  </Button>
-                </span>
-              </Tooltip>
-            </>
+            <Tooltip title="Pick files to upload">
+              <span>
+                <Button
+                  variant="contained"
+                  startIcon={<UploadFileIcon />}
+                  onClick={handleImportClick}
+                  disabled={!uploadsEnabled}
+                >
+                  Import Docs
+                </Button>
+              </span>
+            </Tooltip>
           ) : null}
 
           {groupByMenu ? (

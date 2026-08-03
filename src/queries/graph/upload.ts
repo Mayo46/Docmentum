@@ -1,5 +1,7 @@
 import axios from "axios";
 import type { UploadFailure } from "../../types";
+import { normalizeLookupKey } from "../../utils/columns";
+import { stripFileExtension } from "../../utils/files";
 import type { ContentTypeHelpers } from "./contentTypes";
 import { getAxiosErrorMessage } from "./graphRequest";
 import type { GraphClientDeps } from "./types";
@@ -41,6 +43,12 @@ export function createUploadApi(
             "Ensure this content type exists on the target list.",
         );
       }
+
+      // When the form didn't supply a Title, default each item to its own file name
+      // so uploaded documents aren't left with a placeholder/blank title.
+      const hasSharedTitle = Object.keys(normalized.fieldProperties).some(
+        (key) => normalizeLookupKey(key) === "title",
+      );
 
       for (const file of files) {
         try {
@@ -92,13 +100,18 @@ export function createUploadApi(
             }
           }
 
-          if (Object.keys(normalized.fieldProperties).length > 0) {
+          const fieldProperties: Record<string, unknown> = {
+            ...normalized.fieldProperties,
+            ...(hasSharedTitle ? {} : { Title: stripFileExtension(file.name) }),
+          };
+
+          if (Object.keys(fieldProperties).length > 0) {
             const patchUrl =
               `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
               `/items/${encodeURIComponent(newItemId)}/listItem/fields`;
 
             try {
-              await axios.patch(patchUrl, normalized.fieldProperties, {
+              await axios.patch(patchUrl, fieldProperties, {
                 headers: {
                   Authorization: `Bearer ${accessToken}`,
                   "Content-Type": "application/json",

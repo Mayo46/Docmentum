@@ -138,6 +138,13 @@ export function useDocumentLibrarySelection({
         bumpSelectionRevision();
     }, [rows, bumpSelectionRevision]);
 
+    // Clears all selected rows and resets the grid selection state — used to return
+    // the grid to a clean state after a successful multi-file edit.
+    const clearSelection = useCallback(() => {
+        setSelectedItemIds(new Set());
+        bumpSelectionRevision();
+    }, [bumpSelectionRevision]);
+
     const gridContext: DocumentLibraryGridAgContext = useMemo(
         () => ({
             toggleGroupId,
@@ -172,6 +179,7 @@ export function useDocumentLibrarySelection({
 
     return {
         selectedItemIds,
+        clearSelection,
         gridContext,
     };
 }
