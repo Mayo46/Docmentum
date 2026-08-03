@@ -203,7 +203,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
 
   const {
     fieldDefinitions,
-    propertiesDefinitions,
     fieldDefinitionsLoading,
     contextMenu,
     setContextMenu,
@@ -214,10 +213,16 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     propertiesInitialValues,
     propertiesValuesLoading,
     propertiesSubmitting,
+    isMultiItemTarget,
+    stepCurrent,
+    stepTotal,
+    isLastStep,
+    primaryItemName,
     openPropertiesEditor,
     openPropertiesEditorForSelection,
     onRowContextMenu,
     handleSaveProperties,
+    handleSaveAndNext,
   } = properties;
 
   return (
@@ -347,13 +352,19 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
             propertiesTarget?.kind === "selection") &&
           bulkPropertiesItemIds.length === 0
         }
-        definitions={propertiesDefinitions}
+        definitions={fieldDefinitions}
         definitionsLoading={fieldDefinitionsLoading}
         initialValues={propertiesInitialValues}
         valuesLoading={propertiesValuesLoading}
         submitting={propertiesSubmitting}
+        multiItem={isMultiItemTarget}
+        stepCurrent={stepCurrent}
+        stepTotal={stepTotal}
+        isLastStep={isLastStep}
+        stepItemName={primaryItemName}
         onClose={() => setPropertiesTarget(null)}
         onSubmit={handleSaveProperties}
+        onSaveAndNext={handleSaveAndNext}
       />
 
       <Snackbar

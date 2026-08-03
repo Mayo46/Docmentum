@@ -26,8 +26,20 @@ type Props = {
     submitting?: boolean;
     submitDisabled?: boolean;
     error?: string | null;
+    /** True when editing a bulk/multi selection (enables the step-through controls). */
+    multiItem?: boolean;
+    /** 1-based index of the document currently shown when stepping through. */
+    stepCurrent?: number;
+    /** Total number of documents in the current selection. */
+    stepTotal?: number;
+    /** True when the currently shown document is the last one in the selection. */
+    isLastStep?: boolean;
+    /** Name of the document currently shown when stepping through. */
+    stepItemName?: string;
     onClose: () => void;
     onSubmit: (properties: Record<string, unknown>) => Promise<void>;
+    /** Saves only the current document, then advances to the next selected document. */
+    onSaveAndNext?: (properties: Record<string, unknown>) => Promise<void>;
 };
 
 export default function PropertiesDrawer(props: Props) {
@@ -42,8 +54,14 @@ export default function PropertiesDrawer(props: Props) {
         submitting = false,
         submitDisabled = false,
         error: externalError,
+        multiItem = false,
+        stepCurrent,
+        stepTotal,
+        isLastStep = false,
+        stepItemName,
         onClose,
         onSubmit,
+        onSaveAndNext,
     } = props;
 
     const [values, setValues] = useState<PropertyFormValues>({});
@@ -66,16 +84,42 @@ export default function PropertiesDrawer(props: Props) {
 
     const loading = definitionsLoading || valuesLoading;
     const displayError = submitError ?? externalError;
+    const actionsDisabled =
+        submitting || loading || submitDisabled || definitions.length === 0;
+
+    const runSubmit = async (
+        handler?: (properties: Record<string, unknown>) => Promise<void>,
+    ) => {
+        if (!handler) return;
+        setSubmitError(null);
+        try {
+            await handler(formValuesToPatchPayload(definitions, values));
+        } catch (e) {
+            setSubmitError(
+                e instanceof Error ? e.message : "Failed to save properties",
+            );
+        }
+    };
+
+    const canStep =
+        multiItem &&
+        !!onSaveAndNext &&
+        typeof stepTotal === "number" &&
+        stepTotal > 1;
+    const saveLabel = multiItem ? "Save Multiple Docs" : "Save";
+    const nextLabel = isLastStep ? "Save and Finish" : "Save and Move to Next Doc";
 
     return (
         <Drawer anchor="right" open={open} onClose={onClose}>
             <Box
                 sx={{
-                    width: { xs: "100vw", sm: 400 },
+                    width: { xs: "100vw", sm: 560 },
                     p: 2.5,
                     display: "flex",
                     flexDirection: "column",
-                    height: "100%",
+                    height: "100dvh",
+                    maxHeight: "100dvh",
+                    overflow: "hidden",
                 }}
                 role="presentation"
             >
@@ -83,9 +127,16 @@ export default function PropertiesDrawer(props: Props) {
                     {title}
                 </Typography>
                 {subtitle ? (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         {subtitle}
                     </Typography>
+                ) : null}
+
+                {canStep ? (
+                    <Alert severity="info" icon={false} sx={{ mt: 1, mb: 2, py: 0.5 }}>
+                        Editing document {stepCurrent} of {stepTotal}
+                        {stepItemName ? ` — ${stepItemName}` : ""}
+                    </Alert>
                 ) : (
                     <Box sx={{ mb: 2 }} />
                 )}
@@ -97,7 +148,7 @@ export default function PropertiesDrawer(props: Props) {
                 ) : definitions.length === 0 ? (
                     <Alert severity="info">No editable properties configured.</Alert>
                 ) : (
-                    <Box sx={{ flex: 1, overflow: "auto", pt: 1, px: 0.25 }}>
+                    <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", pt: 1, px: 0.25 }}>
                         <PropertiesFormFields
                             definitions={definitions}
                             values={values}
@@ -113,32 +164,40 @@ export default function PropertiesDrawer(props: Props) {
                     </Alert>
                 ) : null}
 
-                <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 2, pt: 1 }}>
-                    <Button variant="outlined" onClick={onClose} disabled={submitting}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        disabled={
-                            submitting ||
-                            loading ||
-                            submitDisabled ||
-                            definitions.length === 0
-                        }
-                        onClick={async () => {
-                            setSubmitError(null);
-                            try {
-                                await onSubmit(formValuesToPatchPayload(definitions, values));
-                            } catch (e) {
-                                setSubmitError(
-                                    e instanceof Error ? e.message : "Failed to save properties",
-                                );
+                <Stack
+                    direction={canStep ? "column" : "row"}
+                    spacing={1}
+                    justifyContent="flex-end"
+                    sx={{ mt: 2, pt: 1 }}
+                >
+                    
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Button variant="outlined" onClick={onClose} disabled={submitting}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={canStep ? "outlined" : "contained"}
+                            disabled={actionsDisabled}
+                            onClick={() => runSubmit(onSubmit)}
+                            startIcon={
+                                submitting && !canStep ? (
+                                    <CircularProgress size={16} />
+                                ) : null
                             }
-                        }}
-                        startIcon={submitting ? <CircularProgress size={16} /> : null}
-                    >
-                        Save
-                    </Button>
+                        >
+                            {saveLabel}
+                        </Button>
+                        {canStep ? (
+                            <Button
+                                variant="outlined"
+                                disabled={actionsDisabled}
+                                onClick={() => runSubmit(onSaveAndNext)}
+                                startIcon={submitting ? <CircularProgress size={16} /> : null}
+                            >
+                                {nextLabel}
+                            </Button>
+                        ) : null}
+                    </Stack>
                 </Stack>
             </Box>
         </Drawer>
