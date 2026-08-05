@@ -3,6 +3,7 @@ import type {
   DocumentLibraryColumn,
   DocumentLibraryGraphClient,
   DocumentLibraryGridRow,
+  DocumentLibraryItemRow,
   DocumentLibraryUploadColumn,
 } from "./index";
 
@@ -68,4 +69,7 @@ export type DocumentLibraryProps = {
 
   /** Which document source to fetch @default "library" */
   documentType?: DocumentLibraryDocumentType;
+  
+  /** Optional externally supplied document rows. When provided, the grid displays these rows instead of loading documents from SharePoint. */
+  externalRows?: DocumentLibraryItemRow[];
 };

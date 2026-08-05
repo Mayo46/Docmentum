@@ -43,6 +43,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     dashboardName,
     onActionLoadingChange,
     documentType = "library",
+    externalRows,
   } = props;
 
   const [toast, setToast] = useState<DocumentLibraryToast | null>(null);
@@ -77,6 +78,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     client,
     parentDriveItemId: navigation.currentParentDriveItemId,
     documentType,
+    externalRows,
   });
 
   const isFlatDashboardView =

@@ -21,9 +21,12 @@ export function createFieldsApi(
   let cachedListColumns: unknown[] | null = null;
 
   return {
-    async getFieldDefinitions({ fieldKeys = [] }: { fieldKeys?: string[] } = {}) {
+    async getFieldDefinitions({
+      fieldKeys = [],
+    }: { fieldKeys?: string[] } = {}) {
       const { accessToken, siteId, listId } = await getContext();
       const requested = resolveRequestedFieldKeys(fieldKeys);
+
       // No specific keys requested => surface every available (non-hidden) column.
       const returnAll = requested.size === 0;
 
@@ -32,6 +35,13 @@ export function createFieldsApi(
           ? []
           : fieldKeys.map((k) => fallbackFieldDefinition(k.trim()));
       }
+
+      const ALLOWED_COLUMN_GROUPS = new Set([
+        "G2",
+        "G2 Claim",
+        "G2 Claim Document",
+        "Core Document Columns",
+      ]);
 
       let columnRows = cachedListColumns;
       if (!columnRows) {
@@ -43,14 +53,23 @@ export function createFieldsApi(
           method: "GET",
           accessToken,
         });
-        columnRows = json.value ?? [];
+
+        // Cache only the required column groups.
+        columnRows = (json.value ?? []).filter((column) => {
+          const raw = column as { columnGroup?: string };
+          return ALLOWED_COLUMN_GROUPS.has(raw.columnGroup ?? "");
+        });
+
         cachedListColumns = columnRows;
       }
 
       // Resolve ContentType choices once, reused whether returning all or a subset.
       const resolveContentTypeChoices = async () => {
         try {
-          return await contentTypes.getContentTypeChoices({ accessToken, siteId });
+          return await contentTypes.getContentTypeChoices({
+            accessToken,
+            siteId,
+          });
         } catch {
           return [];
         }
@@ -60,8 +79,10 @@ export function createFieldsApi(
         def: DocumentLibraryFieldDefinition,
       ): Promise<DocumentLibraryFieldDefinition> => {
         if (normalizeLookupKey(def.key) !== "contenttype") return def;
+
         const choices = await resolveContentTypeChoices();
         if (choices.length === 0) return def;
+
         return {
           ...def,
           fieldType: "choice",
@@ -72,22 +93,31 @@ export function createFieldsApi(
 
       if (returnAll) {
         const out: DocumentLibraryFieldDefinition[] = [];
+
         for (const col of columnRows) {
           const raw = col as Parameters<typeof parseGraphListColumn>[0];
+
           if (isHiddenGraphListColumn(raw)) continue;
+
           const def = parseGraphListColumn(raw);
           if (!def) continue;
+
           out.push(await withContentTypeChoices(def));
         }
+
         return out;
       }
 
       const parsed = new Map<string, DocumentLibraryFieldDefinition>();
+
       for (const col of columnRows) {
-        const def = parseGraphListColumn(
-          col as Parameters<typeof parseGraphListColumn>[0],
-        );
+        const raw = col as Parameters<typeof parseGraphListColumn>[0];
+
+        if (isHiddenGraphListColumn(raw)) continue;
+
+        const def = parseGraphListColumn(raw);
         if (!def) continue;
+
         const norm = normalizeLookupKey(def.key);
         if (requested.has(norm)) {
           parsed.set(norm, def);
@@ -95,11 +125,13 @@ export function createFieldsApi(
       }
 
       const out: DocumentLibraryFieldDefinition[] = [];
+
       for (const [, canonKey] of requested) {
         const norm = normalizeLookupKey(canonKey);
         const baseDef = parsed.get(norm) ?? fallbackFieldDefinition(canonKey);
         out.push(await withContentTypeChoices(baseDef));
       }
+
       return out;
     },
 

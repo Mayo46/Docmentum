@@ -6,6 +6,7 @@ import type {
   DocumentLibraryDocumentType,
   DocumentLibraryGraphClient,
   DocumentLibraryGridRow,
+  DocumentLibraryItemRow,
 } from "../types";
 import { createGraphClient } from "../queries";
 import { normalizeColumnsInput, normalizeLookupKey } from "../utils/columns";
@@ -68,6 +69,9 @@ export type DocumentWrapperProps = {
 
   /** Current user's email/UPN used to resolve the site-specific SharePoint user ID for checkout documents. */
   userEmail?: string;
+
+  /** Optional externally supplied document rows. When provided, the grid displays these rows instead of loading documents from SharePoint. */
+  externalRows?: DocumentLibraryItemRow[];
 };
 
 export default function DocumentWrapper(props: DocumentWrapperProps) {
@@ -91,7 +95,8 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     dashboardName = "",
     documentType = "library",
     userEmail,
-    gridHeight
+    gridHeight,
+    externalRows,
   } = props;
   const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
   const [resolveError, setResolveError] = useState<string | null>(null);
@@ -242,6 +247,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
             onActionLoadingChange={onActionLoadingChange}
             documentType={documentType}
             gridHeight={gridHeight}
+            externalRows={externalRows}
           />
         ) : null}
       </Stack>

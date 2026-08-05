@@ -19,4 +19,6 @@ export type UseDocumentLibraryPropertiesParams = {
     onToast: (toast: DocumentLibraryToast) => void;
     /** Clears grid selection after a successful multi-file edit. */
     clearSelection?: () => void;
+    /** Optional externally supplied document rows. When provided, the grid displays these rows instead of fetching data through the client. */ 
+    externalRows?: DocumentLibraryItemRow[];
 };

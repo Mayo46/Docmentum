@@ -11,12 +11,14 @@ type UseDocumentLibraryRowsParams = {
   client: DocumentLibraryGraphClient;
   parentDriveItemId: string | undefined;
   documentType?: DocumentLibraryDocumentType;
+  externalRows?: DocumentLibraryItemRow[];
 };
 
 export function useDocumentLibraryRows({
   client,
   parentDriveItemId,
   documentType = "library",
+  externalRows,
 }: UseDocumentLibraryRowsParams) {
   const [rows, setRows] = useState<DocumentLibraryItemRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,6 +36,15 @@ export function useDocumentLibraryRows({
   const loadingMoreRef = useRef(false);
 
   const refresh = useCallback(async () => {
+    if (externalRows) {
+      setRows(externalRows);
+      setTotalCount(externalRows.length);
+      setNextLink(undefined);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setNextLink(undefined);

@@ -36,6 +36,7 @@ type GraphListColumn = {
     number?: unknown;
     dateTime?: unknown;
     boolean?: unknown;
+    columnGroup?: string;
 };
 
 /** True when a Graph list column should never be surfaced in the properties form. */
@@ -87,6 +88,7 @@ export function parseGraphListColumn(col: GraphListColumn): DocumentLibraryField
         key,
         displayName,
         readOnly: col.readOnly === true,
+        columnGroup: col.columnGroup,
         ...resolveFieldType(columnType, col),
     };
 }
