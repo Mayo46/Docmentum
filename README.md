@@ -7,7 +7,7 @@ favorites. Built with MUI and AG Grid.
 
 ## Install
 
-``` bash
+```bash
 npm install docmentum react react-dom @mui/material @mui/icons-material @emotion/react @emotion/styled ag-grid-community ag-grid-react
 ```
 
@@ -18,7 +18,7 @@ package).
 
 ## Quick start (Graph token)
 
-``` tsx
+```tsx
 import { useState } from "react";
 import { ThemeProvider, createTheme } from "@mui/material";
 import { DocumentWrapper } from "docmentum";
@@ -58,61 +58,109 @@ export function Library() {
 }
 ```
 
-  ---------------------------------------------------------------------
-  Prop                         Description
-  ---------------------------- ----------------------------------------
-  `graphToken`                 Microsoft Graph bearer token
+---
 
-  `siteUrl`                    SharePoint site URL
+Prop Description
 
-  `listName`                   Library display name
+---
 
-  `documentSetName`            Optional --- opens inside this document
-                               set
+`graphToken` Microsoft Graph bearer token
 
-  `columns`                    Columns to show (see below)
+`siteUrl` SharePoint site URL
 
-  `editableProperties`         Fields editable on upload / right-click
+`listName` Library display name
 
-  `contentTypesLibrary`        List for Content Type choices (default:
-                               `ContentTypesLibraryTest`)
+`documentSetName` Optional --- opens inside this document
+set
 
-  `showActions` /              UI toggles (default: `true`)
-  `showBreadcrumb` /           
-  `showUploadControls`         
+`columns` Columns to show (see below)
 
-  `showRowCheckbox`            Shows checkboxes for selecting documents
+`editableProperties` Fields editable on upload / right-click
 
-  `onSelectionChange`          Returns the currently selected document
-                               rows
+`contentTypesLibrary` List for Content Type choices (default:
+`ContentTypesLibraryTest`)
 
-  `showToolbar`                Controls whether the document action
-                               toolbar is displayed
+`showActions` / UI toggles (default: `true`)
+`showBreadcrumb` /  
+ `showUploadControls`
 
-  `actions`                    Controls which document actions are
-                               available in the action menu
+`showRowCheckbox` Shows checkboxes for selecting documents
 
-  `onActionLoadingChange`      Notifies the consuming application when
-                               a document action starts or finishes
+`onSelectionChange` Returns the currently selected document
+rows
 
-  `documentType`               Document source to display: `library`,
-                               `favorites`, or `checkout`
+`showToolbar` Controls whether the document action
+toolbar is displayed
 
-  `userEmail`                  Current user's email. Used to resolve
-                               the site-specific SharePoint user ID for
-                               Checked Out Docs
+`actions` Controls which document actions are
+available in the action menu
 
-  `gridHeight`                 Optional grid height (`number` or CSS
-                               string). Defaults to
-                               `calc(100vh - 230px)` when not supplied
-  ---------------------------------------------------------------------
+`onActionLoadingChange` Notifies the consuming application when
+a document action starts or finishes
+
+`documentType` Document source to display: `library`,
+`favorites`, or `checkout`
+
+`userEmail` Current user's email. Used to resolve
+the site-specific SharePoint user ID for
+Checked Out Docs
+
+`gridHeight` Optional grid height (`number` or CSS
+string). Defaults to
+`calc(100vh - 230px)` when not supplied
+
+`externalRows` Optional array of document rows supplied by
+the consuming application. When provided, the
+grid displays these rows instead of loading
+documents from SharePoint. Existing grid
+features such as grouping, selection, filtering,
+and document actions continue to work.
+
+`onFavorite` Optional callback invoked when the user adds
+selected documents to favorites. Receives the
+selected `itemIds`. When provided, this
+replaces the built-in Graph favorite call so
+the consuming application can wire its own
+API.
+
+`onUnfavorite` Optional callback invoked when the user
+removes selected documents from favorites.
+Receives the selected `itemIds`. When
+provided, this replaces the built-in Graph
+unfavorite call.
+
+`favoriteItemIDs` Optional array of item IDs used to populate
+the `favorites` view (`documentType="favorites"`)
+when the consuming application supplies its
+own list of favorited item IDs instead of
+relying on Graph's `/me/drive/following`.
+
+---
+
+## External document rows
+
+By default, `DocumentWrapper` loads documents directly from SharePoint using
+the configured Graph client.
+
+For scenarios such as Advanced Search, where the consuming application has
+already retrieved a filtered result set, you can provide those rows directly
+using `externalRows`.
+
+```tsx
+<DocumentWrapper
+  graphToken={accessToken}
+  siteUrl={siteUrl}
+  listName="Documents"
+  externalRows={searchResults}
+/>
+```
 
 ## Document actions
 
 Document actions can be enabled or disabled dynamically by the consuming
 application.
 
-``` tsx
+```tsx
 <DocumentWrapper
   showToolbar
   actions={{
@@ -132,13 +180,13 @@ application.
 
 Available actions:
 
--   Edit Properties
--   Checkout Selected Docs
--   Cancel Checkout Selected Docs
--   Delete Selected Docs
--   Export Selected Docs
--   Copy URL of Selected Docs
--   Add Selected Docs to Favorites
+- Edit Properties
+- Checkout Selected Docs
+- Cancel Checkout Selected Docs
+- Delete Selected Docs
+- Export Selected Docs
+- Copy URL of Selected Docs
+- Add Selected Docs to Favorites
 
 Each action can be controlled independently by passing `true` or
 `false`.
@@ -148,7 +196,7 @@ Each action can be controlled independently by passing `true` or
 Use `onSelectionChange` to access the currently selected documents
 outside the package.
 
-``` tsx
+```tsx
 <DocumentWrapper
   showRowCheckbox
   onSelectionChange={(rows) => {
@@ -172,20 +220,14 @@ document in a large document set before rendering the grid.
 
 The default height can be overridden by the consuming application:
 
-``` tsx
-<DocumentWrapper
-  documentType="library"
-  gridHeight={600}
-/>
+```tsx
+<DocumentWrapper documentType="library" gridHeight={600} />
 ```
 
 CSS height values are also supported:
 
-``` tsx
-<DocumentWrapper
-  documentType="library"
-  gridHeight="70vh"
-/>
+```tsx
+<DocumentWrapper documentType="library" gridHeight="70vh" />
 ```
 
 For library/document-set views, the total immediate child count is
@@ -210,7 +252,7 @@ the count would defeat the purpose of incremental loading.
 Set `documentType="checkout"` and pass the current user's email to
 display only documents checked out by that user.
 
-``` tsx
+```tsx
 <DocumentWrapper
   graphToken={accessToken}
   siteUrl="https://genstargenesis.sharepoint.com/sites/Claims-GeneralStar-Dev"
@@ -262,7 +304,7 @@ favorites behavior remains unchanged.
 The consuming application can manage its own loader while document
 actions are running.
 
-``` tsx
+```tsx
 const [actionLoading, setActionLoading] = useState(false);
 
 <DocumentWrapper onActionLoadingChange={setActionLoading} />;
@@ -276,7 +318,7 @@ const [actionLoading, setActionLoading] = useState(false);
 Use when you control auth and data. Pass a `DocumentLibraryGraphClient`
 implementation.
 
-``` tsx
+```tsx
 import { DocumentLibraryGrid, type DocumentLibraryColumn } from "docmentum";
 
 const columns: DocumentLibraryColumn[] = [
@@ -294,75 +336,79 @@ const columns: DocumentLibraryColumn[] = [
 />;
 ```
 
-  -------------------------------------------------------------------------
-  Prop                          Required   Description
-  ----------------------------- ---------- --------------------------------
-  `documentType`                No         Document source: `library`,
-                                           `favorites`, or `checkout`
+---
 
-  `userEmail`                   No         Current user's email used to
-                                           resolve the site-specific
-                                           SharePoint user ID for checkout
-                                           documents
+Prop Required Description
 
-  `client`                      Yes        Data adapter (see below)
+---
 
-  `parentDriveItemId`           Yes        Drive item ID of starting folder
-                                           (`""` for root)
+`documentType` No Document source: `library`,
+`favorites`, or `checkout`
 
-  `documentClientUrlFieldKey`   Yes        SharePoint column for document
-                                           open URL
+`userEmail` No Current user's email used to
+resolve the site-specific
+SharePoint user ID for checkout
+documents
 
-  `columns`                     Yes        Grid columns
+`client` Yes Data adapter (see below)
 
-  `editableProperties`          No         Enables upload + right-click
-                                           property edit
+`parentDriveItemId` Yes Drive item ID of starting folder
+(`""` for root)
 
-  `uploadPrefillProperties`     No         Default values for upload / bulk
-                                           edit
+`documentClientUrlFieldKey` Yes SharePoint column for document
+open URL
 
-  `uploadColumns`               No         Simple upload fields (ignored if
-                                           `editableProperties` set)
+`columns` Yes Grid columns
 
-  `libraryRootLabel`            No         Breadcrumb root label (default:
-                                           `"Library"`)
+`editableProperties` No Enables upload + right-click
+property edit
 
-  `initialSegmentName`          No         Breadcrumb label for current
-                                           folder
+`uploadPrefillProperties` No Default values for upload / bulk
+edit
 
-  `showActions` /               No         UI toggles (default: `true`)
-  `showBreadcrumb` /                       
-  `showUploadControls`                     
+`uploadColumns` No Simple upload fields (ignored if
+`editableProperties` set)
 
-  `showRowCheckbox`             No         Shows checkboxes for document
-                                           selection
+`libraryRootLabel` No Breadcrumb root label (default:
+`"Library"`)
 
-  `onSelectionChange`           No         Returns the currently selected
-                                           document rows
+`initialSegmentName` No Breadcrumb label for current
+folder
 
-  `showToolbar`                 No         Shows the document action
-                                           toolbar
+`showActions` / No UI toggles (default: `true`)
+`showBreadcrumb` /  
+ `showUploadControls`
 
-  `actions`                     No         Controls available document
-                                           actions
+`showRowCheckbox` No Shows checkboxes for document
+selection
 
-  `onActionLoadingChange`       No         Reports document action loading
-                                           state to the consuming
-                                           application
+`onSelectionChange` No Returns the currently selected
+document rows
 
-  `gridHeight`                  No         Grid height as a number (pixels)
-                                           or CSS height string. Defaults
-                                           to `calc(100vh - 230px)`
-  -------------------------------------------------------------------------
+`showToolbar` No Shows the document action
+toolbar
+
+`actions` No Controls available document
+actions
+
+`onActionLoadingChange` No Reports document action loading
+state to the consuming
+application
+
+`gridHeight` No Grid height as a number (pixels)
+or CSS height string. Defaults
+to `calc(100vh - 230px)`
+
+---
 
 ## Columns & editable fields
 
 `columns` and `editableProperties` accept:
 
--   Object map: `{ Title: "", Queue: "Queue label" }`
--   String array: `["Title", "ContentType"]`
--   Typed array (grid only):
-    `{ key, headerName, kind?, useDocumentClientUrl? }`
+- Object map: `{ Title: "", Queue: "Queue label" }`
+- String array: `["Title", "ContentType"]`
+- Typed array (grid only):
+  `{ key, headerName, kind?, useDocumentClientUrl? }`
 
 `kind`: `text` \| `date` \| `number` \| `user` \| `link`
 
@@ -371,41 +417,45 @@ const columns: DocumentLibraryColumn[] = [
 Implement `DocumentLibraryGraphClient` (exported types from
 `docmentum`):
 
-  ---------------------------------------------------------------------
-  Method                             Purpose
-  ---------------------------------- ----------------------------------
-  `listChildren`                     Load folder contents using the
-                                     legacy/full-load flow
+---
 
-  `listChildrenPage`                 Load one folder/document-set page
-                                     for infinite scrolling
+Method Purpose
 
-  `getChildrenCount`                 Load the total immediate child
-                                     count for a folder/document set
+---
 
-  `listCheckoutDocumentsPage`        Load one page of the current
-                                     user's checked-out documents
+`listChildren` Load folder contents using the
+legacy/full-load flow
 
-  `getDriveItemIdByName`             Resolve document set by name
+`listChildrenPage` Load one folder/document-set page
+for infinite scrolling
 
-  `getFieldDefinitions`              Field metadata for forms
+`getChildrenCount` Load the total immediate child
+count for a folder/document set
 
-  `getListItemFieldValues`           Load properties for edit drawer
+`listCheckoutDocumentsPage` Load one page of the current
+user's checked-out documents
 
-  `updateListItemFields`             Save properties (single or bulk)
+`getDriveItemIdByName` Resolve document set by name
 
-  `uploadFiles`                      Upload with metadata
+`getFieldDefinitions` Field metadata for forms
 
-  `listVersions` / `restoreVersion`  Version history
+`getListItemFieldValues` Load properties for edit drawer
 
-  `checkoutItem`                     Checkout a document
+`updateListItemFields` Save properties (single or bulk)
 
-  `cancelCheckoutItem`               Cancel document checkout
+`uploadFiles` Upload with metadata
 
-  `deleteItem`                       Delete a file or folder
+`listVersions` / `restoreVersion` Version history
 
-  `downloadItem`                     Download/export a document
-  ---------------------------------------------------------------------
+`checkoutItem` Checkout a document
+
+`cancelCheckoutItem` Cancel document checkout
+
+`deleteItem` Delete a file or folder
+
+`downloadItem` Download/export a document
+
+---
 
 Reference implementation: `src/queries/graphClient.ts`
 (`createGraphClient` --- used by Playground, not exported from package
@@ -416,7 +466,7 @@ entry).
 
 ## Scripts
 
-``` bash
+```bash
 npm run dev          # local app
 npm run storybook    # interactive demo (port 6006)
 npm run build:lib    # publishable dist/
@@ -424,7 +474,7 @@ npm run build:lib    # publishable dist/
 
 ## Exports
 
-``` ts
+```ts
 import { DocumentWrapper } from "@genre-g2docs/common-wrapper-document-library";
 import type {
   DocumentLibraryGraphClient,

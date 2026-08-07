@@ -18,8 +18,10 @@ interface DocumentLibraryToolbarProps {
   client: DocumentLibraryGraphClient;
   onToast: OnToast;
   onRefresh: OnRefresh;
-  onEditProperties?: (itemIds: string []) => void; 
+  onEditProperties?: (itemIds: string[]) => void; 
   onActionLoadingChange?: (loading: boolean) => void;
+  onFavorite?: (itemIds: string[]) => Promise<void>;
+  onUnfavorite?: (itemIds: string[]) => Promise<void>;
 }
 
 const DocumentLibraryToolbar = ({
@@ -32,6 +34,8 @@ const DocumentLibraryToolbar = ({
   onRefresh,
   onEditProperties,
   onActionLoadingChange,
+  onFavorite,
+  onUnfavorite,
 }: DocumentLibraryToolbarProps) => {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
@@ -80,6 +84,8 @@ const DocumentLibraryToolbar = ({
           onEditProperties={onEditProperties}
           disabled={selectedRows.length === 0}
           onActionLoadingChange={onActionLoadingChange}
+          onFavorite={onFavorite}
+          onUnfavorite={onUnfavorite}
         />
     </>
   );

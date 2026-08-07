@@ -72,6 +72,11 @@ export type DocumentWrapperProps = {
 
   /** Optional externally supplied document rows. When provided, the grid displays these rows instead of loading documents from SharePoint. */
   externalRows?: DocumentLibraryItemRow[];
+
+  /** Notifies the consuming application when a document is favorited. */
+  onFavorite?: (itemIds: string[]) => Promise<void>; 
+  onUnfavorite?: (itemIds: string[]) => Promise<void>;
+  favoriteItemIDs?: string[];
 };
 
 export default function DocumentWrapper(props: DocumentWrapperProps) {
@@ -97,6 +102,9 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     userEmail,
     gridHeight,
     externalRows,
+    onFavorite,
+    onUnfavorite,
+    favoriteItemIDs,
   } = props;
   const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
   const [resolveError, setResolveError] = useState<string | null>(null);
@@ -169,7 +177,8 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
       columns: normalizedColumns,
       getAccessToken: async () => graphToken,
       userEmail,
-      documentType
+      documentType,
+      favoriteItemIDs,
     });
   }, [
     graphToken,
@@ -178,7 +187,8 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     contentTypesLibrary,
     normalizedColumns,
     userEmail,
-    documentType
+    documentType,
+    favoriteItemIDs,
   ]);
 
   useEffect(() => {
@@ -248,6 +258,8 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
             documentType={documentType}
             gridHeight={gridHeight}
             externalRows={externalRows}
+            onFavorite={onFavorite}
+            onUnfavorite={onUnfavorite}
           />
         ) : null}
       </Stack>

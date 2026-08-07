@@ -13,6 +13,7 @@ export type GraphClientOptions = {
   /** SharePoint user lookup email — scopes checkout queries to that user's checked-out items. */
   userEmail?: string;
   documentType?: DocumentLibraryDocumentType;
+  favoriteItemIDs?: string[];
 };
 
 export type LibraryContext = {
@@ -37,4 +38,5 @@ export type GraphClientDeps = {
   opts: GraphClientOptions;
   getContext: () => Promise<GraphRequestContext>;
   getCheckoutUserId: () => Promise<number | null>;
+  favoriteItemIDs?: string[];
 };

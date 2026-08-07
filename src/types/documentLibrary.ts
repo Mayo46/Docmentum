@@ -72,4 +72,9 @@ export type DocumentLibraryProps = {
   
   /** Optional externally supplied document rows. When provided, the grid displays these rows instead of loading documents from SharePoint. */
   externalRows?: DocumentLibraryItemRow[];
+
+  /** Notifies the consuming application when a document is favorited. */
+  onFavorite?: (itemIds: string[]) => Promise<void>;
+  /** Notifies the consuming application when a document is unfavorited. */
+  onUnfavorite?: (itemIds: string[]) => Promise<void>;
 };

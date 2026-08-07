@@ -2,7 +2,7 @@ import type { DocumentLibraryGraphClient } from "../../types";
 import { createCheckoutApi } from "./checkout";
 import { createContentTypeHelpers } from "./contentTypes";
 import { createDriveItemsApi } from "./driveItems";
-import { createFavoritesApi } from "./favorites";
+import { getFavoritesFilesByIds } from "./favorites";
 import { createFieldsApi } from "./fields";
 import { createLibraryResolver } from "./library";
 import type { GraphClientOptions } from "./types";
@@ -22,15 +22,24 @@ export function createGraphClient(
   const contentTypesLibraryName =
     opts.contentTypesLibrary?.trim() || "ContentTypesLibraryTest";
 
-  const { getContext, getCheckoutUserId } = createLibraryResolver({ graphBaseUrl, opts });
-  const deps = { graphBaseUrl, opts, getContext, getCheckoutUserId };
+  const { getContext, getCheckoutUserId } = createLibraryResolver({
+    graphBaseUrl,
+    opts,
+  });
+  const favoriteItemIDs = opts.favoriteItemIDs;
+  const deps = {
+    graphBaseUrl,
+    opts,
+    getContext,
+    getCheckoutUserId,
+    favoriteItemIDs,
+  };
 
   const contentTypes = createContentTypeHelpers({
     graphBaseUrl,
     contentTypesLibraryName,
   });
   const driveItems = createDriveItemsApi(deps);
-  const favorites = createFavoritesApi(deps);
   const checkout = createCheckoutApi(deps);
   const fields = createFieldsApi(deps, contentTypes);
   const versions = createVersionsApi(deps);
@@ -38,7 +47,7 @@ export function createGraphClient(
 
   return {
     ...driveItems,
-    ...favorites,
+    listFavorites: () => getFavoritesFilesByIds(deps),
     ...checkout,
     ...fields,
     ...versions,

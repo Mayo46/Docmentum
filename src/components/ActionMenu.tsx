@@ -28,6 +28,8 @@ type Props = {
   onEditProperties?: (itemIds: string[]) => void;
   disabled?: boolean;
   onActionLoadingChange?: (loading: boolean) => void;
+  onFavorite?: (itemIds: string[]) => Promise<void>;
+  onUnfavorite?: (itemIds: string[]) => Promise<void>;
 };
 
 export default function ActionMenu({
@@ -42,6 +44,8 @@ export default function ActionMenu({
   onEditProperties,
   disabled,
   onActionLoadingChange,
+  onFavorite,
+  onUnfavorite,
 }: Props) {
   const selectedItemIds = selectedRows
     ?.filter((row) => row.rowType === "data")
@@ -113,7 +117,7 @@ export default function ActionMenu({
       label: "Add Selected Docs to Favorites",
       onClick: () =>
         executeAction(() =>
-          handleFavorite(selectedRows, client, onToast, onRefresh),
+          handleFavorite(selectedRows, onFavorite!, onToast, onRefresh),
         ),
     },
     {
@@ -121,7 +125,7 @@ export default function ActionMenu({
       label: "Remove Selected Docs to Favorites",
       onClick: () =>
         executeAction(() =>
-          handleUnfavorite(selectedRows, client, onToast, onRefresh),
+          handleUnfavorite(selectedRows, onUnfavorite!, onToast, onRefresh),
         ),
     },
   ];

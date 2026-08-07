@@ -44,6 +44,8 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     onActionLoadingChange,
     documentType = "library",
     externalRows,
+    onFavorite,
+    onUnfavorite,
   } = props;
 
   const [toast, setToast] = useState<DocumentLibraryToast | null>(null);
@@ -287,6 +289,8 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         onRefresh={refresh}
         onEditProperties={openPropertiesEditorForSelection}
         onActionLoadingChange={onActionLoadingChange}
+        onFavorite={onFavorite}
+        onUnfavorite={onUnfavorite}
       />
       <UploadPannel
         uploadsEnabled={navigation.uploadsEnabled && !isFlatDashboardView}
