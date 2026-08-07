@@ -24,42 +24,49 @@ export function createFieldsApi(
     async getFieldDefinitions({
       fieldKeys = [],
     }: { fieldKeys?: string[] } = {}) {
-      const { accessToken, siteId, listId } = await getContext();
+      const { accessToken, siteId, documentContentTypeId } = await getContext();
       const requested = resolveRequestedFieldKeys(fieldKeys);
 
       // No specific keys requested => surface every available (non-hidden) column.
       const returnAll = requested.size === 0;
 
-      if (!siteId || !listId) {
+      if (!siteId || !documentContentTypeId) {
         return returnAll
           ? []
           : fieldKeys.map((k) => fallbackFieldDefinition(k.trim()));
       }
 
-      const ALLOWED_COLUMN_GROUPS = new Set([
-        "G2",
-        "G2 Claim",
-        "G2 Claim Document",
-        "Core Document Columns",
-      ]);
-
       let columnRows = cachedListColumns;
       if (!columnRows) {
-        // SharePoint Graph rejects $select on /lists/{id}/columns for many libraries (400).
-        const json = await graphRequest<{ value: unknown[] }>({
+        const columns = await graphRequest<{ value: unknown[] }>({
           url:
             `${graphBaseUrl}/sites/${encodeURIComponent(siteId)}` +
-            `/lists/${encodeURIComponent(listId)}/columns`,
+            `/contentTypes/${encodeURIComponent(documentContentTypeId)}/columns`,
           method: "GET",
           accessToken,
         });
 
-        // Cache only the required column groups.
-        columnRows = (json.value ?? []).filter((column) => {
-          const raw = column as { columnGroup?: string };
-          return ALLOWED_COLUMN_GROUPS.has(raw.columnGroup ?? "");
-        });
+        console.table(
+          (
+            columns.value as Array<{
+              name: string;
+              displayName: string;
+              columnGroup?: string;
+              hidden?: boolean;
+              readOnly?: boolean;
+              required?: boolean;
+            }>
+          ).map((c) => ({
+            name: c.name,
+            displayName: c.displayName,
+            columnGroup: c.columnGroup,
+            hidden: c.hidden,
+            readOnly: c.readOnly,
+            required: c.required,
+          })),
+        );
 
+        columnRows = columns.value ?? [];
         cachedListColumns = columnRows;
       }
 

@@ -16,22 +16,10 @@ export const DEFAULT_FIELD_SELECT_COLUMNS = [
     "ModifiedBy",
 ];
 
-export const COLUMN_GROUPS = {
-    GENERAL: "G2",
-    DOCUMENT_SET: "G2 Claim",
-    DOCUMENT: "G2 Claim Document",
-    CORE: "Core Document Columns",
-} as const;
-
-export const COLUMN_GROUP_LABELS: Record<string, string> = {
-    [COLUMN_GROUPS.GENERAL]: "General",
-    [COLUMN_GROUPS.DOCUMENT_SET]: "Document Set",
-    [COLUMN_GROUPS.DOCUMENT]: "Document",
-    [COLUMN_GROUPS.CORE]: "General",
+export const SITE_CONTENT_TYPES: Record<string, string> = {
+  Claims: "G2 Claim Document",
+  "Indexing-Dev2": "G2 Claim Document",
+  Underwriting: "G2 Underwriting Document",
+  FinancialSupportingDocuments: "G2 Financial Supporting Document",
 };
 
-export const GROUP_ORDER = [
-    COLUMN_GROUPS.DOCUMENT,
-    COLUMN_GROUPS.DOCUMENT_SET,
-    COLUMN_GROUPS.GENERAL,
-];

@@ -368,7 +368,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
             : propertiesTarget?.kind === "bulk"
               ? "Edit All properties (group)"
               : propertiesTarget?.kind === "selection"
-                ? "Edit properties (selected)"
+                ? "Edit properties (Selected)"
                 : "Edit properties"
         }
         subtitle={

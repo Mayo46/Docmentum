@@ -19,6 +19,7 @@ export type LibraryContext = {
   driveId: string;
   siteId: string;
   listId: string;
+  documentContentTypeId: string;
 };
 
 export type GraphRequestContext = LibraryContext & {
