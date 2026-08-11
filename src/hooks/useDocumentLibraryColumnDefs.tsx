@@ -8,7 +8,6 @@ import type {
 } from "ag-grid-community";
 import { Button, Stack, Typography } from "@mui/material";
 import type { DocumentLibraryColumn, DocumentLibraryGridRow, DocumentLibraryItemRow } from "../types";
-import { formatDate } from "../common/helpers";
 import GroupSelectionCheckbox from "../common/GroupSelectionCheckbox";
 import GroupSelectionHeader from "../common/GroupSelectionHeader";
 import {
@@ -16,6 +15,7 @@ import {
     GROUP_SELECTION_COL_WIDTH,
 } from "../common/GroupRowRenderer";
 import { getCellValue } from "../utils/columns";
+import moment from "moment";
 
 const SELECTION_CELL_CLASS = "doc-library-selection-cell";
 
@@ -167,7 +167,11 @@ export function useDocumentLibraryColumnDefs({
                 : undefined,
             valueFormatter: (params: ValueFormatterParams<DocumentLibraryGridRow>) => {
                 const kind = c.kind ?? "text";
-                if (kind === "date") return formatDate(params.value);
+                if (kind === "date") {
+                    if(!params.value) return "";
+                    const date= moment(params.value).format("MM/DD/YYYY");
+                    return date;
+                }
                 if (kind === "number") {
                     return params.value === "" || params.value === null || params.value === undefined
                         ? ""

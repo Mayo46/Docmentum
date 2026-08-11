@@ -1,9 +1,19 @@
 import { formatContentTypeValue } from "../common/helpers";
-import type { DocumentLibraryItemRow } from "../types";
+import type { DocumentLibraryColumnKind, DocumentLibraryItemRow } from "../types";
 import { DEFAULT_DRIVE_SELECT_COLUMNS, DEFAULT_FIELD_SELECT_COLUMNS } from "./constants";
 
 export function normalizeLookupKey(value: string) {
     return value.toLowerCase().replace(/[\s_-]+/g, "");
+}
+
+/** Infer grid column kind from SharePoint internal column name. */
+export function inferColumnKind(key: string): DocumentLibraryColumnKind {
+    const lower = normalizeLookupKey(key);
+    if (lower === "createdby" || lower === "modifiedby") return "user";
+    if (lower === "modified" || lower === "created" || lower.includes("date")) {
+        return "date";
+    }
+    return "text";
 }
 
 function canonicalColumnKey(column: string) {

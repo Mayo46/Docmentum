@@ -3,8 +3,8 @@ import { fn } from "storybook/test";
 import DocumentWrapper from "./components/DocumentWrapper";
 
 const graphToken =
-  "eyJ0eXAiOiJKV1QiLCJub25jZSI6InZ2OEV1dC1KWlEydWViOFpVQVpkcWdkbmxfeUZGdXVZRlZKeVpad1pWNG8iLCJhbGciOiJSUzI1NiIsIng1dCI6ImZFdHFyaEtUMWJYQUdhZlNkUW9OMXZYVFJwSSIsImtpZCI6ImZFdHFyaEtUMWJYQUdhZlNkUW9OMXZYVFJwSSJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC8yZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkvIiwiaWF0IjoxNzg1OTM5Mjk2LCJuYmYiOjE3ODU5MzkyOTYsImV4cCI6MTc4NTk0NDc4NywiYWNjdCI6MSwiYWNyIjoiMSIsImFjcnMiOlsiYzEiLCJwZmRyIl0sImFpbyI6IkFaUUFhLzhjQUFBQUdoQVZOMDNBazBkZVJsWEJyWE5ubTVwTzFpQzJSK2J2Ulk5OU4velBYZTRsL294VEd3UmszKzRqUDJXVnBCWllieXhLbFBuTkp5YzhpbHNvY0N1VmJ6dW8xRlJEbDkrUUV3RmJ4QjNFYk1IQ1lnZFJVWExwZnB4WVlZL1ZVM0NQbUJ1dmY0a2FBZm4wc3NkU09nV25qa3BxVnBmQkZadWIvS2RxQVF1R2c4UW1nd2szQkQwWWN6VGNLODVwU1FoRyIsImFsdHNlY2lkIjoiNTo6MTAwMzIwMDRCNjM1OTcyRiIsImFtciI6WyJwd2QiLCJyc2EiXSwiYXBwX2Rpc3BsYXluYW1lIjoiRzIgRG9jcyBSZXNvdXJjZSBVSSBOb25Qcm9kIiwiYXBwaWQiOiJiMTMwNTEzMS1lNzIyLTRhZGEtOTUwMy1jZGM2N2Y5NzMwNzAiLCJhcHBpZGFjciI6IjAiLCJlbWFpbCI6Im11YmFzaGlyLmFsdGFmQGdlbmVyYWxzdGFyLmNvbSIsImlkcCI6Imh0dHBzOi8vc3RzLndpbmRvd3MubmV0L2RhNTVhMTdjLTkwNmEtNGVkYS04MjM5LTE4ZmVjYjYwMjk2NS8iLCJpZHR5cCI6InVzZXIiLCJpcGFkZHIiOiI1Mi4xNTEuMjI4LjExNCIsIm5hbWUiOiJNdWJhc2hpciBBbHRhZiAoQ29uc3VsdGFudCkiLCJvaWQiOiI5ZTE4MTkzNy1hZWFiLTRhMTItOWQ1OC1iOGQyMWY0N2MwOGEiLCJwbGF0ZiI6IjMiLCJwdWlkIjoiMTAwMzIwMDVFMzJDMjM4RSIsInJoIjoiMS5BV01Cb3BFbExfSWNxa2FaMklsR2RsbGx5UU1BQUFBQUFBQUF3QUFBQUFBQUFBQUFBRlpqQVEuIiwic2NwIjoiRGlyZWN0b3J5LlJlYWQuQWxsIEZpbGVzLlJlYWQgRmlsZXMuUmVhZC5BbGwgRmlsZXMuUmVhZFdyaXRlIEdyb3VwLlJlYWQuQWxsIFNpdGVzLlJlYWQuQWxsIFNpdGVzLlJlYWRXcml0ZS5BbGwgU2l0ZXMuU2VhcmNoLkFsbCBTaXRlcy5TZWxlY3RlZCBUZXJtU3RvcmUuUmVhZFdyaXRlLkFsbCBVc2VyLlJlYWQgVXNlci5SZWFkV3JpdGUuQWxsIHByb2ZpbGUgb3BlbmlkIGVtYWlsIiwic2lkIjoiMDBiYjFhODktNGE4My03NzE0LWYyYTktMWU5N2RhZWI4YWQ1Iiwic2lnbmluX3N0YXRlIjpbImlua25vd25udHdrIiwia21zaSJdLCJzdWIiOiJRV083N1ljcVIxdVdZUk13eDB0U25vM3lYd2hTRzIzOUtnc1V3UnI2TW4wIiwidGVuYW50X3JlZ2lvbl9zY29wZSI6Ik5BIiwidGlkIjoiMmYyNTkxYTItMWNmMi00NmFhLTk5ZDgtODk0Njc2NTk2NWM5IiwidW5pcXVlX25hbWUiOiJtdWJhc2hpci5hbHRhZkBnZW5lcmFsc3Rhci5jb20iLCJ1dGkiOiJoV09TbHB3R0RVcWdrUmppckhQSEFBIiwidmVyIjoiMS4wIiwid2lkcyI6WyIxM2JkMWM3Mi02ZjRhLTRkY2YtOTg1Zi0xOGQzYjgwZjIwOGEiXSwieG1zX2FjZCI6MTc2MTkwNDk5NCwieG1zX2FjdF9mY3QiOiIzIDkiLCJ4bXNfZnRkIjoiSzktcmk4WnlTVkV1RFQ1cUhRTTRhQkJ2VEprbjhIRDVQMmR1VXBuVnh2MEJkWE56YjNWMGFDMWtjMjF6IiwieG1zX2lkcmVsIjoiNSAxMCIsInhtc19wZnRleHAiOjE3ODYwMzExODcsInhtc19zdCI6eyJzdWIiOiJwcUVwN0dXME43TE03VHJUdmFRX3BoVEF2TU1hS000UjhfM0txYkJVYUdJIn0sInhtc19zdWJfZmN0IjoiMjAgMyIsInhtc190Y2R0IjoxNzUyNTg2MTA5LCJ4bXNfdG50X2ZjdCI6IjMgMTQifQ.EboV6pwC0E4W2grdq9VvXBEC4vFfU4lW-WAd05ZNa__LZkOhCYBNBNwlgrHnfGcU99Cqt6QSmi2NlhTdcszK-I_34GzUwHzCWjpMRAMh2ek3LdHTQOYj5FOTPXY8LUR9VbTQmo-b2T2wQ0wMZrJBPq-8lcEJO6Ac4miukMXxWVZOQnNe1I9gM8x5DPWDYr3FTLlWouHK5Qw68LSMc87nHL-hJE6OUCYmbLS_Q9WAxO6okWUQ1Eoor9KnYy17Yw2ibLKqjHpAfHCnzR8vxVx3xRDqU2ODxcFpF-kWTDwA6Q41SmiJCr7hnYRiGJSsJQZ2xbZBkv0ye7OseNr0FfhmGw";
-const meta: Meta<typeof DocumentWrapper> = {
+  "eyJ0eXAiOiJKV1QiLCJub25jZSI6IktlVTR2TkZ0dU1UbUJOc2kzU2NsYjFBOWEzNEIwWXIyX3ZvcEdxYmNDT0kiLCJhbGciOiJSUzI1NiIsIng1dCI6ImZFdHFyaEtUMWJYQUdhZlNkUW9OMXZYVFJwSSIsImtpZCI6ImZFdHFyaEtUMWJYQUdhZlNkUW9OMXZYVFJwSSJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC8yZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkvIiwiaWF0IjoxNzg2NDM1Nzk1LCJuYmYiOjE3ODY0MzU3OTUsImV4cCI6MTc4NjQ0MTQyMiwiYWNjdCI6MSwiYWNyIjoiMSIsImFjcnMiOlsicDEiLCJjMSIsInBmZHIiXSwiYWlvIjoiQVpRQWEvOGNBQUFBS0xNemVhbm11MDVlSzRJN29pbExOYk1tbkpFbXZTcnhENVVvRVBjK2dhMkhGYTdOcEx2NllXMVpma1pnL2dQU1AwQ1Zzb3EvNUQ5emw3TmI5a2JmdHViZ01DWllkdGlWNzdLWUZ4QW1nUkRLYTI5a2h3WWRYWU5lb3V5SnF2clVDSENha2Jhem5RMnZ6OVpvWGEySFdwZk9FaEtHTmlncTg4UG5WOFYwY05RU1hsSi9FcnFzRk5aRDJybm11TnIyIiwiYWx0c2VjaWQiOiI1OjoxMDAzMjAwNEI2MzU5NzJGIiwiYW1yIjpbInB3ZCIsIm1mYSJdLCJhcHBfZGlzcGxheW5hbWUiOiJHMiBEb2NzIFJlc291cmNlIFVJIE5vblByb2QiLCJhcHBpZCI6ImIxMzA1MTMxLWU3MjItNGFkYS05NTAzLWNkYzY3Zjk3MzA3MCIsImFwcGlkYWNyIjoiMCIsImVtYWlsIjoibXViYXNoaXIuYWx0YWZAZ2VuZXJhbHN0YXIuY29tIiwiaWRwIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvZGE1NWExN2MtOTA2YS00ZWRhLTgyMzktMThmZWNiNjAyOTY1LyIsImlkdHlwIjoidXNlciIsImlwYWRkciI6IjUyLjE1MS4yMjguMTE0IiwibmFtZSI6Ik11YmFzaGlyIEFsdGFmIChDb25zdWx0YW50KSIsIm9pZCI6IjllMTgxOTM3LWFlYWItNGExMi05ZDU4LWI4ZDIxZjQ3YzA4YSIsInBsYXRmIjoiMyIsInB1aWQiOiIxMDAzMjAwNUUzMkMyMzhFIiwicmgiOiIxLkFXTUJvcEVsTF9JY3FrYVoySWxHZGxsbHlRTUFBQUFBQUFBQXdBQUFBQUFBQUFBQUFGWmpBUS4iLCJzY3AiOiJEaXJlY3RvcnkuUmVhZC5BbGwgRmlsZXMuUmVhZCBGaWxlcy5SZWFkLkFsbCBGaWxlcy5SZWFkV3JpdGUgR3JvdXAuUmVhZC5BbGwgU2l0ZXMuUmVhZC5BbGwgU2l0ZXMuUmVhZFdyaXRlLkFsbCBTaXRlcy5TZWFyY2guQWxsIFNpdGVzLlNlbGVjdGVkIFRlcm1TdG9yZS5SZWFkV3JpdGUuQWxsIFVzZXIuUmVhZCBVc2VyLlJlYWRXcml0ZS5BbGwgcHJvZmlsZSBvcGVuaWQgZW1haWwiLCJzaWQiOiIwMGJiMWE4OS00YTgzLTc3MTQtZjJhOS0xZTk3ZGFlYjhhZDUiLCJzaWduaW5fc3RhdGUiOlsiaW5rbm93bm50d2siXSwic3ViIjoiUVdPNzdZY3FSMXVXWVJNd3gwdFNubzN5WHdoU0cyMzlLZ3NVd1JyNk1uMCIsInRlbmFudF9yZWdpb25fc2NvcGUiOiJOQSIsInRpZCI6IjJmMjU5MWEyLTFjZjItNDZhYS05OWQ4LTg5NDY3NjU5NjVjOSIsInVuaXF1ZV9uYW1lIjoibXViYXNoaXIuYWx0YWZAZ2VuZXJhbHN0YXIuY29tIiwidXRpIjoiQmxsaG9yTEhqVTJKc3lGeTB5SWFBQSIsInZlciI6IjEuMCIsIndpZHMiOlsiMTNiZDFjNzItNmY0YS00ZGNmLTk4NWYtMThkM2I4MGYyMDhhIl0sInhtc19hY2QiOjE3NjE5MDQ5OTQsInhtc19hY3RfZmN0IjoiMyA5IiwieG1zX2Z0ZCI6IkNJSXZrcEZmZXlwaGxiaE9SbmJ4b0pWampsVUlNLW85cHROcDYyNEVJLWNCZFhOemIzVjBhQzFrYzIxeiIsInhtc19pZHJlbCI6IjUgNiIsInhtc19wZnRleHAiOjE3ODY1Mjc4MjIsInhtc19zdCI6eyJzdWIiOiJwcUVwN0dXME43TE03VHJUdmFRX3BoVEF2TU1hS000UjhfM0txYkJVYUdJIn0sInhtc19zdWJfZmN0IjoiMTYgMyIsInhtc190Y2R0IjoxNzUyNTg2MTA5LCJ4bXNfdG50X2ZjdCI6IjEwIDMifQ.HYsFwX2kmuaUjAaRpgHR_TQ2D-Ahbi-mHUOZo3gtj4spCvyJxgSfJ8tLsqHdxUMleUepMJYMGZ4YarZaJ8lSNuZMZTT_ckXltbpVJfoHkv9F6KCgr83JWcrFYpbnJpptl65ttHYPY1eyNfgEvLldvvIPnFcvV-8kjHmpsVYMFfM6xr39BnG4WIslKG3UU-OjooZIwS2QEgbXGf2Rq1rzPBYH8XWHZFhdMlACvu07VwSIzfSGJ3z75WpGSPhak5rEaVhSmPSNMcjP6snnawJ5TdwBHClNBa7DdUofJXnR7eVfTp-weDePtUGWlAcPrb-T2q1Dq0n8s6vRrrKhnhi-ug";
+  const meta: Meta<typeof DocumentWrapper> = {
   title: "App",
   component: DocumentWrapper,
   argTypes: {
@@ -90,153 +90,6 @@ export const Underwriting: Story = {
   },
 };
 
-export const DocumentumMigration01: Story = {
-  args: {
-    graphToken: graphToken,
-    siteUrl: "https://genstargenesis.sharepoint.com/sites/Indexing-Dev",
-    actions: {
-      editDocumentProperties: true,
-      bulkUpdateClaimIDForSelectedDocuments: true,
-      checkoutDocuments: true,
-      checkinDocuments: true,
-      cancelDocumentCheckout: true,
-      deleteDocuments: true,
-      exportDocuments: true,
-      copyDocumentUrls: true,
-      addDocumentsToFavorites: true,
-      removeDocumentsToFavorites: true,
-    },
-    listName: "DocumentumMigration01",
-    contentTypesLibrary: "ContentTypesLibraryTest",
-    documentSetName: "",
-    columns: `CheckedOut,
-    checkoutUserEmail,
-    ClaimsG2,
-    CheckoutUser,
-    CheckedOutDate,
-    DateReceived,
-    Name,
-    CheckedOutMachineName,
-    ClaimID,
-    ContractID,
-    Company,
-    Modified,
-    Created,
-    CreatedBy,
-    SubCategory,
-    Category,
-    Recipient,
-    BatchID,
-    IndexOperator
-  `,
-    showToolbar: true,
-    showActions: true,
-    showBreadcrumb: true,
-    showUploadControls: false,
-    showRowCheckbox: true,
-    dashboardName: "DocumentumMigration01",
-    userEmail: "Saad.Shah@GENERALSTAR.COM",
-    documentType: "library",
-    onSelectionChange: fn(),
-    editableProperties: {
-      Name: "",
-      ClaimID: "",
-      Queue: "",
-      Company: "",
-    },
-    onFavorite: async (itemIds: string[]) => {
-      console.log("onFavorite called with:", itemIds);
-      // await myProjectApi.addFavorites(itemIds);
-    },
-    onUnfavorite: async (itemIds: string[]) => {
-      console.log("onUnfavorite called with:", itemIds);
-      // await myProjectApi.removeFavorites(itemIds);
-    },
-  },
-};
-
-export const Claims: Story = {
-  args: {
-    graphToken: graphToken,
-
-    // siteUrl: "https://genstargenesis.sharepoint.com/sites/Claims-GeneralStar-Dev",
-    // listName: "Documents",
-    // documentSetName: "0001e60e-fb02-41ba-8df2-2889dea2b692/Forms",
-    siteUrl: "https://genstargenesis.sharepoint.com/sites/Indexing-Dev2",
-    listName: "G2IndexingClaims",
-
-    actions: {
-      editDocumentProperties: true,
-      bulkUpdateClaimIDForSelectedDocuments: true,
-      checkoutDocuments: true,
-      checkinDocuments: true,
-      cancelDocumentCheckout: true,
-      deleteDocuments: true,
-      exportDocuments: true,
-      copyDocumentUrls: true,
-      addDocumentsToFavorites: true,
-      removeDocumentsToFavorites: true,
-    },
-
-    // listName: "Documents",
-    contentTypesLibrary: "ContentTypesLibraryTest",
-    documentSetName: "",
-
-    // checkout columns
-    columns: `CheckedOut,
-    checkoutUserEmail,
-    ClaimsG2,
-    CheckoutUser,
-    CheckedOutDate,
-    DateReceived,
-    Name,
-    CheckedOutMachineName,
-    ClaimID,
-    ContractID,
-    Company,
-    Modified,
-    Created,
-    CreatedBy,
-    SubCategory,
-    Category,
-    Recipient,
-    BatchID,
-    IndexOperator
-  `,
-
-    //Favorite columns
-    // columns: `ClaimsG2,DateReceived,Name,ClaimID,ContractID,
-    //        Company,UserModifiedDate,CreationDate,CreatorName,SubCategory,
-    //        Category,Recipient,BatchID,IndexOperator,CheckedOutBy,
-    //        CheckedOutDate`,
-    showToolbar: true,
-
-    showActions: true,
-    showBreadcrumb: true,
-    showUploadControls: false,
-    showRowCheckbox: true,
-    dashboardName: "Favorites",
-    userEmail: "Saad.Shah@GENERALSTAR.COM",
-    documentType: "checkout",
-    onSelectionChange: fn(),
-
-    // editableProperties: {
-    //   "Document Name": "",
-    //   "ClaimID": "",
-    //   "Queue": "",
-    //   "Company": ""
-    // },
-    onFavorite: async (itemIds: string[]) => {
-      console.log("onFavorite called with:", itemIds);
-      // await myProjectApi.addFavorites(itemIds);
-    },
-    onUnfavorite: async (itemIds: string[]) => {
-      console.log("onUnfavorite called with:", itemIds);
-      // await myProjectApi.removeFavorites(itemIds);
-    },
-    favoriteItemIDs: [],
-  },
-};
 
 export const ClaimsGenesisDev: Story = {
   args: {
@@ -257,8 +110,8 @@ export const ClaimsGenesisDev: Story = {
       removeDocumentsToFavorites: true,
     },
 
-    listName: "Documents",
-    contentTypesLibrary: "ContentTypesLibraryTest",
+    listName: "G2Documents",
+    contentTypesLibrary: "G2Documents",
     documentSetName: "",
 
     // checkout columns

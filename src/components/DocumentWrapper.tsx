@@ -9,7 +9,7 @@ import type {
   DocumentLibraryItemRow,
 } from "../types";
 import { createGraphClient } from "../queries";
-import { normalizeColumnsInput, normalizeLookupKey } from "../utils/columns";
+import { inferColumnKind, normalizeColumnsInput, normalizeLookupKey } from "../utils/columns";
 import type { DocumentLibraryActions } from "../types/actions";
 
 export type DocumentWrapperProps = {
@@ -155,12 +155,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
       return {
         key,
         headerName: prettyHeader || key,
-        kind:
-          lower === "createdby" || lower === "modifiedby"
-            ? "user"
-            : lower === "modified" || lower === "created"
-              ? "date"
-              : "text",
+        kind: inferColumnKind(key),
         useDocumentClientUrl: lower === "title" || lower === "name",
       };
     });
