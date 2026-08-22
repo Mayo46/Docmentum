@@ -2,7 +2,11 @@ import axios from "axios";
 import { getAxiosErrorMessage, graphRequest } from "./graphRequest";
 import { escapeODataString, parseSiteUrl } from "./helpers";
 import type { GraphClientOptions, LibraryContext } from "./types";
-import { resolveDocumentContentType } from "./documentContentType";
+import {
+  resolveDocumentContentTypes,
+  resolveDocumentSetGroups,
+  resolveReadOnlyFields,
+} from "./documentContentType";
 
 export async function resolveListByDisplayName(params: {
   graphBaseUrl: string;
@@ -34,7 +38,9 @@ export function createLibraryResolver(params: {
         driveId: opts.driveId,
         siteId: "",
         listId: "",
-        documentContentTypeId: "",
+        documentContentTypeIds: [],
+        documentSetGroups: [],
+        readOnlyFields: [],
       }
     : null;
 
@@ -53,7 +59,6 @@ export function createLibraryResolver(params: {
     }
 
     const { hostname, sitePath } = parseSiteUrl(opts.siteUrl);
-
     const site = await graphRequest<{ id: string }>({
       url: `${graphBaseUrl}/sites/${encodeURIComponent(hostname)}:${sitePath}?$select=id`,
       method: "GET",
@@ -80,7 +85,9 @@ export function createLibraryResolver(params: {
       method: "GET",
       accessToken,
     });
-    const documentContentTypeName = resolveDocumentContentType(opts.siteUrl);
+    const documentContentTypeNames = resolveDocumentContentTypes(opts.siteUrl);
+    const documentSetGroups = resolveDocumentSetGroups(opts.siteUrl);
+    const readOnlyFields = resolveReadOnlyFields(opts.siteUrl);
 
     const contentTypes = await graphRequest<{
       value: Array<{
@@ -95,21 +102,24 @@ export function createLibraryResolver(params: {
       accessToken,
     });
 
-    const contentType = contentTypes.value.find(
-      (ct) => ct.name === documentContentTypeName,
+    const matchingContentTypes = contentTypes.value.filter((ct) =>
+      documentContentTypeNames.includes(ct.name),
     );
 
-    if (!contentType) {
-      throw new Error(
-        `Content type '${documentContentTypeName}' was not found.`,
+    if (matchingContentTypes.length !== documentContentTypeNames.length) {
+      const missing = documentContentTypeNames.filter(
+        (name) => !matchingContentTypes.some((ct) => ct.name === name),
       );
-    }
 
+      throw new Error(`Content type(s) not found: ${missing.join(", ")}.`);
+    }
     resolvedLibrary = {
       driveId: drive.id,
       siteId: site.id,
       listId: list.id,
-      documentContentTypeId: contentType.id,
+      documentContentTypeIds: matchingContentTypes.map((ct) => ct.id),
+      documentSetGroups,
+      readOnlyFields,
     };
 
     return resolvedLibrary;
@@ -124,7 +134,9 @@ export function createLibraryResolver(params: {
       driveId: lib.driveId,
       siteId: lib.siteId,
       listId: lib.listId,
-      documentContentTypeId: lib.documentContentTypeId,
+      documentContentTypeIds: lib.documentContentTypeIds,
+      documentSetGroups: lib.documentSetGroups,
+      readOnlyFields: lib.readOnlyFields,
     };
   }
 

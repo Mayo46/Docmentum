@@ -1,5 +1,6 @@
 import {
   Autocomplete,
+  Box,
   Checkbox,
   FormControl,
   FormControlLabel,
@@ -8,12 +9,22 @@ import {
   Select,
   Stack,
   TextField,
+  Typography,
 } from "@mui/material";
 import type { DocumentLibraryFieldDefinition } from "../types";
 import {
   formatFieldValueForInput,
   formatFieldValueForPatch,
 } from "../utils/fieldDefinitions";
+import {
+  COLUMN_GROUP_LABELS,
+  COLUMN_GROUPS,
+  DOCUMENT_FIELD_ORDER,
+  GROUP_ORDER,
+} from "../utils/constants";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
+import { useState } from "react";
 export type PropertyFormValues = Record<string, string | boolean | string[]>;
 
 const editableFieldSx = {
@@ -70,10 +81,77 @@ export default function PropertiesFormFields({
   onChange,
   disabled = false,
 }: Props) {
+  console.log("PropertiesFormFields", { definitions, values, disabled });
   const setKey = (key: string, value: string | boolean | string[]) => {
     onChange({ ...values, [key]: value });
   };
- 
+
+  // const groupedDefinitions = definitions.reduce<
+  //   Record<string, DocumentLibraryFieldDefinition[]>
+  // >((acc, def) => {
+  //   let group = def.columnGroup ?? "";
+  //   // Show "Core Document Columns" under the Parent section.
+  //   if (group === COLUMN_GROUPS.CORE) {
+  //     group = COLUMN_GROUPS.DOCUMENT;
+  //   }
+  //   if (!acc[group]) {
+  //     acc[group] = [];
+  //   }
+  //   acc[group].push(def);
+  //   return acc;
+  // }, {});
+
+  const DOCUMENT_FIELD_ORDER_MAP = new Map(
+    DOCUMENT_FIELD_ORDER.map((key, index) => [key.toLowerCase(), index]),
+  );
+
+  const groupedDefinitions = definitions.reduce<
+    Record<string, DocumentLibraryFieldDefinition[]>
+  >((acc, def) => {
+    let group = def.columnGroup ?? "";
+
+    // Show "Core Document Columns" under the Document section.
+    if (group === COLUMN_GROUPS.CORE) {
+      group = COLUMN_GROUPS.DOCUMENT;
+    }
+
+    if (!acc[group]) {
+      acc[group] = [];
+    }
+
+    acc[group].push(def);
+
+    return acc;
+  }, {});
+
+  // Apply the required order only to the Document section.
+  if (groupedDefinitions[COLUMN_GROUPS.DOCUMENT]) {
+    groupedDefinitions[COLUMN_GROUPS.DOCUMENT].sort((a, b) => {
+      const aIndex =
+        DOCUMENT_FIELD_ORDER_MAP.get(a.key.toLowerCase()) ??
+        Number.MAX_SAFE_INTEGER;
+
+      const bIndex =
+        DOCUMENT_FIELD_ORDER_MAP.get(b.key.toLowerCase()) ??
+        Number.MAX_SAFE_INTEGER;
+
+      return aIndex - bIndex;
+    });
+  }
+
+  const [expandedSections, setExpandedSections] = useState<
+    Record<string, boolean>
+  >({
+    [COLUMN_GROUPS.DOCUMENT]: true,
+    [COLUMN_GROUPS.DOCUMENT_SET]: true,
+  });
+  const toggleSection = (group: string) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [group]: !prev[group],
+    }));
+  };
+
   const renderField = (def: DocumentLibraryFieldDefinition) => {
     const value = values[def.key];
     const isReadOnly = !!def.readOnly;
@@ -165,21 +243,19 @@ export default function PropertiesFormFields({
       );
     }
 
-    if (def.fieldType === "date") {
+    if (def.fieldType === "dateTime") {
       return (
         <TextField
           key={def.key}
           label={def.displayName}
-          type="date"
           size="small"
-          disabled={disabled}
+          fullWidth
           value={typeof value === "string" ? value : ""}
-          onChange={(e) => setKey(def.key, e.target.value)}
-          sx={fieldSx}
           slotProps={{
-            input: { readOnly: isReadOnly },
+            input: { readOnly: true },
             inputLabel: { shrink: true },
           }}
+          sx={readOnlyFieldSx}
         />
       );
     }
@@ -202,9 +278,45 @@ export default function PropertiesFormFields({
       />
     );
   };
+
+  // return <Stack spacing={2}>{definitions.map(renderField)}</Stack>;
   return (
-    <Stack spacing={2}>
-      {definitions.map(renderField)}
+    <Stack spacing={3}>
+      {GROUP_ORDER.filter((group) => groupedDefinitions[group]?.length).map(
+        (group) => {
+          const expanded = expandedSections[group];
+          return (
+            <Stack key={group} spacing={2}>
+              <Box
+                sx={{
+                  p: "9px 16px",
+                  bgcolor: "#e9ecef",
+                  borderBottom: "1px solid #dee2e6",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  cursor: "pointer",
+                }}
+                onClick={() => toggleSection(group)}
+              >
+                <Typography fontWeight="bold" fontSize={15}>
+                  {COLUMN_GROUP_LABELS[group]}
+                </Typography>
+                {expanded ? (
+                  <ExpandLess fontSize="small" />
+                ) : (
+                  <ExpandMore fontSize="small" />
+                )}
+              </Box>
+              {expanded && (
+                <Stack spacing={2}>
+                  {groupedDefinitions[group].map(renderField)}
+                </Stack>
+              )}
+            </Stack>
+          );
+        },
+      )}
     </Stack>
   );
 }

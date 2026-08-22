@@ -24,49 +24,81 @@ export function createFieldsApi(
     async getFieldDefinitions({
       fieldKeys = [],
     }: { fieldKeys?: string[] } = {}) {
-      const { accessToken, siteId, documentContentTypeId } = await getContext();
+      const {
+        accessToken,
+        siteId,
+        documentContentTypeIds,
+        documentSetGroups,
+        readOnlyFields,
+      } = await getContext();
       const requested = resolveRequestedFieldKeys(fieldKeys);
 
       // No specific keys requested => surface every available (non-hidden) column.
       const returnAll = requested.size === 0;
 
-      if (!siteId || !documentContentTypeId) {
+      if (!siteId || !documentContentTypeIds.length) {
         return returnAll
           ? []
           : fieldKeys.map((k) => fallbackFieldDefinition(k.trim()));
       }
 
       let columnRows = cachedListColumns;
-      if (!columnRows) {
-        const columns = await graphRequest<{ value: unknown[] }>({
-          url:
-            `${graphBaseUrl}/sites/${encodeURIComponent(siteId)}` +
-            `/contentTypes/${encodeURIComponent(documentContentTypeId)}/columns`,
-          method: "GET",
-          accessToken,
-        });
 
-        console.table(
-          (
-            columns.value as Array<{
-              name: string;
-              displayName: string;
-              columnGroup?: string;
-              hidden?: boolean;
-              readOnly?: boolean;
-              required?: boolean;
-            }>
-          ).map((c) => ({
-            name: c.name,
-            displayName: c.displayName,
-            columnGroup: c.columnGroup,
-            hidden: c.hidden,
-            readOnly: c.readOnly,
-            required: c.required,
-          })),
+      if (!columnRows) {
+        const responses = await Promise.all(
+          documentContentTypeIds.map((id) =>
+            graphRequest<{ value: unknown[] }>({
+              url:
+                `${graphBaseUrl}/sites/${encodeURIComponent(siteId)}` +
+                `/contentTypes/${encodeURIComponent(id)}/columns`,
+              method: "GET",
+              accessToken,
+            }),
+          ),
         );
 
-        columnRows = columns.value ?? [];
+        // Merge and remove duplicate columns.
+        const uniqueColumns = new Map<string, unknown>();
+         responses.forEach((response, index) => {
+          console.group(`Content Type ${index + 1}`);
+          // console.table(response.value);
+          console.table(
+            response.value.map((column) => {
+              const c = column as {
+                name: string;
+                displayName: string;
+                columnGroup?: string;
+                hidden?: boolean;
+                readOnly?: boolean;
+                required?: boolean;
+                type?: string;
+              };
+              return {
+                name: c.name,
+                displayName: c.displayName,
+                columnGroup: c.columnGroup,
+                columnType: c.type,
+                hidden: c.hidden,
+                readOnly: c.readOnly,
+                required: c.required,
+              };
+            }),
+          );
+          console.groupEnd();
+        });
+
+        for (const response of responses) {
+          for (const column of response.value ?? []) {
+            const name = (column as { name?: string }).name;
+
+            if (name && !uniqueColumns.has(name)) {
+              uniqueColumns.set(name, column);
+            }
+          }
+        }
+
+        columnRows = [...uniqueColumns.values()];
+
         cachedListColumns = columnRows;
       }
 
@@ -86,10 +118,8 @@ export function createFieldsApi(
         def: DocumentLibraryFieldDefinition,
       ): Promise<DocumentLibraryFieldDefinition> => {
         if (normalizeLookupKey(def.key) !== "contenttype") return def;
-
         const choices = await resolveContentTypeChoices();
         if (choices.length === 0) return def;
-
         return {
           ...def,
           fieldType: "choice",
@@ -100,14 +130,24 @@ export function createFieldsApi(
 
       if (returnAll) {
         const out: DocumentLibraryFieldDefinition[] = [];
-
         for (const col of columnRows) {
           const raw = col as Parameters<typeof parseGraphListColumn>[0];
-
           if (isHiddenGraphListColumn(raw)) continue;
-
           const def = parseGraphListColumn(raw);
+
           if (!def) continue;
+          const isDocumentSetField = documentSetGroups.some(
+            (group) => group.trim() === (def.columnGroup ?? "").trim(),
+          );
+
+          const isConfiguredReadOnly = readOnlyFields.some(
+            (field) =>
+              normalizeLookupKey(field) === normalizeLookupKey(def.key),
+          );
+
+          if (isDocumentSetField || isConfiguredReadOnly) {
+            def.readOnly = true;
+          }
 
           out.push(await withContentTypeChoices(def));
         }
@@ -116,7 +156,6 @@ export function createFieldsApi(
       }
 
       const parsed = new Map<string, DocumentLibraryFieldDefinition>();
-
       for (const col of columnRows) {
         const raw = col as Parameters<typeof parseGraphListColumn>[0];
 
@@ -124,7 +163,13 @@ export function createFieldsApi(
 
         const def = parseGraphListColumn(raw);
         if (!def) continue;
-
+        if (
+          documentSetGroups.some(
+            (group) => group.trim() === (def.columnGroup ?? "").trim(),
+          )
+        ) {
+          def.readOnly = true;
+        }
         const norm = normalizeLookupKey(def.key);
         if (requested.has(norm)) {
           parsed.set(norm, def);
@@ -132,13 +177,12 @@ export function createFieldsApi(
       }
 
       const out: DocumentLibraryFieldDefinition[] = [];
-
       for (const [, canonKey] of requested) {
         const norm = normalizeLookupKey(canonKey);
         const baseDef = parsed.get(norm) ?? fallbackFieldDefinition(canonKey);
         out.push(await withContentTypeChoices(baseDef));
       }
-
+      
       return out;
     },
 

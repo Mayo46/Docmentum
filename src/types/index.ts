@@ -28,7 +28,7 @@ export type DocumentLibraryFieldType =
   | "multiline"
   | "choice"
   | "number"
-  | "date"
+  | "dateTime"
   | "boolean";
 
 export type DocumentLibraryFieldDefinition = {

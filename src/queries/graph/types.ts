@@ -20,7 +20,9 @@ export type LibraryContext = {
   driveId: string;
   siteId: string;
   listId: string;
-  documentContentTypeId: string;
+  documentContentTypeIds: string[];
+  documentSetGroups: string[];
+  readOnlyFields: string[];
 };
 
 export type GraphRequestContext = LibraryContext & {
