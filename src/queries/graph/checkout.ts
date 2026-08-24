@@ -77,15 +77,14 @@ export function createCheckoutApi(deps: GraphClientDeps) {
     getCheckoutUserId,
   } = deps;
 
-  return {
-    async listCheckoutDocumentsPage({
-      nextLink,
-    }: {
-      nextLink?: string;
-    } = {}): Promise<{
-      rows: DocumentLibraryItemRow[];
-      nextLink?: string;
-    }> {
+  const listCheckoutDocumentsPage = async ({
+    nextLink,
+  }: {
+    nextLink?: string;
+  } = {}): Promise<{
+    rows: DocumentLibraryItemRow[];
+    nextLink?: string;
+  }> => {
       const { accessToken, siteId, listId } = await getContext();
 
       if (!siteId || !listId) {
@@ -176,6 +175,23 @@ export function createCheckoutApi(deps: GraphClientDeps) {
       } catch (error) {
         throw new Error(getAxiosErrorMessage(error));
       }
-    },
+    };
+
+  const listCheckoutDocuments = async (): Promise<DocumentLibraryItemRow[]> => {
+    const allRows: DocumentLibraryItemRow[] = [];
+    let nextLink: string | undefined;
+
+    do {
+      const page = await listCheckoutDocumentsPage({ nextLink });
+      allRows.push(...page.rows);
+      nextLink = page.nextLink;
+    } while (nextLink);
+
+    return allRows;
+  };
+
+  return {
+    listCheckoutDocuments,
+    listCheckoutDocumentsPage,
   };
 }

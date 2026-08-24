@@ -1,3 +1,4 @@
+import moment from "moment";
 import type { DocumentLibraryFieldDefinition } from "../types";
 import { normalizeLookupKey } from "./columns";
 
@@ -143,8 +144,8 @@ export function formatFieldValueForInput(
   }
 
   if (def.fieldType === "dateTime" && typeof raw === "string") {
-    const d = raw.includes("T") ? raw.split("T")[0] : raw;
-    return d;
+    // const d = raw.includes("T") ? raw.split("T")[0] : raw;
+    return moment(raw).format("MM/DD/YYYY");
   }
 
   return String(raw);
