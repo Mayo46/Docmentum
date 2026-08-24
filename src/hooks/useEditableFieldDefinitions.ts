@@ -5,6 +5,8 @@ import type {
 } from "../types";
 import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
 import { fallbackFieldDefinition } from "../utils/fieldDefinitions";
+import { FORCED_READONLY_FIELDS } from "../utils/constants";
+import { normalizeLookupKey } from "../utils/columns";
 
 type UseEditableFieldDefinitionsParams = {
   client: DocumentLibraryGraphClient | null;
@@ -51,16 +53,23 @@ export function useEditableFieldDefinitions({
     setError(null);
 
     try {
-      // Empty keys => load all available columns
       const defs = await client.getFieldDefinitions({ fieldKeys: keys });
 
-      const updatedDefinitions = defs.map((d) => ({
-        ...d,
-        ...(CHOICE_FIELDS.has(d.key)
-          ? { fieldType: "choice" as const }
-          : {}),
-        displayName: labelOverrides.get(d.key) ?? d.displayName,
-      }));
+      const updatedDefinitions = defs.map((d) => {
+        const displayName = labelOverrides.get(d.key) ?? d.displayName;
+        const forcedReadOnly = FORCED_READONLY_FIELDS.some(
+          (field) =>
+            normalizeLookupKey(field) === normalizeLookupKey(d.key) ||
+            normalizeLookupKey(field) === normalizeLookupKey(displayName),
+        );
+
+        return {
+          ...d,
+          displayName,
+          ...(CHOICE_FIELDS.has(d.key) ? { fieldType: "choice" as const } : {}),
+          readOnly: d.readOnly || forcedReadOnly,
+        };
+      });
 
       setDefinitions(updatedDefinitions);
     } catch (e) {

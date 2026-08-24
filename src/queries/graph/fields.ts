@@ -3,6 +3,7 @@ import type {
   FieldUpdateFailure,
 } from "../../types";
 import { normalizeLookupKey } from "../../utils/columns";
+import { FORCED_READONLY_FIELDS } from "../../utils/constants";
 import {
   fallbackFieldDefinition,
   isHiddenGraphListColumn,
@@ -11,11 +12,60 @@ import {
 import { resolveRequestedFieldKeys } from "./helpers";
 import { graphRequest } from "./graphRequest";
 import type { ContentTypeHelpers } from "./contentTypes";
+import type { DropdownValuesHelper } from "./dropdownValues";
 import type { GraphClientDeps } from "./types";
+
+function isForcedReadOnlyField(key: string, displayName?: string): boolean {
+  const names = [key, displayName]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .map((value) => normalizeLookupKey(value));
+  return FORCED_READONLY_FIELDS.some((field) =>
+    names.includes(normalizeLookupKey(field)),
+  );
+}
+
+function applyReadOnly(
+  def: DocumentLibraryFieldDefinition,
+  documentSetGroups: string[],
+  readOnlyFields: string[],
+): DocumentLibraryFieldDefinition {
+  const isDocumentSetField = documentSetGroups.some(
+    (group) => group.trim() === (def.columnGroup ?? "").trim(),
+  );
+  const isConfiguredReadOnly = readOnlyFields.some(
+    (field) => normalizeLookupKey(field) === normalizeLookupKey(def.key),
+  );
+  if (
+    isDocumentSetField ||
+    isConfiguredReadOnly ||
+    isForcedReadOnlyField(def.key, def.displayName)
+  ) {
+    def.readOnly = true;
+  }
+  return def;
+}
+
+function withDropdownChoices(
+  def: DocumentLibraryFieldDefinition,
+  choicesByField: Record<string, string[]>,
+): DocumentLibraryFieldDefinition {
+  const choices =
+    choicesByField[def.key] ??
+    (normalizeLookupKey(def.key) === "workflow"
+      ? choicesByField.ClaimWorkflow
+      : undefined);
+  if (!choices?.length) return def;
+  return {
+    ...def,
+    fieldType: "choice",
+    choices,
+  };
+}
 
 export function createFieldsApi(
   deps: GraphClientDeps,
   contentTypes: ContentTypeHelpers,
+  dropdownValues: DropdownValuesHelper,
 ) {
   const { graphBaseUrl, getContext } = deps;
   let cachedListColumns: unknown[] | null = null;
@@ -42,6 +92,13 @@ export function createFieldsApi(
           : fieldKeys.map((k) => fallbackFieldDefinition(k.trim()));
       }
 
+      const dropdownChoicesPromise = dropdownValues
+        .getDropdownChoices(accessToken)
+        .catch((error) => {
+          console.warn("Failed to load ClaimDropdownValues", error);
+          return {} as Record<string, string[]>;
+        });
+
       let columnRows = cachedListColumns;
 
       if (!columnRows) {
@@ -59,7 +116,7 @@ export function createFieldsApi(
 
         // Merge and remove duplicate columns.
         const uniqueColumns = new Map<string, unknown>();
-         responses.forEach((response, index) => {
+        responses.forEach((response, index) => {
           console.group(`Content Type ${index + 1}`);
           // console.table(response.value);
           console.table(
@@ -128,6 +185,17 @@ export function createFieldsApi(
         };
       };
 
+      const dropdownChoices = await dropdownChoicesPromise;
+
+      const withResolvedChoices = async (
+        def: DocumentLibraryFieldDefinition,
+      ): Promise<DocumentLibraryFieldDefinition> => {
+        return withDropdownChoices(
+          await withContentTypeChoices(def),
+          dropdownChoices,
+        );
+      };
+
       if (returnAll) {
         const out: DocumentLibraryFieldDefinition[] = [];
         for (const col of columnRows) {
@@ -136,20 +204,8 @@ export function createFieldsApi(
           const def = parseGraphListColumn(raw);
 
           if (!def) continue;
-          const isDocumentSetField = documentSetGroups.some(
-            (group) => group.trim() === (def.columnGroup ?? "").trim(),
-          );
-
-          const isConfiguredReadOnly = readOnlyFields.some(
-            (field) =>
-              normalizeLookupKey(field) === normalizeLookupKey(def.key),
-          );
-
-          if (isDocumentSetField || isConfiguredReadOnly) {
-            def.readOnly = true;
-          }
-
-          out.push(await withContentTypeChoices(def));
+          applyReadOnly(def, documentSetGroups, readOnlyFields);
+          out.push(await withResolvedChoices(def));
         }
 
         return out;
@@ -163,13 +219,7 @@ export function createFieldsApi(
 
         const def = parseGraphListColumn(raw);
         if (!def) continue;
-        if (
-          documentSetGroups.some(
-            (group) => group.trim() === (def.columnGroup ?? "").trim(),
-          )
-        ) {
-          def.readOnly = true;
-        }
+        applyReadOnly(def, documentSetGroups, readOnlyFields);
         const norm = normalizeLookupKey(def.key);
         if (requested.has(norm)) {
           parsed.set(norm, def);
@@ -180,9 +230,9 @@ export function createFieldsApi(
       for (const [, canonKey] of requested) {
         const norm = normalizeLookupKey(canonKey);
         const baseDef = parsed.get(norm) ?? fallbackFieldDefinition(canonKey);
-        out.push(await withContentTypeChoices(baseDef));
+        out.push(await withResolvedChoices(baseDef));
       }
-      
+
       return out;
     },
 

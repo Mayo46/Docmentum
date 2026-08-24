@@ -16,6 +16,7 @@ import {
   formatFieldValueForInput,
   formatFieldValueForPatch,
 } from "../utils/fieldDefinitions";
+import { normalizeLookupKey } from "../utils/columns";
 import {
   COLUMN_GROUP_LABELS,
   COLUMN_GROUPS,
@@ -58,6 +59,19 @@ export function buildInitialFormValues(
   return out;
 }
 
+const SKIP_PATCH_KEYS = new Set([
+  "contenttype",
+  "created",
+  "modified",
+  "author",
+  "editor",
+  "checkoutuser",
+  "checkedoutby",
+  "checkedoutdate",
+  "creationdate",
+  "modifieddate",
+]);
+
 export function formValuesToPatchPayload(
   definitions: DocumentLibraryFieldDefinition[],
   values: PropertyFormValues,
@@ -65,11 +79,12 @@ export function formValuesToPatchPayload(
   const out: Record<string, unknown> = {};
   for (const def of definitions) {
     if (def.readOnly) continue;
+    if (SKIP_PATCH_KEYS.has(normalizeLookupKey(def.key))) continue;
     const raw = values[def.key];
-    if (raw === undefined) continue;
-    if (def.fieldType === "text" || def.fieldType === "multiline") {
-      if (typeof raw === "string" && raw.trim() === "") continue;
-    }
+    if (raw === undefined || raw === null) continue;
+    if (typeof raw === "string" && raw.trim() === "") continue;
+    if (Array.isArray(raw) && raw.length === 0) continue;
+
     out[def.key] = formatFieldValueForPatch(def, raw);
   }
   return out;
@@ -173,14 +188,15 @@ export default function PropertiesFormFields({
       );
     }
 
-    if (def.fieldType === "choice" && def.choices?.length) {
+    if (def.fieldType === "choice") {
+      const options = def.choices ?? [];
       if (def.allowMultipleChoices) {
         const selected = Array.isArray(value) ? value : [];
         return (
           <Autocomplete
             key={def.key}
             multiple
-            options={def.choices}
+            options={options}
             value={selected}
             disabled={disabled}
             readOnly={isReadOnly}
@@ -198,7 +214,12 @@ export default function PropertiesFormFields({
         );
       }
       return (
-        <FormControl key={def.key} fullWidth size="small" disabled={disabled}>
+        <FormControl
+          key={def.key}
+          fullWidth
+          size="small"
+          disabled={disabled || isReadOnly}
+        >
           <InputLabel id={`${def.key}-label`} shrink>
             {def.displayName}
           </InputLabel>
@@ -214,11 +235,16 @@ export default function PropertiesFormFields({
             <MenuItem value="">
               <em>None</em>
             </MenuItem>
-            {def.choices.map((c) => (
+            {options.map((c) => (
               <MenuItem key={c} value={c}>
                 {c}
               </MenuItem>
             ))}
+            {typeof value === "string" &&
+              value &&
+              !options.includes(value) && (
+                <MenuItem value={value}>{value}</MenuItem>
+              )}
           </Select>
         </FormControl>
       );

@@ -36,6 +36,7 @@ type GraphListColumn = {
   number?: unknown;
   dateTime?: unknown;
   boolean?: unknown;
+  lookup?: { listId?: string; columnName?: string };
   columnGroup?: string;
 };
 
@@ -49,8 +50,12 @@ function resolveFieldType(
   col: GraphListColumn,
 ): Pick<
   DocumentLibraryFieldDefinition,
-  "fieldType" | "choices" | "allowMultipleChoices"
+  "fieldType" | "choices" | "allowMultipleChoices" | "isLookup"
 > {
+  if (columnType === "lookup" || col.lookup) {
+    return { fieldType: "choice", isLookup: true };
+  }
+
   if (columnType === "choice" && col.choice?.choices?.length) {
     return {
       fieldType: "choice",

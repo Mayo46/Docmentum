@@ -3,6 +3,7 @@ import { createCheckoutApi } from "./checkout";
 import { createContentTypeHelpers } from "./contentTypes";
 import { createDriveItemsApi } from "./driveItems";
 import { getFavoritesFilesByIds } from "./favorites";
+import { createDropdownValuesHelper } from "./dropdownValues";
 import { createFieldsApi } from "./fields";
 import { createLibraryResolver } from "./library";
 import type { GraphClientOptions } from "./types";
@@ -39,9 +40,10 @@ export function createGraphClient(
     graphBaseUrl,
     contentTypesLibraryName,
   });
+  const dropdownValues = createDropdownValuesHelper({ graphBaseUrl });
   const driveItems = createDriveItemsApi(deps);
   const checkout = createCheckoutApi(deps);
-  const fields = createFieldsApi(deps, contentTypes);
+  const fields = createFieldsApi(deps, contentTypes, dropdownValues);
   const versions = createVersionsApi(deps);
   const upload = createUploadApi(deps, contentTypes);
 

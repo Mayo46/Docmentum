@@ -39,6 +39,10 @@ export type DocumentLibraryFieldDefinition = {
   allowMultipleChoices?: boolean;
   readOnly?: boolean;
   columnGroup?: string;
+  /** True when the SharePoint column is a lookup. PATCH then uses `{key}LookupId`. */
+  isLookup?: boolean;
+  /** Title → ClaimDropdownValues item id, used only for lookup columns. */
+  lookupItemIdsByLabel?: Record<string, string>;
 };
 
 export type FieldUpdateFailure = {
