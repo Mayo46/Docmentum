@@ -50,11 +50,17 @@ export type FieldUpdateFailure = {
   message: string;
 };
 
+export type DocumentLibraryParentReference = {
+  itemId: string;
+  name: string;
+};
+
 export type DocumentLibraryItemRow = {
   itemId: string;
   name: string;
   webUrl?: string;
   isContainer?: boolean;
+  parentReference?: DocumentLibraryParentReference;
   fields: Record<string, unknown>;
   createdByDisplayName?: string;
   modifiedByDisplayName?: string;

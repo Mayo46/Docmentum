@@ -14,7 +14,7 @@ import UploadPannel from "./UploadPannel";
 import VersionHistoryDialog from "./VersionHistoryDialog";
 import { useDocumentLibraryColumnDefs } from "../hooks/useDocumentLibraryColumnDefs";
 import { useDocumentLibraryGrouping } from "../hooks/useDocumentLibraryGrouping";
-import { useDocumentLibraryNavigation } from "../hooks/useDocumentLibraryNavigation";
+import { useDocumentLibraryNavigation, type ParentReference } from "../hooks/useDocumentLibraryNavigation";
 import { useDocumentLibraryProperties } from "../hooks/useDocumentLibraryProperties";
 import { useDocumentLibraryRows } from "../hooks/useDocumentLibraryRows";
 import { useDocumentLibrarySelection } from "../hooks/useDocumentLibrarySelection";
@@ -46,6 +46,9 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     externalRows,
     onFavorite,
     onUnfavorite,
+    externalTotalCount,
+    externalHasMore,
+    onLoadMoreExternal,
   } = props;
 
   const [toast, setToast] = useState<DocumentLibraryToast | null>(null);
@@ -67,6 +70,49 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     initialSegmentName,
   });
 
+  
+  const { navigateInto, navigateToParent: navigateToParentSegment } =
+    navigation;
+
+  /*
+   * External search rows are only displayed on the initial Advanced Search page.
+   *
+   * Once the user clicks a Claim ID / Document Set, navigation.segments gets
+   * another segment and the grid starts loading the actual Document Set
+   * children from Microsoft Graph.
+   */
+  const useExternalRows =
+    Boolean(externalRows) && navigation.segments.length === 1;
+
+  const navigateToParent = useCallback(
+    async (parent: ParentReference) => {
+      if (!parent.name) return;
+      try {
+        /*
+         * Search result parent.itemId is a SharePoint UniqueId.
+         * Resolve the actual Graph DriveItem ID before navigation.
+         */
+        const driveItemId = await client.getDriveItemIdByName({
+          name: parent.name,
+        });
+
+        navigateToParentSegment({
+          itemId: driveItemId,
+          name: parent.name,
+        });
+      } catch (error) {
+        onToast({
+          kind: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : `Failed to open ${parent.name}.`,
+        });
+      }
+    },
+    [client, navigateToParentSegment, onToast],
+  );
+
   const {
     rows,
     totalCount,
@@ -78,11 +124,14 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     hasMore,
   } = useDocumentLibraryRows({
     client,
-    parentDriveItemId: navigation.currentParentDriveItemId,
+    parentDriveItemId,
     documentType,
     externalRows,
+    useExternalRows,
+    externalTotalCount,
+    externalHasMore,
+    onLoadMoreExternal,
   });
-
   const isFlatDashboardView =
     documentType === "favorites" || documentType === "checkout";
   const activeColumns = columns;
@@ -160,10 +209,11 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     showActions: showActions && !isFlatDashboardView,
     navigateInto: isFlatDashboardView
       ? () => undefined
-      : navigation.navigateInto,
+      : navigateInto,
     documentUrlFromRow,
     openVersionHistory,
     onDeleteRow,
+    navigateToParent,
   });
 
   // Step 1 entry points: opening the file-selection dialog. Files dropped directly on

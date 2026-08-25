@@ -1,17 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import type {
   DocumentLibraryDocumentType,
   DocumentLibraryGraphClient,
   DocumentLibraryItemRow,
 } from "../types";
 
-export type { DocumentLibraryDocumentType };
-
 type UseDocumentLibraryRowsParams = {
   client: DocumentLibraryGraphClient;
-  parentDriveItemId: string | undefined;
+  parentDriveItemId?: string;
   documentType?: DocumentLibraryDocumentType;
   externalRows?: DocumentLibraryItemRow[];
+  useExternalRows?: boolean;
+
+  /**
+   * Optional total count for externally managed rows.
+   * Existing consumers can omit this safely.
+   */
+  externalTotalCount?: number;
+
+  /**
+   * Indicates whether more externally managed rows are available.
+   * Existing consumers can omit this safely.
+   */
+  externalHasMore?: boolean;
+
+  /**
+   * Callback used to load the next page for externally managed rows.
+   * Existing consumers can omit this safely.
+   */
+  onLoadMoreExternal?: () => Promise<void>;
 };
 
 export function useDocumentLibraryRows({
@@ -19,41 +37,52 @@ export function useDocumentLibraryRows({
   parentDriveItemId,
   documentType = "library",
   externalRows,
+  useExternalRows = Boolean(externalRows),
+
+  externalTotalCount,
+  externalHasMore = false,
+  onLoadMoreExternal,
 }: UseDocumentLibraryRowsParams) {
   const [rows, setRows] = useState<DocumentLibraryItemRow[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [nextLink, setNextLink] = useState<string | undefined>();
 
-  const [totalCount, setTotalCount] = useState(0);
-
-  /*
-   * Prevent multiple scroll events from requesting the
-   * same Graph page simultaneously.
-   */
   const loadingMoreRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    if (externalRows) {
-      setRows(externalRows);
-      setTotalCount(externalRows.length);
-      setNextLink(undefined);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setNextLink(undefined);
-    setTotalCount(0);
+
     try {
+      /*
+       * External rows are managed by the consumer.
+       *
+       * Existing behavior is preserved when no external pagination
+       * props are supplied.
+       */
+      if (useExternalRows && externalRows) {
+        setRows(externalRows);
+
+        setTotalCount(
+          typeof externalTotalCount === "number"
+            ? externalTotalCount
+            : externalRows.length,
+        );
+
+        return;
+      }
+
       switch (documentType) {
         case "favorites": {
           const next = await client.listFavorites();
+
           setRows(next);
+          setTotalCount(next.length);
+
           break;
         }
 
@@ -62,6 +91,7 @@ export function useDocumentLibraryRows({
 
           setRows(page.rows);
           setNextLink(page.nextLink);
+          setTotalCount(page.rows.length);
 
           break;
         }
@@ -93,19 +123,67 @@ export function useDocumentLibraryRows({
             : "Failed to load documents";
 
       setRows([]);
+      setTotalCount(0);
       setError(e instanceof Error ? e.message : fallback);
     } finally {
       setLoading(false);
     }
-  }, [client, parentDriveItemId, documentType]);
+  }, [
+    client,
+    parentDriveItemId,
+    documentType,
+    externalRows,
+    useExternalRows,
+    externalTotalCount,
+  ]);
 
   const loadMore = useCallback(async () => {
+    if (loadingMoreRef.current) {
+      return;
+    }
+
+    /*
+     * NEW:
+     * Support paginated external rows.
+     *
+     * If no callback or hasMore flag is supplied, this simply preserves
+     * the old behavior and does nothing for external rows.
+     */
+    if (useExternalRows) {
+      if (!externalHasMore || !onLoadMoreExternal) {
+        return;
+      }
+
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+      setError(null);
+
+      try {
+        await onLoadMoreExternal();
+      } catch (e) {
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Failed to load more external documents",
+        );
+      } finally {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+
+      return;
+    }
+
+    /*
+     * Existing package behavior below.
+     */
     if (documentType !== "library" && documentType !== "checkout") {
       return;
     }
 
-    if (!nextLink) return;
-    if (loadingMoreRef.current) return;
+    if (!nextLink) {
+      return;
+    }
 
     loadingMoreRef.current = true;
     setLoadingMore(true);
@@ -121,10 +199,6 @@ export function useDocumentLibraryRows({
               nextLink,
             });
 
-      /*
-       * Protect against duplicate rows if Graph returns
-       * overlapping results between pages.
-       */
       setRows((current) => {
         const existingIds = new Set(current.map((row) => row.itemId));
 
@@ -148,7 +222,15 @@ export function useDocumentLibraryRows({
       loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [client, documentType, nextLink, parentDriveItemId]);
+  }, [
+    useExternalRows,
+    externalHasMore,
+    onLoadMoreExternal,
+    documentType,
+    nextLink,
+    client,
+    parentDriveItemId,
+  ]);
 
   useEffect(() => {
     refresh();
@@ -163,9 +245,15 @@ export function useDocumentLibraryRows({
     refresh,
     loadMore,
 
-    hasMore:
-      (documentType === "library" || documentType === "checkout") &&
-      Boolean(nextLink),
+    /*
+     * NEW:
+     * External consumers can opt into infinite scrolling.
+     * Existing consumers remain unchanged.
+     */
+    hasMore: useExternalRows
+      ? Boolean(externalHasMore && onLoadMoreExternal)
+      : (documentType === "library" || documentType === "checkout") &&
+        Boolean(nextLink),
 
     documentType,
   };

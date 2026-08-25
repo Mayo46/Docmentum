@@ -73,6 +73,13 @@ export type DocumentWrapperProps = {
   /** Optional externally supplied document rows. When provided, the grid displays these rows instead of loading documents from SharePoint. */
   externalRows?: DocumentLibraryItemRow[];
 
+  /** Optional externally supplied document total count. When provided, the grid displays this count instead of loading documents from SharePoint. */
+  externalTotalCount?: number;
+  /** Optional externally supplied document has more flag. When provided, the grid displays this flag instead of loading documents from SharePoint. */
+  externalHasMore?: boolean;
+  /** Optional externally supplied document load more function. When provided, the grid displays this function instead of loading documents from SharePoint. */
+  onLoadMoreExternal?: () => Promise<void>;
+
   /** Notifies the consuming application when a document is favorited. */
   onFavorite?: (itemIds: string[]) => Promise<void>; 
   onUnfavorite?: (itemIds: string[]) => Promise<void>;
@@ -102,6 +109,9 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     userEmail,
     gridHeight,
     externalRows,
+    externalTotalCount,
+    externalHasMore,
+    onLoadMoreExternal,
     onFavorite,
     onUnfavorite,
     favoriteItemIDs,
@@ -253,6 +263,9 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
             documentType={documentType}
             gridHeight={gridHeight}
             externalRows={externalRows}
+            externalTotalCount={externalTotalCount}
+            externalHasMore={externalHasMore}
+            onLoadMoreExternal={onLoadMoreExternal}
             onFavorite={onFavorite}
             onUnfavorite={onUnfavorite}
           />
