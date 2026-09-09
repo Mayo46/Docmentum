@@ -3,7 +3,10 @@ import type {
   DocumentLibraryFieldDefinition,
   DocumentLibraryGraphClient,
 } from "../types";
-import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
+import {
+  getEditablePropertyConfig,
+  normalizeEditablePropertiesInput,
+} from "../utils/editableProperties";
 import { fallbackFieldDefinition } from "../utils/fieldDefinitions";
 import { FORCED_READONLY_FIELDS } from "../utils/constants";
 import { normalizeLookupKey } from "../utils/columns";
@@ -18,6 +21,11 @@ const CHOICE_FIELDS = new Set([
   "ClaimWorkflow",
   "DocumentType",
   "G2CompanyName",
+  "Companies",
+  "Category",
+  "SubCategory",
+  "InputSource",
+  "InputSources",
 ]);
 
 export function useEditableFieldDefinitions({
@@ -29,12 +37,13 @@ export function useEditableFieldDefinitions({
     [editableProperties],
   );
 
-  const { keys, labelOverrides } = useMemo(
+  const { keys, labelOverrides, configs } = useMemo(
     () => normalizeEditablePropertiesInput(editableProperties),
     [editableSignature],
   );
 
   const keysSignature = keys.join("|");
+  const hasExplicitConfig = configs.size > 0;
 
   const [definitions, setDefinitions] = useState<
     DocumentLibraryFieldDefinition[]
@@ -56,7 +65,9 @@ export function useEditableFieldDefinitions({
       const defs = await client.getFieldDefinitions({ fieldKeys: keys });
 
       const updatedDefinitions = defs.map((d) => {
-        const displayName = labelOverrides.get(d.key) ?? d.displayName;
+        const config = getEditablePropertyConfig(configs, d.key);
+        const displayName =
+          config?.displayName ?? labelOverrides.get(d.key) ?? d.displayName;
         const forcedReadOnly = FORCED_READONLY_FIELDS.some(
           (field) =>
             normalizeLookupKey(field) === normalizeLookupKey(d.key) ||
@@ -66,8 +77,16 @@ export function useEditableFieldDefinitions({
         return {
           ...d,
           displayName,
-          ...(CHOICE_FIELDS.has(d.key) ? { fieldType: "choice" as const } : {}),
-          readOnly: d.readOnly || forcedReadOnly,
+          fieldType: d.choices?.length
+            ? ("choice" as const)
+            : (config?.fieldType ??
+              (CHOICE_FIELDS.has(d.key) ? ("choice" as const) : d.fieldType)),
+          readOnly:
+            config?.readOnly !== undefined
+              ? config.readOnly
+              : d.readOnly || (!hasExplicitConfig && forcedReadOnly),
+          required: config?.required ?? d.required ?? false,
+          columnGroup: config?.columnGroup ?? d.columnGroup,
         };
       });
 
@@ -78,12 +97,24 @@ export function useEditableFieldDefinitions({
       );
 
       setDefinitions(
-        keys.map((k) => fallbackFieldDefinition(k, labelOverrides.get(k))),
+        keys.map((k) => {
+          const config = getEditablePropertyConfig(configs, k);
+          return {
+            ...fallbackFieldDefinition(
+              k,
+              config?.displayName ?? labelOverrides.get(k),
+            ),
+            fieldType: config?.fieldType ?? "text",
+            readOnly: config?.readOnly ?? false,
+            required: config?.required ?? false,
+            columnGroup: config?.columnGroup,
+          };
+        }),
       );
     } finally {
       setLoading(false);
     }
-  }, [client, keysSignature, labelOverrides]);
+  }, [client, keysSignature, labelOverrides, configs, hasExplicitConfig]);
 
   useEffect(() => {
     load();

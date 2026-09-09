@@ -6,6 +6,8 @@ export type GraphClientOptions = {
   listName?: string;
   /** Library/list display name used to source Content Type dropdown values. */
   contentTypesLibrary?: string;
+  /** Config-Dev list whose column values populate choice fields. */
+  dropdownList?: string;
   columns?: unknown;
     graphBaseUrl?: string;
   /** Return a valid access token for Microsoft Graph. */

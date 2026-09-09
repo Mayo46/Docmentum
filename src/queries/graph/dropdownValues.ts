@@ -1,77 +1,122 @@
 import {
-  DROPDOWN_VALUE_LIST,
+  DROPDOWN_COLUMN_ALIASES,
   DROPDOWN_VALUES_SITE_URL,
 } from "../../utils/constants";
+import { normalizeLookupKey } from "../../utils/columns";
 import { graphRequest } from "./graphRequest";
 import { parseSiteUrl } from "./helpers";
 
-/**
- * ClaimDropdownValues rows:
- *   Parent = which field (DocumentType, Workflow)
- *   Title  = the option shown in the dropdown
- */
 type DropdownRow = {
   id?: string;
-  fields?: {
-    Title?: unknown;
-    Parent?: unknown;
-    ParentLookupId?: number | string;
-  };
+  fields?: Record<string, unknown>;
 };
+
+const SYSTEM_FIELD_KEYS = new Set(
+  [
+    "id",
+    "@odata.etag",
+    "ContentType",
+    "Modified",
+    "Created",
+    "Author",
+    "Editor",
+    "AuthorLookupId",
+    "EditorLookupId",
+    "_ColorTag",
+    "ComplianceAssetId",
+    "LinkTitle",
+    "LinkTitleNoMenu",
+    "Edit",
+    "ItemChildCount",
+    "FolderChildCount",
+    "Attachments",
+    "GUID",
+    "AppAuthorLookupId",
+    "AppEditorLookupId",
+    "_UIVersionString",
+    "FileLeafRef",
+    "FileRef",
+    "FileDirRef",
+  ].map(normalizeLookupKey),
+);
 
 function asText(value: unknown): string {
   if (typeof value === "string") return value.trim();
-  if (value && typeof value === "object") {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
     const lookup = value as { LookupValue?: unknown; lookupValue?: unknown };
     return asText(lookup.LookupValue ?? lookup.lookupValue);
   }
   return "";
 }
 
-function fieldForParent(parent: string): string | null {
-  const key = parent.replace(/\s+/g, "").toLowerCase();
-  if (key === "documenttype") return "DocumentType";
-  if (key === "workflow" || key === "claimworkflow") return "ClaimWorkflow";
-  return null;
+function asTexts(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap(asTexts).filter(Boolean);
+  }
+  const one = asText(value);
+  return one ? [one] : [];
 }
 
-function groupByParent(items: DropdownRow[]): Record<string, string[]> {
-  const titleById = new Map<string, string>();
+const ALIAS_BY_SOURCE = new Map(
+  Object.entries(DROPDOWN_COLUMN_ALIASES).map(([source, targets]) => [
+    normalizeLookupKey(source),
+    targets,
+  ]),
+);
+
+function aliasesForColumn(column: string): readonly string[] {
+  return ALIAS_BY_SOURCE.get(normalizeLookupKey(column)) ?? [];
+}
+
+function isSystemColumn(column: string): boolean {
+  if (column.startsWith("@")) return true;
+  if (column.endsWith("LookupId")) return true;
+  return SYSTEM_FIELD_KEYS.has(normalizeLookupKey(column));
+}
+
+function sortDistinct(values: Set<string>): string[] {
+  return [...values].sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: "base" }),
+  );
+}
+
+function indexChoices(
+  choices: Record<string, string[]>,
+  key: string,
+  values: string[],
+) {
+  choices[key] = values;
+  choices[normalizeLookupKey(key)] = values;
+}
+
+function distinctValuesFromAllColumns(
+  items: DropdownRow[],
+): Record<string, string[]> {
+  const buckets = new Map<string, Set<string>>();
+
   for (const item of items) {
-    const title = asText(item.fields?.Title);
-    if (item.id && title) titleById.set(item.id, title);
-  }
-
-  const grouped: Record<string, Set<string>> = {
-    DocumentType: new Set(),
-    ClaimWorkflow: new Set(),
-  };
-
-  for (const item of items) {
-    const title = asText(item.fields?.Title);
-    if (!title) continue;
-
-    let parent = asText(item.fields?.Parent);
-    if (!parent && item.fields?.ParentLookupId != null) {
-      parent = titleById.get(String(item.fields.ParentLookupId)) ?? "";
+    for (const [column, raw] of Object.entries(item.fields ?? {})) {
+      if (isSystemColumn(column)) continue;
+      const values = asTexts(raw);
+      if (values.length === 0) continue;
+      let set = buckets.get(column);
+      if (!set) {
+        set = new Set();
+        buckets.set(column, set);
+      }
+      for (const value of values) set.add(value);
     }
-
-    const fieldKey = fieldForParent(parent);
-    if (!fieldKey) continue;
-    if (fieldForParent(title)) continue;
-
-    grouped[fieldKey].add(title);
   }
 
-  const sort = (values: Set<string>) =>
-    [...values].sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: "base" }),
-    );
-
-  return {
-    DocumentType: sort(grouped.DocumentType),
-    ClaimWorkflow: sort(grouped.ClaimWorkflow),
-  };
+  const choices: Record<string, string[]> = {};
+  for (const [column, values] of buckets) {
+    const sorted = sortDistinct(values);
+    indexChoices(choices, column, sorted);
+    for (const alias of aliasesForColumn(column)) {
+      indexChoices(choices, alias, sorted);
+    }
+  }
+  return choices;
 }
 
 async function loadAllItems(
@@ -95,45 +140,60 @@ async function loadAllItems(
   return items;
 }
 
-export function createDropdownValuesHelper(params: { graphBaseUrl: string }) {
-  const { graphBaseUrl } = params;
+/** Loads distinct values for every column on a Config-Dev dropdown list. */
+export async function fetchDistinctDropdownValues(params: {
+  graphBaseUrl: string;
+  accessToken: string;
+  listName: string;
+}): Promise<Record<string, string[]>> {
+  const { graphBaseUrl, accessToken, listName } = params;
+
+  const { hostname, sitePath } = parseSiteUrl(DROPDOWN_VALUES_SITE_URL);
+  const site = await graphRequest<{ id: string }>({
+    url: `${graphBaseUrl}/sites/${encodeURIComponent(hostname)}:${sitePath}?$select=id`,
+    method: "GET",
+    accessToken,
+  });
+
+  const list = await graphRequest<{ id: string }>({
+    url:
+      `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}` +
+      `/lists/${encodeURIComponent(listName)}?$select=id`,
+    method: "GET",
+    accessToken,
+  });
+
+  const items = await loadAllItems(
+    `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}` +
+      `/lists/${encodeURIComponent(list.id)}/items?$expand=fields&$top=200`,
+    accessToken,
+  );
+
+  return distinctValuesFromAllColumns(items);
+}
+
+export function createDropdownValuesHelper(params: {
+  graphBaseUrl: string;
+  dropdownList?: string;
+}) {
+  const { graphBaseUrl, dropdownList } = params;
+  const listName = dropdownList?.trim();
   let cache: Record<string, string[]> | null = null;
 
   async function getDropdownChoices(
     accessToken: string,
   ): Promise<Record<string, string[]>> {
     if (cache) return cache;
-
-    const { hostname, sitePath } = parseSiteUrl(DROPDOWN_VALUES_SITE_URL);
-    const site = await graphRequest<{ id: string }>({
-      url: `${graphBaseUrl}/sites/${encodeURIComponent(hostname)}:${sitePath}?$select=id`,
-      method: "GET",
-      accessToken,
-    });
-
-    const list = await graphRequest<{ id: string }>({
-      url:
-        `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}` +
-        `/lists/${encodeURIComponent(DROPDOWN_VALUE_LIST)}?$select=id`,
-      method: "GET",
-      accessToken,
-    });
-
-    const listUrl =
-      `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}` +
-      `/lists/${encodeURIComponent(list.id)}/items?$top=200`;
-
-    let items: DropdownRow[];
-    try {
-      items = await loadAllItems(
-        `${listUrl}&$expand=fields($select=Title,Parent)`,
-        accessToken,
-      );
-    } catch {
-      items = await loadAllItems(`${listUrl}&$expand=fields`, accessToken);
+    if (!listName) {
+      cache = {};
+      return cache;
     }
 
-    cache = groupByParent(items);
+    cache = await fetchDistinctDropdownValues({
+      graphBaseUrl,
+      accessToken,
+      listName,
+    });
     return cache;
   }
 

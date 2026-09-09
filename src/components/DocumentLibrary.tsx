@@ -124,7 +124,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     hasMore,
   } = useDocumentLibraryRows({
     client,
-    parentDriveItemId,
+    parentDriveItemId: navigation.currentParentDriveItemId ?? parentDriveItemId,
     documentType,
     externalRows,
     useExternalRows,

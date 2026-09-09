@@ -2,7 +2,9 @@ import type { DocumentLibraryItemRow } from "../../types";
 import { getFieldDisplayName } from "./helpers";
 
 /** Maps a Graph driveItem (+ optional listItem.fields) to a grid row. */
-export function mapDriveItemToRow(item: Record<string, any>): DocumentLibraryItemRow {
+export function mapDriveItemToRow(
+  item: Record<string, any>,
+): DocumentLibraryItemRow {
   const fields: Record<string, unknown> =
     (item?.listItem?.fields as Record<string, unknown>) ?? {};
 
@@ -10,8 +12,7 @@ export function mapDriveItemToRow(item: Record<string, any>): DocumentLibraryIte
   let contentTypeName: string | undefined;
   if (typeof ctRaw === "string" && ctRaw.trim()) {
     const s = ctRaw.trim();
-    contentTypeName =
-      /^0x[0-9A-F]+$/i.test(s) && s.length > 8 ? undefined : s;
+    contentTypeName = /^0x[0-9A-F]+$/i.test(s) && s.length > 8 ? undefined : s;
   } else if (ctRaw && typeof ctRaw === "object") {
     const o = ctRaw as Record<string, unknown>;
     const n = o.name ?? o.label ?? o.displayName;
@@ -92,7 +93,10 @@ export function isFollowedItemInLibrary(
   ref: FollowedItemRef,
   library: { driveId: string; listId?: string },
 ): boolean {
-  if (ref.driveId && normalizeId(ref.driveId) === normalizeId(library.driveId)) {
+  if (
+    ref.driveId &&
+    normalizeId(ref.driveId) === normalizeId(library.driveId)
+  ) {
     return true;
   }
   if (

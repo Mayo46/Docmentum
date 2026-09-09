@@ -16,6 +16,7 @@ import {
   formatFieldValueForInput,
   formatFieldValueForPatch,
 } from "../utils/fieldDefinitions";
+import moment from "moment";
 import { normalizeLookupKey } from "../utils/columns";
 import {
   COLUMN_GROUP_LABELS,
@@ -96,7 +97,6 @@ export default function PropertiesFormFields({
   onChange,
   disabled = false,
 }: Props) {
-  console.log("PropertiesFormFields", { definitions, values, disabled });
   const setKey = (key: string, value: string | boolean | string[]) => {
     onChange({ ...values, [key]: value });
   };
@@ -123,6 +123,7 @@ export default function PropertiesFormFields({
   const groupedDefinitions = definitions.reduce<
     Record<string, DocumentLibraryFieldDefinition[]>
   >((acc, def) => {
+    // Use custom group from definition first, then fall back to SharePoint's columnGroup
     let group = def.columnGroup ?? "";
 
     // Show "Core Document Columns" under the Document section.
@@ -159,6 +160,10 @@ export default function PropertiesFormFields({
   >({
     [COLUMN_GROUPS.DOCUMENT]: true,
     [COLUMN_GROUPS.DOCUMENT_SET]: true,
+    // Auto-expand custom groups for editableProperties drawer
+    document: true,
+    claim: true,
+    enterprise: true,
   });
   const toggleSection = (group: string) => {
     setExpandedSections((prev) => ({
@@ -207,6 +212,7 @@ export default function PropertiesFormFields({
                 label={def.displayName}
                 size="small"
                 sx={fieldSx}
+                required={!!def.required}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             )}
@@ -219,8 +225,9 @@ export default function PropertiesFormFields({
           fullWidth
           size="small"
           disabled={disabled || isReadOnly}
+          required={!!def.required}
         >
-          <InputLabel id={`${def.key}-label`} shrink>
+          <InputLabel id={`${def.key}-label`} shrink required={!!def.required}>
             {def.displayName}
           </InputLabel>
           <Select
@@ -240,11 +247,9 @@ export default function PropertiesFormFields({
                 {c}
               </MenuItem>
             ))}
-            {typeof value === "string" &&
-              value &&
-              !options.includes(value) && (
-                <MenuItem value={value}>{value}</MenuItem>
-              )}
+            {typeof value === "string" && value && !options.includes(value) && (
+              <MenuItem value={value}>{value}</MenuItem>
+            )}
           </Select>
         </FormControl>
       );
@@ -258,6 +263,7 @@ export default function PropertiesFormFields({
           type="number"
           size="small"
           disabled={disabled}
+          required={!!def.required}
           value={value === undefined || value === null ? "" : String(value)}
           onChange={(e) => setKey(def.key, e.target.value)}
           sx={fieldSx}
@@ -270,13 +276,17 @@ export default function PropertiesFormFields({
     }
 
     if (def.fieldType === "dateTime") {
+      const dateValue =
+        value && typeof value === "string"
+          ? moment(value).format("MM/DD/YYYY")
+          : "";
       return (
         <TextField
           key={def.key}
           label={def.displayName}
           size="small"
           fullWidth
-          value={typeof value === "string" ? value : ""}
+          value={dateValue}
           slotProps={{
             input: { readOnly: true },
             inputLabel: { shrink: true },
@@ -292,6 +302,7 @@ export default function PropertiesFormFields({
         label={def.displayName}
         size="small"
         disabled={disabled}
+        required={!!def.required}
         multiline={def.fieldType === "multiline"}
         minRows={def.fieldType === "multiline" ? 2 : undefined}
         value={typeof value === "string" ? value : ""}
@@ -311,6 +322,7 @@ export default function PropertiesFormFields({
       {GROUP_ORDER.filter((group) => groupedDefinitions[group]?.length).map(
         (group) => {
           const expanded = expandedSections[group];
+          const groupLabel = COLUMN_GROUP_LABELS[group] || group;
           return (
             <Stack key={group} spacing={2}>
               <Box
@@ -326,7 +338,7 @@ export default function PropertiesFormFields({
                 onClick={() => toggleSection(group)}
               >
                 <Typography fontWeight="bold" fontSize={15}>
-                  {COLUMN_GROUP_LABELS[group]}
+                  {groupLabel}
                 </Typography>
                 {expanded ? (
                   <ExpandLess fontSize="small" />

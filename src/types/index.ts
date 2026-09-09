@@ -20,7 +20,13 @@ export type DocumentLibraryUploadColumn = {
 
 export type DocumentLibraryEditableProperty = {
   key: string;
+  displayName?: string;
+  /** @deprecated Use displayName */
   label?: string;
+  readOnly?: boolean;
+  required?: boolean;
+  columnType?: DocumentLibraryFieldType;
+  group?: string;
 };
 
 export type DocumentLibraryFieldType =
@@ -38,10 +44,11 @@ export type DocumentLibraryFieldDefinition = {
   choices?: string[];
   allowMultipleChoices?: boolean;
   readOnly?: boolean;
+  required?: boolean;
   columnGroup?: string;
   /** True when the SharePoint column is a lookup. PATCH then uses `{key}LookupId`. */
   isLookup?: boolean;
-  /** Title → ClaimDropdownValues item id, used only for lookup columns. */
+  /** Label → source-list item id, used only for lookup columns. */
   lookupItemIdsByLabel?: Record<string, string>;
 };
 

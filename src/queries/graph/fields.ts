@@ -2,7 +2,7 @@ import type {
   DocumentLibraryFieldDefinition,
   FieldUpdateFailure,
 } from "../../types";
-import { normalizeLookupKey } from "../../utils/columns";
+import { normalizeLookupKey, toCanonicalKey } from "../../utils/columns";
 import { FORCED_READONLY_FIELDS } from "../../utils/constants";
 import {
   fallbackFieldDefinition,
@@ -50,10 +50,7 @@ function withDropdownChoices(
   choicesByField: Record<string, string[]>,
 ): DocumentLibraryFieldDefinition {
   const choices =
-    choicesByField[def.key] ??
-    (normalizeLookupKey(def.key) === "workflow"
-      ? choicesByField.ClaimWorkflow
-      : undefined);
+    choicesByField[def.key] ?? choicesByField[normalizeLookupKey(def.key)];
   if (!choices?.length) return def;
   return {
     ...def,
@@ -95,7 +92,7 @@ export function createFieldsApi(
       const dropdownChoicesPromise = dropdownValues
         .getDropdownChoices(accessToken)
         .catch((error) => {
-          console.warn("Failed to load ClaimDropdownValues", error);
+          console.warn("Failed to load dropdown values", error);
           return {} as Record<string, string[]>;
         });
 
@@ -214,16 +211,12 @@ export function createFieldsApi(
       const parsed = new Map<string, DocumentLibraryFieldDefinition>();
       for (const col of columnRows) {
         const raw = col as Parameters<typeof parseGraphListColumn>[0];
-
-        if (isHiddenGraphListColumn(raw)) continue;
-
         const def = parseGraphListColumn(raw);
         if (!def) continue;
-        applyReadOnly(def, documentSetGroups, readOnlyFields);
         const norm = normalizeLookupKey(def.key);
-        if (requested.has(norm)) {
-          parsed.set(norm, def);
-        }
+        if (!requested.has(norm)) continue;
+        applyReadOnly(def, documentSetGroups, readOnlyFields);
+        parsed.set(norm, def);
       }
 
       const out: DocumentLibraryFieldDefinition[] = [];
@@ -244,7 +237,9 @@ export function createFieldsApi(
       fieldKeys: string[];
     }) {
       const { accessToken, driveId } = await getContext();
-      const keys = fieldKeys.map((k) => k.trim()).filter(Boolean);
+      const keys = fieldKeys
+        .map((k) => toCanonicalKey(k) || k.trim())
+        .filter(Boolean);
 
       const baseUrl =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +

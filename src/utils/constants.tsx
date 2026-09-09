@@ -37,13 +37,18 @@ export const COLUMN_GROUP_LABELS: Record<string, string> = {
   [COLUMN_GROUPS.DOCUMENT_SET]: "Claim Information",
   [COLUMN_GROUPS.DOCUMENT]: "Document Information",
   [COLUMN_GROUPS.CORE]: "Document Information",
-  // [COLUMN_GROUPS.FINANCIAL_ENTERPRISE]: "Enterprise Information",
+  // Custom groups for editableProperties drawer
+  document: "Document Information",
+  claim: "Claim Information",
+  enterprise: "Enterprise Information",
 };
 
 export const GROUP_ORDER = [
   COLUMN_GROUPS.DOCUMENT,
+  "document", // Custom group for editableProperties
   COLUMN_GROUPS.DOCUMENT_SET,
-  // COLUMN_GROUPS.FINANCIAL_ENTERPRISE,
+  "claim", // Custom group for editableProperties
+  "enterprise", // Custom group for editableProperties
 ];
 
 export const SITE_DOCUMENT_SET_GROUPS: Record<string, string[]> = {
@@ -232,7 +237,6 @@ export const CLAIM_INFORMATION_FIELD_ORDER = [
   "CheckedOutDate",
 ];
 
-
 /**
  * Financial Supporting Documents - Document Information order.
  */
@@ -286,6 +290,20 @@ export const SITE_DISPLAY_FIELDS: Record<string, readonly string[]> = {
 };
 
 export const DROPDOWN_VALUES_SITE_URL =
-  "https://genstargenesis.sharepoint.com/sites/Indexing-Dev2";
+  "https://genstargenesis.sharepoint.com/sites/Config-Dev";
 
-export const DROPDOWN_VALUE_LIST = "ClaimDropdownValues";
+/**
+ * Source-list column → document field key(s) when the names differ.
+ * Values are indexed under both so either side can match a form field.
+ *
+ * ClaimDocIdentifier columns (same set the other app groups by parent):
+ *   DocIdentifier, Workflow, Category, SubCategory,
+ *   InputSources, Companies, ClaimTypes
+ */
+export const DROPDOWN_COLUMN_ALIASES: Record<string, readonly string[]> = {
+  DocIdentifier: ["DocumentType"],
+  Workflow: ["ClaimWorkflow"],
+  InputSources: ["InputSource"],
+  Companies: ["G2CompanyName", "GenreCompany"],
+  ClaimTypes: ["ClaimType"],
+};

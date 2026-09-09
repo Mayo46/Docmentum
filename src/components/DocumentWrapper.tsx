@@ -22,6 +22,9 @@ export type DocumentWrapperProps = {
   /** Name of the SharePoint document library. */
   listName: string;
 
+  /** Config-Dev list whose column values populate choice fields (e.g. ClaimDocIdentifier). */
+  dropdownList?: string;
+
   /** Optional library containing the content types used for uploads. */
   contentTypesLibrary?: string;
 
@@ -91,6 +94,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     graphToken,
     siteUrl,
     listName,
+    dropdownList,
     contentTypesLibrary,
     documentSetName,
     columns,
@@ -178,6 +182,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     return createGraphClient({
       siteUrl,
       listName,
+      dropdownList,
       contentTypesLibrary,
       columns: normalizedColumns,
       getAccessToken: async () => graphToken,
@@ -189,6 +194,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     graphToken,
     siteUrl,
     listName,
+    dropdownList,
     contentTypesLibrary,
     normalizedColumns,
     userEmail,

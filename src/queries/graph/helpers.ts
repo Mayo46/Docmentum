@@ -21,7 +21,9 @@ export function escapeODataString(value: string) {
   return value.replace(/'/g, "''");
 }
 
-export function resolveRequestedFieldKeys(fieldKeys: string[]): Map<string, string> {
+export function resolveRequestedFieldKeys(
+  fieldKeys: string[],
+): Map<string, string> {
   const canonByNorm = new Map<string, string>();
   for (const k of fieldKeys) {
     const trimmed = k.trim();

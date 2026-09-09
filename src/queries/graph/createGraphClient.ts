@@ -40,7 +40,10 @@ export function createGraphClient(
     graphBaseUrl,
     contentTypesLibraryName,
   });
-  const dropdownValues = createDropdownValuesHelper({ graphBaseUrl });
+  const dropdownValues = createDropdownValuesHelper({
+    graphBaseUrl,
+    dropdownList: opts.dropdownList,
+  });
   const driveItems = createDriveItemsApi(deps);
   const checkout = createCheckoutApi(deps);
   const fields = createFieldsApi(deps, contentTypes, dropdownValues);
