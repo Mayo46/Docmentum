@@ -43,7 +43,6 @@ export function useEditableFieldDefinitions({
   );
 
   const keysSignature = keys.join("|");
-  const hasExplicitConfig = configs.size > 0;
 
   const [definitions, setDefinitions] = useState<
     DocumentLibraryFieldDefinition[]
@@ -82,9 +81,9 @@ export function useEditableFieldDefinitions({
             : (config?.fieldType ??
               (CHOICE_FIELDS.has(d.key) ? ("choice" as const) : d.fieldType)),
           readOnly:
-            config?.readOnly !== undefined
-              ? config.readOnly
-              : d.readOnly || (!hasExplicitConfig && forcedReadOnly),
+            d.readOnly ||
+            config?.readOnly === true ||
+            forcedReadOnly,
           required: config?.required ?? d.required ?? false,
           columnGroup: config?.columnGroup ?? d.columnGroup,
         };
@@ -114,7 +113,7 @@ export function useEditableFieldDefinitions({
     } finally {
       setLoading(false);
     }
-  }, [client, keysSignature, labelOverrides, configs, hasExplicitConfig]);
+  }, [client, keysSignature, labelOverrides, configs]);
 
   useEffect(() => {
     load();
