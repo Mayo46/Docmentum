@@ -190,11 +190,14 @@ export function buildDriveItemSelect(columns?: unknown) {
   ]).join(",");
 }
 
-export function buildFieldSelect(columns?: unknown) {
+export function buildFieldSelect(columns?: unknown, extraKeys?: string[]) {
   const normalizedColumns = normalizeColumnsInput(columns);
   const selected =
     normalizedColumns.length > 0
       ? normalizedColumns
       : DEFAULT_FIELD_SELECT_COLUMNS;
-  return uniqueNonEmpty(selected).join(",");
+  const extras = (extraKeys ?? [])
+    .map((key) => toCanonicalKey(key) || key.trim())
+    .filter(Boolean);
+  return uniqueNonEmpty([...selected, ...extras]).join(",");
 }

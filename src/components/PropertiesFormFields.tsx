@@ -44,6 +44,7 @@ type Props = {
   values: PropertyFormValues;
   onChange: (values: PropertyFormValues) => void;
   disabled?: boolean;
+  fieldErrors?: Record<string, string>;
 };
 
 export function buildInitialFormValues(
@@ -96,6 +97,7 @@ export default function PropertiesFormFields({
   values,
   onChange,
   disabled = false,
+  fieldErrors = {},
 }: Props) {
   const setKey = (key: string, value: string | boolean | string[]) => {
     onChange({ ...values, [key]: value });
@@ -176,6 +178,7 @@ export default function PropertiesFormFields({
     const value = values[def.key];
     const isReadOnly = !!def.readOnly;
     const fieldSx = isReadOnly ? readOnlyFieldSx : editableFieldSx;
+    const fieldError = fieldErrors[def.key];
 
     if (def.fieldType === "boolean") {
       return (
@@ -307,6 +310,8 @@ export default function PropertiesFormFields({
         minRows={def.fieldType === "multiline" ? 2 : undefined}
         value={typeof value === "string" ? value : ""}
         onChange={(e) => setKey(def.key, e.target.value)}
+        error={!!fieldError}
+        helperText={fieldError || undefined}
         sx={fieldSx}
         slotProps={{
           input: { readOnly: isReadOnly },

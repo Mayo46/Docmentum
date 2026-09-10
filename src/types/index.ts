@@ -123,8 +123,10 @@ export type OnRefresh = () => void;
 
 export type DocumentLibraryGraphClient = {
   getDriveItemIdByName: (params: { name: string }) => Promise<string>;
+  getParentDriveItemId: (params: { itemId: string }) => Promise<string | null>;
   listChildren: (params: {
     parentDriveItemId?: string;
+    fieldKeys?: string[];
   }) => Promise<DocumentLibraryItemRow[]>;
   listChildrenPage: (params: {
     parentDriveItemId?: string;

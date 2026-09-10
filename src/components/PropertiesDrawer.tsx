@@ -9,6 +9,13 @@ import {
     Typography,
 } from "@mui/material";
 import type { DocumentLibraryFieldDefinition } from "../types";
+import {
+    documentNameFieldKey,
+    DUPLICATE_DOCUMENT_NAME_MESSAGE,
+    getEnteredDocumentName,
+    isSameDocumentName,
+    type DuplicateDocumentNameResult,
+} from "../utils/documentName";
 import PropertiesFormFields, {
     buildInitialFormValues,
     formValuesToPatchPayload,
@@ -53,6 +60,13 @@ type Props = {
      * nothing has been uploaded yet; omitted once upload begins so the selection is locked.
      */
     onBack?: () => void;
+    /**
+     * Edit-mode check for a duplicate Document Name among siblings in the same Doc Set.
+     * Upload mode should omit this.
+     */
+    validateDocumentName?: (
+        enteredName: string,
+    ) => Promise<DuplicateDocumentNameResult>;
 };
 
 export default function PropertiesDrawer(props: Props) {
@@ -79,10 +93,14 @@ export default function PropertiesDrawer(props: Props) {
         onSubmit,
         onSaveAndNext,
         onBack,
+        validateDocumentName,
     } = props;
 
     const [values, setValues] = useState<PropertyFormValues>({});
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+    const isUpload = mode === "upload";
+    const nameFieldKey = documentNameFieldKey(definitions);
 
     const definitionsKey = useMemo(
         () => definitions.map((d) => d.key).join("|"),
@@ -97,11 +115,68 @@ export default function PropertiesDrawer(props: Props) {
         if (!open) return;
         setValues(buildInitialFormValues(definitions, initialValues));
         setSubmitError(null);
+        setFieldErrors({});
     }, [open, definitionsKey, initialValuesKey, definitions, initialValues]);
 
-    const isUpload = mode === "upload";
+    const originalDocumentName = useMemo(() => {
+        if (!nameFieldKey) return "";
+        const fromValues = getEnteredDocumentName(initialValues ?? {});
+        if (fromValues) return fromValues;
+        const raw = initialValues?.[nameFieldKey];
+        return typeof raw === "string" ? raw.trim() : "";
+    }, [initialValues, nameFieldKey]);
+
+    const enteredDocumentName = nameFieldKey
+        ? String(values[nameFieldKey] ?? "").trim()
+        : "";
+
+    useEffect(() => {
+        if (!open || isUpload || !validateDocumentName || !nameFieldKey) return;
+        if (valuesLoading) return;
+
+        setFieldErrors((prev) => {
+            if (!prev[nameFieldKey]) return prev;
+            const next = { ...prev };
+            delete next[nameFieldKey];
+            return next;
+        });
+
+        if (!enteredDocumentName) return;
+        if (
+            originalDocumentName &&
+            isSameDocumentName(enteredDocumentName, originalDocumentName)
+        ) {
+            return;
+        }
+
+        let cancelled = false;
+        const timer = window.setTimeout(async () => {
+            const result = await validateDocumentName(enteredDocumentName);
+            if (cancelled) return;
+            if (result === "duplicate") {
+                setFieldErrors({ [nameFieldKey]: DUPLICATE_DOCUMENT_NAME_MESSAGE });
+            }
+        }, 400);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+        };
+    }, [
+        open,
+        isUpload,
+        validateDocumentName,
+        nameFieldKey,
+        enteredDocumentName,
+        originalDocumentName,
+        valuesLoading,
+    ]);
+
     const loading = definitionsLoading || valuesLoading;
     const displayError = submitError ?? externalError;
+    const hasDuplicateNameError = !!(
+        nameFieldKey && fieldErrors[nameFieldKey]
+    );
     // Upload can proceed even with no editable metadata columns (files-only upload).
     const actionsDisabled =
         submitting ||
@@ -109,21 +184,47 @@ export default function PropertiesDrawer(props: Props) {
         submitDisabled ||
         (!isUpload && definitions.length === 0);
 
+    const applyDuplicateNameError = () => {
+        if (!nameFieldKey) {
+            setSubmitError(DUPLICATE_DOCUMENT_NAME_MESSAGE);
+            return;
+        }
+        setFieldErrors({ [nameFieldKey]: DUPLICATE_DOCUMENT_NAME_MESSAGE });
+    };
+
     const runSubmit = async (
         handler?: (properties: Record<string, unknown>) => Promise<void>,
+        options?: { skipNameCheck?: boolean },
     ) => {
         if (!handler) return;
         setSubmitError(null);
+        const payload = formValuesToPatchPayload(definitions, values);
+        const shouldCheckName =
+            !isUpload && !options?.skipNameCheck && !!validateDocumentName;
+        if (shouldCheckName) {
+            const enteredName = getEnteredDocumentName(payload);
+            if (enteredName) {
+                const result = await validateDocumentName(enteredName);
+                if (result === "duplicate") {
+                    applyDuplicateNameError();
+                    return;
+                }
+            }
+        }
         try {
-            await handler(formValuesToPatchPayload(definitions, values));
+            await handler(payload);
         } catch (e) {
-            setSubmitError(
+            const message =
                 e instanceof Error
                     ? e.message
                     : isUpload
                         ? "Failed to upload"
-                        : "Failed to save properties",
-            );
+                        : "Failed to save properties";
+            if (message === DUPLICATE_DOCUMENT_NAME_MESSAGE) {
+                applyDuplicateNameError();
+                return;
+            }
+            setSubmitError(message);
         }
     };
 
@@ -137,21 +238,21 @@ export default function PropertiesDrawer(props: Props) {
             ? "Upload All Files"
             : "Upload"
         : multiItem
-            ? "Save Multiple Docs"
+            ? "Save All Docs"
             : "Save";
     const nextLabel = isUpload
         ? isLastStep
-            ? "Upload and Finish"
-            : "Upload and Move to Next File"
+            ? "Upload & Finish"
+            : "Upload & Next"
         : isLastStep
-            ? "Save and Finish"
-            : "Save and Move to Next Doc";
+            ? "Save & Finish"
+            : "Save & Next";
 
     return (
         <Drawer anchor="right" open={open} onClose={onClose}>
             <Box
                 sx={{
-                    width: { xs: "100vw", sm: 560 },
+                    width: { xs: "100vw", sm: 720 },
                     p: 2.5,
                     display: "flex",
                     flexDirection: "column",
@@ -192,6 +293,7 @@ export default function PropertiesDrawer(props: Props) {
                                 values={values}
                                 onChange={setValues}
                                 disabled={submitting}
+                                fieldErrors={fieldErrors}
                             />
                         ) : isUpload ? (
                             <Alert severity="info">
@@ -227,7 +329,7 @@ export default function PropertiesDrawer(props: Props) {
                     >
                         {onBack ? (
                             <Button
-                                variant="text"
+                                variant="outlined"
                                 onClick={onBack}
                                 disabled={submitting}
                                 sx={{ mr: "auto" }}
@@ -241,9 +343,13 @@ export default function PropertiesDrawer(props: Props) {
                         <Button
                             variant={canStep ? "outlined" : "contained"}
                             disabled={
-                                actionsDisabled || (canStep && bulkActionDisabled)
+                                actionsDisabled ||
+                                (canStep && bulkActionDisabled) ||
+                                (!canStep && hasDuplicateNameError)
                             }
-                            onClick={() => runSubmit(onSubmit)}
+                            onClick={() =>
+                                runSubmit(onSubmit, { skipNameCheck: canStep })
+                            }
                             startIcon={
                                 submitting && !canStep ? (
                                     <CircularProgress size={16} />
@@ -255,7 +361,7 @@ export default function PropertiesDrawer(props: Props) {
                         {canStep ? (
                             <Button
                                 variant="outlined"
-                                disabled={actionsDisabled}
+                                disabled={actionsDisabled || hasDuplicateNameError}
                                 onClick={() => runSubmit(onSaveAndNext)}
                                 startIcon={submitting ? <CircularProgress size={16} /> : null}
                             >

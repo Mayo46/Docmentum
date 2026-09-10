@@ -21,6 +21,7 @@ import { useDocumentLibrarySelection } from "../hooks/useDocumentLibrarySelectio
 import { useUploadDialog } from "../hooks/useUploadDialog";
 import type { DocumentLibraryGridAgContext } from "../common/GroupRowRenderer";
 import DocumentLibraryToolbar from "./DocumentLibraryToolbar";
+import { checkDuplicateDocumentName, getEnteredDocumentName } from "../utils/documentName";
 
 export default function DocumentLibrary(props: DocumentLibraryProps) {
   const {
@@ -311,6 +312,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     isLastStep,
     bulkActionLocked,
     primaryItemName,
+    primaryItemId,
     drawerMode,
     drawerOpen,
     uploadFiles,
@@ -326,6 +328,19 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   } = properties;
 
   const isUploadMode = drawerMode === "upload";
+
+  const validateDocumentName = useCallback(
+    async (enteredName: string) => {
+      if (!primaryItemId) return "unique" as const;
+      return checkDuplicateDocumentName({
+        client,
+        currentItemId: primaryItemId,
+        enteredName,
+        originalName: getEnteredDocumentName(propertiesInitialValues ?? {}),
+      });
+    },
+    [client, primaryItemId, propertiesInitialValues],
+  );
 
   return (
     <Box sx={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
@@ -461,6 +476,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
             ? handleBackToFileSelection
             : undefined
         }
+        validateDocumentName={isUploadMode ? undefined : validateDocumentName}
       />
 
       <Snackbar
