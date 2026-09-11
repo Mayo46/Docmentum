@@ -37,16 +37,18 @@ export type DuplicateDocumentNameResult = "unique" | "duplicate" | "unavailable"
 
 /**
  * Returns whether `enteredName` is already used by a sibling in the same Doc Set.
- * API failures return `"unavailable"` so callers do not treat them as duplicates.
+ * Pass `parentDriveItemId` (upload) or `currentItemId` (edit). API failures return
+ * `"unavailable"` so callers do not treat them as duplicates.
  */
 export async function checkDuplicateDocumentName(params: {
   client: DocumentLibraryGraphClient;
-  currentItemId: string;
+  currentItemId?: string;
+  parentDriveItemId?: string;
   enteredName: string;
   originalName?: string;
 }): Promise<DuplicateDocumentNameResult> {
   const enteredName = params.enteredName.trim();
-  if (!enteredName || !params.currentItemId) return "unique";
+  if (!enteredName) return "unique";
   if (
     params.originalName != null &&
     isSameDocumentName(enteredName, params.originalName.trim())
@@ -55,9 +57,13 @@ export async function checkDuplicateDocumentName(params: {
   }
 
   try {
-    const parentId = await params.client.getParentDriveItemId({
-      itemId: params.currentItemId,
-    });
+    let parentId = params.parentDriveItemId?.trim() ?? "";
+    if (!parentId && params.currentItemId) {
+      parentId =
+        (await params.client.getParentDriveItemId({
+          itemId: params.currentItemId,
+        })) ?? "";
+    }
     if (!parentId) return "unique";
 
     const siblings = await params.client.listChildren({
@@ -67,7 +73,7 @@ export async function checkDuplicateDocumentName(params: {
 
     const isDuplicate = siblings.some(
       (document) =>
-        document.itemId !== params.currentItemId &&
+        (!params.currentItemId || document.itemId !== params.currentItemId) &&
         !document.isContainer &&
         isSameDocumentName(siblingDocumentName(document), enteredName),
     );

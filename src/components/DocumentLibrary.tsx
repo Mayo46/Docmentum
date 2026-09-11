@@ -331,6 +331,15 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
 
   const validateDocumentName = useCallback(
     async (enteredName: string) => {
+      if (isUploadMode) {
+        const docSetId = navigation.currentParentDriveItemId;
+        if (!docSetId) return "unique" as const;
+        return checkDuplicateDocumentName({
+          client,
+          parentDriveItemId: docSetId,
+          enteredName,
+        });
+      }
       if (!primaryItemId) return "unique" as const;
       return checkDuplicateDocumentName({
         client,
@@ -339,7 +348,13 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         originalName: getEnteredDocumentName(propertiesInitialValues ?? {}),
       });
     },
-    [client, primaryItemId, propertiesInitialValues],
+    [
+      client,
+      isUploadMode,
+      navigation.currentParentDriveItemId,
+      primaryItemId,
+      propertiesInitialValues,
+    ],
   );
 
   return (
@@ -476,7 +491,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
             ? handleBackToFileSelection
             : undefined
         }
-        validateDocumentName={isUploadMode ? undefined : validateDocumentName}
+        validateDocumentName={validateDocumentName}
       />
 
       <Snackbar

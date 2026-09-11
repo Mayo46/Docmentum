@@ -61,8 +61,8 @@ type Props = {
      */
     onBack?: () => void;
     /**
-     * Edit-mode check for a duplicate Document Name among siblings in the same Doc Set.
-     * Upload mode should omit this.
+     * Checks for a duplicate Document Name among siblings in the same Doc Set.
+     * Used for both edit and upload (upload uses the current Doc Set ID).
      */
     validateDocumentName?: (
         enteredName: string,
@@ -131,7 +131,7 @@ export default function PropertiesDrawer(props: Props) {
         : "";
 
     useEffect(() => {
-        if (!open || isUpload || !validateDocumentName || !nameFieldKey) return;
+        if (!open || !validateDocumentName || !nameFieldKey) return;
         if (valuesLoading) return;
 
         setFieldErrors((prev) => {
@@ -142,7 +142,9 @@ export default function PropertiesDrawer(props: Props) {
         });
 
         if (!enteredDocumentName) return;
+        // An existing document may keep its own name; a new upload may not reuse any sibling name.
         if (
+            !isUpload &&
             originalDocumentName &&
             isSameDocumentName(enteredDocumentName, originalDocumentName)
         ) {
@@ -199,8 +201,7 @@ export default function PropertiesDrawer(props: Props) {
         if (!handler) return;
         setSubmitError(null);
         const payload = formValuesToPatchPayload(definitions, values);
-        const shouldCheckName =
-            !isUpload && !options?.skipNameCheck && !!validateDocumentName;
+        const shouldCheckName = !options?.skipNameCheck && !!validateDocumentName;
         if (shouldCheckName) {
             const enteredName = getEnteredDocumentName(payload);
             if (enteredName) {
