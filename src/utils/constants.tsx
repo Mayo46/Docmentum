@@ -19,8 +19,6 @@ export const DEFAULT_FIELD_SELECT_COLUMNS = [
 export const SITE_CONTENT_TYPES: Record<string, string[]> = {
   Claims: ["G2 Claim", "G2 Claim Document"],
 
-  "Indexing-Dev2": ["G2 Claim", "G2 Claim Document"],
-
   Underwriting: ["G2 Underwriting", "G2 Underwriting Document"],
 
   FinancialSupportingDocuments: ["G2 Financial Supporting Document"],
@@ -53,7 +51,6 @@ export const GROUP_ORDER = [
 
 export const SITE_DOCUMENT_SET_GROUPS: Record<string, string[]> = {
   Claims: ["G2 Claim"],
-  "Indexing-Dev2": ["G2 Claim"],
   Underwriting: ["G2 Underwriting"],
   FinancialSupportingDocuments: ["G2 Financial Supporting Document"],
 };
@@ -67,17 +64,6 @@ export const SITE_REQUIRED_FIELDS: Record<string, string[]> = {
     "ReceivedDate",
     "Category",
     "SubCategory",
-    "ClaimWorkflow",
-    "ClaimID",
-    "ContractID",
-    "GenreCompany",
-  ],
-
-  "Indexing-Dev2": [
-    "DocumentName",
-    "ReceivedDate",
-    "SubCategory",
-    "Category",
     "ClaimWorkflow",
     "ClaimID",
     "ContractID",
@@ -117,14 +103,6 @@ export const SITE_READONLY_FIELDS: Record<string, string[]> = {
     "SubCategory",
     "CheckedOutBy",
     "CheckedOutDate",
-    "Created",
-  ],
-
-  "Indexing-Dev2": [
-    "ClaimCloseDate",
-    "Category",
-    "SubCategory",
-    "CheckedOutBy",
     "Created",
   ],
 
@@ -278,7 +256,6 @@ export const UNDERWRITING_ENTERPRISE_FIELD_ORDER = [
  */
 export const SITE_DISPLAY_FIELDS: Record<string, readonly string[]> = {
   Claims: [...DOCUMENT_FIELD_ORDER, ...CLAIM_INFORMATION_FIELD_ORDER],
-  "Indexing-Dev2": [...DOCUMENT_FIELD_ORDER, ...CLAIM_INFORMATION_FIELD_ORDER],
   Underwriting: [
     ...UNDERWRITING_DOCUMENT_FIELD_ORDER,
     ...UNDERWRITING_ENTERPRISE_FIELD_ORDER,
@@ -291,19 +268,3 @@ export const SITE_DISPLAY_FIELDS: Record<string, readonly string[]> = {
 
 export const DROPDOWN_VALUES_SITE_URL =
   "https://genstargenesis.sharepoint.com/sites/Config-Dev";
-
-/**
- * Source-list column → document field key(s) when the names differ.
- * Values are indexed under both so either side can match a form field.
- *
- * ClaimDocIdentifier columns (same set the other app groups by parent):
- *   DocIdentifier, Workflow, Category, SubCategory,
- *   InputSources, Companies, ClaimTypes
- */
-export const DROPDOWN_COLUMN_ALIASES: Record<string, readonly string[]> = {
-  DocIdentifier: ["DocumentType"],
-  Workflow: ["ClaimWorkflow"],
-  InputSources: ["InputSource"],
-  Companies: ["G2CompanyName", "GenreCompany"],
-  ClaimTypes: ["ClaimType"],
-};

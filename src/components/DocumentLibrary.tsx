@@ -14,14 +14,20 @@ import UploadPannel from "./UploadPannel";
 import VersionHistoryDialog from "./VersionHistoryDialog";
 import { useDocumentLibraryColumnDefs } from "../hooks/useDocumentLibraryColumnDefs";
 import { useDocumentLibraryGrouping } from "../hooks/useDocumentLibraryGrouping";
-import { useDocumentLibraryNavigation, type ParentReference } from "../hooks/useDocumentLibraryNavigation";
+import {
+  useDocumentLibraryNavigation,
+  type ParentReference,
+} from "../hooks/useDocumentLibraryNavigation";
 import { useDocumentLibraryProperties } from "../hooks/useDocumentLibraryProperties";
 import { useDocumentLibraryRows } from "../hooks/useDocumentLibraryRows";
 import { useDocumentLibrarySelection } from "../hooks/useDocumentLibrarySelection";
 import { useUploadDialog } from "../hooks/useUploadDialog";
 import type { DocumentLibraryGridAgContext } from "../common/GroupRowRenderer";
 import DocumentLibraryToolbar from "./DocumentLibraryToolbar";
-import { checkDuplicateDocumentName, getEnteredDocumentName } from "../utils/documentName";
+import {
+  checkDuplicateDocumentName,
+  getEnteredDocumentName,
+} from "../utils/documentName";
 
 export default function DocumentLibrary(props: DocumentLibraryProps) {
   const {
@@ -70,8 +76,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     parentDriveItemId,
     initialSegmentName,
   });
-
-  
   const { navigateInto, navigateToParent: navigateToParentSegment } =
     navigation;
 
@@ -208,9 +212,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     groupingEnabled: grouping.groupingEnabled,
     showRowCheckbox,
     showActions: showActions && !isFlatDashboardView,
-    navigateInto: isFlatDashboardView
-      ? () => undefined
-      : navigateInto,
+    navigateInto: isFlatDashboardView ? () => undefined : navigateInto,
     documentUrlFromRow,
     openVersionHistory,
     onDeleteRow,
@@ -240,7 +242,11 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     if (uploadDialog.files.length === 0) return;
     properties.openUploadEditor(uploadDialog.files);
     uploadDialog.hideDialog();
-  }, [uploadDialog.files, uploadDialog.hideDialog, properties.openUploadEditor]);
+  }, [
+    uploadDialog.files,
+    uploadDialog.hideDialog,
+    properties.openUploadEditor,
+  ]);
 
   // Step 2 -> Step 1: only reachable before any file has been uploaded. Closes the
   // drawer and reopens the dialog with the still-pending selection.

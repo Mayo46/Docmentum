@@ -1,47 +1,29 @@
-import {
-  DROPDOWN_COLUMN_ALIASES,
-  DROPDOWN_VALUES_SITE_URL,
-} from "../../utils/constants";
-import { normalizeLookupKey } from "../../utils/columns";
+import { DROPDOWN_VALUES_SITE_URL } from "../../utils/constants";
 import { graphRequest } from "./graphRequest";
 import { parseSiteUrl } from "./helpers";
 
+export type DocIdentifierMapping = {
+  DocIdentifier: string;
+  Category: string;
+  SubCategory: string;
+  Workflow: string;
+  Function: string;
+  Companies: string[];
+  IsExistingClaim: boolean;
+};
+
 type DropdownRow = {
-  id?: string;
   fields?: Record<string, unknown>;
 };
 
-const SYSTEM_FIELD_KEYS = new Set(
-  [
-    "id",
-    "@odata.etag",
-    "ContentType",
-    "Modified",
-    "Created",
-    "Author",
-    "Editor",
-    "AuthorLookupId",
-    "EditorLookupId",
-    "_ColorTag",
-    "ComplianceAssetId",
-    "LinkTitle",
-    "LinkTitleNoMenu",
-    "Edit",
-    "ItemChildCount",
-    "FolderChildCount",
-    "Attachments",
-    "GUID",
-    "AppAuthorLookupId",
-    "AppEditorLookupId",
-    "_UIVersionString",
-    "FileLeafRef",
-    "FileRef",
-    "FileDirRef",
-  ].map(normalizeLookupKey),
-);
+const MAPPING_SELECT =
+  "DocIdentifier,Category,SubCategory,Workflow,Function,IsExistingClaim,Companies";
 
 function asText(value: unknown): string {
   if (typeof value === "string") return value.trim();
+  if (typeof value === "boolean" || typeof value === "number") {
+    return String(value);
+  }
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const lookup = value as { LookupValue?: unknown; lookupValue?: unknown };
     return asText(lookup.LookupValue ?? lookup.lookupValue);
@@ -57,66 +39,54 @@ function asTexts(value: unknown): string[] {
   return one ? [one] : [];
 }
 
-const ALIAS_BY_SOURCE = new Map(
-  Object.entries(DROPDOWN_COLUMN_ALIASES).map(([source, targets]) => [
-    normalizeLookupKey(source),
-    targets,
-  ]),
-);
-
-function aliasesForColumn(column: string): readonly string[] {
-  return ALIAS_BY_SOURCE.get(normalizeLookupKey(column)) ?? [];
+function asBoolean(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  return value === 1;
 }
 
-function isSystemColumn(column: string): boolean {
-  if (column.startsWith("@")) return true;
-  if (column.endsWith("LookupId")) return true;
-  return SYSTEM_FIELD_KEYS.has(normalizeLookupKey(column));
+function toMapping(fields?: Record<string, unknown>): DocIdentifierMapping | null {
+  const DocIdentifier = asText(fields?.DocIdentifier);
+  if (!DocIdentifier) return null;
+  return {
+    DocIdentifier,
+    Category: asText(fields?.Category),
+    SubCategory: asText(fields?.SubCategory),
+    Workflow: asText(fields?.Workflow),
+    Function: asText(fields?.Function),
+    Companies: asTexts(fields?.Companies),
+    IsExistingClaim: asBoolean(fields?.IsExistingClaim),
+  };
 }
 
-function sortDistinct(values: Set<string>): string[] {
-  return [...values].sort((a, b) =>
+function sortDistinct(values: Iterable<string>): string[] {
+  return [...new Set(values)].sort((a, b) =>
     a.localeCompare(b, undefined, { sensitivity: "base" }),
   );
 }
 
-function indexChoices(
-  choices: Record<string, string[]>,
-  key: string,
-  values: string[],
-) {
-  choices[key] = values;
-  choices[normalizeLookupKey(key)] = values;
+/** Form fields filled from a DocIdentifier row (same as the consuming app). */
+export function derivedFieldsFromMapping(
+  mapping: DocIdentifierMapping | null,
+): Record<string, string> {
+  return {
+    _Category: mapping?.Category ?? "",
+    SubCategory: mapping?.SubCategory ?? "",
+    Workflow: mapping?.Workflow ?? "",
+    ClaimWorkflow: mapping?.Workflow ?? "",
+    Function: mapping?.Function ?? "",
+    G2CompanyName: mapping?.Companies?.[0] ?? "",
+  };
 }
 
-function distinctValuesFromAllColumns(
-  items: DropdownRow[],
+export function choicesFromMappings(
+  mappings: DocIdentifierMapping[],
 ): Record<string, string[]> {
-  const buckets = new Map<string, Set<string>>();
-
-  for (const item of items) {
-    for (const [column, raw] of Object.entries(item.fields ?? {})) {
-      if (isSystemColumn(column)) continue;
-      const values = asTexts(raw);
-      if (values.length === 0) continue;
-      let set = buckets.get(column);
-      if (!set) {
-        set = new Set();
-        buckets.set(column, set);
-      }
-      for (const value of values) set.add(value);
-    }
-  }
-
-  const choices: Record<string, string[]> = {};
-  for (const [column, values] of buckets) {
-    const sorted = sortDistinct(values);
-    indexChoices(choices, column, sorted);
-    for (const alias of aliasesForColumn(column)) {
-      indexChoices(choices, alias, sorted);
-    }
-  }
-  return choices;
+  return {
+    DocumentType: sortDistinct(mappings.map((row) => row.DocIdentifier)),
+    Function: sortDistinct(mappings.map((row) => row.Function).filter(Boolean)),
+    G2CompanyName: sortDistinct(mappings.flatMap((row) => row.Companies)),
+  };
 }
 
 async function loadAllItems(
@@ -140,12 +110,15 @@ async function loadAllItems(
   return items;
 }
 
-/** Loads distinct values for every column on a Config-Dev dropdown list. */
-export async function fetchDistinctDropdownValues(params: {
+/**
+ * Graph equivalent of the consuming app's PnP mapping fetch:
+ * ClaimDocIdentifier / FinancialSupportingDocIdentifier rows keyed by DocIdentifier.
+ */
+export async function fetchDocIdentifierMappings(params: {
   graphBaseUrl: string;
   accessToken: string;
   listName: string;
-}): Promise<Record<string, string[]>> {
+}): Promise<DocIdentifierMapping[]> {
   const { graphBaseUrl, accessToken, listName } = params;
 
   const { hostname, sitePath } = parseSiteUrl(DROPDOWN_VALUES_SITE_URL);
@@ -163,13 +136,23 @@ export async function fetchDistinctDropdownValues(params: {
     accessToken,
   });
 
-  const items = await loadAllItems(
+  const listUrl =
     `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}` +
-      `/lists/${encodeURIComponent(list.id)}/items?$expand=fields&$top=200`,
-    accessToken,
-  );
+    `/lists/${encodeURIComponent(list.id)}/items?$top=200`;
 
-  return distinctValuesFromAllColumns(items);
+  let items: DropdownRow[];
+  try {
+    items = await loadAllItems(
+      `${listUrl}&$expand=fields($select=${MAPPING_SELECT})`,
+      accessToken,
+    );
+  } catch {
+    items = await loadAllItems(`${listUrl}&$expand=fields`, accessToken);
+  }
+
+  return items
+    .map((item) => toMapping(item.fields))
+    .filter((row): row is DocIdentifierMapping => row != null);
 }
 
 export function createDropdownValuesHelper(params: {
@@ -178,18 +161,17 @@ export function createDropdownValuesHelper(params: {
 }) {
   const { graphBaseUrl, dropdownList } = params;
   const listName = dropdownList?.trim();
-  let cache: Record<string, string[]> | null = null;
+  let cache: DocIdentifierMapping[] | null = null;
 
-  async function getDropdownChoices(
+  async function getDocIdentifierMappings(
     accessToken: string,
-  ): Promise<Record<string, string[]>> {
+  ): Promise<DocIdentifierMapping[]> {
     if (cache) return cache;
     if (!listName) {
-      cache = {};
+      cache = [];
       return cache;
     }
-
-    cache = await fetchDistinctDropdownValues({
+    cache = await fetchDocIdentifierMappings({
       graphBaseUrl,
       accessToken,
       listName,
@@ -197,7 +179,14 @@ export function createDropdownValuesHelper(params: {
     return cache;
   }
 
-  return { getDropdownChoices };
+  async function getDropdownChoices(
+    accessToken: string,
+  ): Promise<Record<string, string[]>> {
+    const mappings = await getDocIdentifierMappings(accessToken);
+    return choicesFromMappings(mappings);
+  }
+
+  return { getDropdownChoices, getDocIdentifierMappings };
 }
 
 export type DropdownValuesHelper = ReturnType<typeof createDropdownValuesHelper>;

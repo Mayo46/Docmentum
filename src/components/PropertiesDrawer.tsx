@@ -19,6 +19,8 @@ import {
 import PropertiesFormFields, {
     buildInitialFormValues,
     formValuesToPatchPayload,
+    isFieldEmpty,
+    validateRequiredFields,
     type PropertyFormValues,
 } from "./PropertiesFormFields";
 
@@ -156,7 +158,10 @@ export default function PropertiesDrawer(props: Props) {
             const result = await validateDocumentName(enteredDocumentName);
             if (cancelled) return;
             if (result === "duplicate") {
-                setFieldErrors({ [nameFieldKey]: DUPLICATE_DOCUMENT_NAME_MESSAGE });
+                setFieldErrors((prev) => ({
+                    ...prev,
+                    [nameFieldKey]: DUPLICATE_DOCUMENT_NAME_MESSAGE,
+                }));
             }
         }, 400);
 
@@ -191,7 +196,10 @@ export default function PropertiesDrawer(props: Props) {
             setSubmitError(DUPLICATE_DOCUMENT_NAME_MESSAGE);
             return;
         }
-        setFieldErrors({ [nameFieldKey]: DUPLICATE_DOCUMENT_NAME_MESSAGE });
+        setFieldErrors((prev) => ({
+            ...prev,
+            [nameFieldKey]: DUPLICATE_DOCUMENT_NAME_MESSAGE,
+        }));
     };
 
     const runSubmit = async (
@@ -200,6 +208,11 @@ export default function PropertiesDrawer(props: Props) {
     ) => {
         if (!handler) return;
         setSubmitError(null);
+        const requiredErrors = validateRequiredFields(definitions, values);
+        if (Object.keys(requiredErrors).length > 0) {
+            setFieldErrors((prev) => ({ ...prev, ...requiredErrors }));
+            return;
+        }
         const payload = formValuesToPatchPayload(definitions, values);
         const shouldCheckName = !options?.skipNameCheck && !!validateDocumentName;
         if (shouldCheckName) {
@@ -292,7 +305,17 @@ export default function PropertiesDrawer(props: Props) {
                             <PropertiesFormFields
                                 definitions={definitions}
                                 values={values}
-                                onChange={setValues}
+                                onChange={(next) => {
+                                    setValues(next);
+                                    setFieldErrors((prev) => {
+                                        if (Object.keys(prev).length === 0) return prev;
+                                        const cleared = { ...prev };
+                                        for (const key of Object.keys(prev)) {
+                                            if (!isFieldEmpty(next[key])) delete cleared[key];
+                                        }
+                                        return cleared;
+                                    });
+                                }}
                                 disabled={submitting}
                                 fieldErrors={fieldErrors}
                             />

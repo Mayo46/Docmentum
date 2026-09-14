@@ -4,6 +4,7 @@ import {
   Checkbox,
   FormControl,
   FormControlLabel,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Select,
@@ -18,6 +19,7 @@ import {
 } from "../utils/fieldDefinitions";
 import moment from "moment";
 import { normalizeLookupKey } from "../utils/columns";
+import { derivedFieldsFromMapping } from "../queries/graph/dropdownValues";
 import {
   COLUMN_GROUP_LABELS,
   COLUMN_GROUPS,
@@ -74,13 +76,53 @@ const SKIP_PATCH_KEYS = new Set([
   "modifieddate",
 ]);
 
+const DERIVED_DOC_IDENTIFIER_KEYS = new Set(
+  ["_Category", "SubCategory", "Workflow", "ClaimWorkflow", "Function", "G2CompanyName"].map(
+    normalizeLookupKey,
+  ),
+);
+
+export function isFieldEmpty(
+  value: string | boolean | string[] | undefined,
+): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "boolean") return false;
+  if (Array.isArray(value)) return value.length === 0;
+  return String(value).trim() === "";
+}
+
+export function validateRequiredFields(
+  definitions: DocumentLibraryFieldDefinition[],
+  values: PropertyFormValues,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const def of definitions) {
+    if (!def.required) continue;
+    if (SKIP_PATCH_KEYS.has(normalizeLookupKey(def.key))) continue;
+    if (def.fieldType === "boolean" || def.fieldType === "dateTime") continue;
+    const isDerived = DERIVED_DOC_IDENTIFIER_KEYS.has(
+      normalizeLookupKey(def.key),
+    );
+    if (def.readOnly && !isDerived) continue;
+    if (isFieldEmpty(values[def.key])) {
+      errors[def.key] = `${def.displayName} is required`;
+    }
+  }
+  return errors;
+}
+
 export function formValuesToPatchPayload(
   definitions: DocumentLibraryFieldDefinition[],
   values: PropertyFormValues,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const def of definitions) {
-    if (def.readOnly) continue;
+    if (
+      def.readOnly &&
+      !DERIVED_DOC_IDENTIFIER_KEYS.has(normalizeLookupKey(def.key))
+    ) {
+      continue;
+    }
     if (SKIP_PATCH_KEYS.has(normalizeLookupKey(def.key))) continue;
     const raw = values[def.key];
     if (raw === undefined || raw === null) continue;
@@ -100,23 +142,20 @@ export default function PropertiesFormFields({
   fieldErrors = {},
 }: Props) {
   const setKey = (key: string, value: string | boolean | string[]) => {
-    onChange({ ...values, [key]: value });
+    const next: PropertyFormValues = { ...values, [key]: value };
+    const def = definitions.find((field) => field.key === key);
+    if (typeof value === "string" && def?.derivedValuesByChoice) {
+      const derived =
+        def.derivedValuesByChoice[value] ?? derivedFieldsFromMapping(null);
+      for (const [fieldKey, fieldValue] of Object.entries(derived)) {
+        if (definitions.some((field) => field.key === fieldKey)) {
+          next[fieldKey] = fieldValue;
+        }
+      }
+    }
+    onChange(next);
   };
 
-  // const groupedDefinitions = definitions.reduce<
-  //   Record<string, DocumentLibraryFieldDefinition[]>
-  // >((acc, def) => {
-  //   let group = def.columnGroup ?? "";
-  //   // Show "Core Document Columns" under the Parent section.
-  //   if (group === COLUMN_GROUPS.CORE) {
-  //     group = COLUMN_GROUPS.DOCUMENT;
-  //   }
-  //   if (!acc[group]) {
-  //     acc[group] = [];
-  //   }
-  //   acc[group].push(def);
-  //   return acc;
-  // }, {});
 
   const DOCUMENT_FIELD_ORDER_MAP = new Map(
     DOCUMENT_FIELD_ORDER.map((key, index) => [key.toLowerCase(), index]),
@@ -179,6 +218,7 @@ export default function PropertiesFormFields({
     const isReadOnly = !!def.readOnly;
     const fieldSx = isReadOnly ? readOnlyFieldSx : editableFieldSx;
     const fieldError = fieldErrors[def.key];
+    const hasError = !!fieldError;
 
     if (def.fieldType === "boolean") {
       return (
@@ -216,6 +256,8 @@ export default function PropertiesFormFields({
                 size="small"
                 sx={fieldSx}
                 required={!!def.required}
+                error={hasError}
+                helperText={fieldError || undefined}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             )}
@@ -229,6 +271,7 @@ export default function PropertiesFormFields({
           size="small"
           disabled={disabled || isReadOnly}
           required={!!def.required}
+          error={hasError}
         >
           <InputLabel id={`${def.key}-label`} shrink required={!!def.required}>
             {def.displayName}
@@ -242,9 +285,6 @@ export default function PropertiesFormFields({
             onChange={(e) => setKey(def.key, String(e.target.value))}
             sx={fieldSx}
           >
-            <MenuItem value="">
-              <em>None</em>
-            </MenuItem>
             {options.map((c) => (
               <MenuItem key={c} value={c}>
                 {c}
@@ -254,6 +294,7 @@ export default function PropertiesFormFields({
               <MenuItem value={value}>{value}</MenuItem>
             )}
           </Select>
+          {fieldError ? <FormHelperText>{fieldError}</FormHelperText> : null}
         </FormControl>
       );
     }
@@ -269,6 +310,8 @@ export default function PropertiesFormFields({
           required={!!def.required}
           value={value === undefined || value === null ? "" : String(value)}
           onChange={(e) => setKey(def.key, e.target.value)}
+          error={hasError}
+          helperText={fieldError || undefined}
           sx={fieldSx}
           slotProps={{
             input: { readOnly: isReadOnly },
@@ -310,7 +353,7 @@ export default function PropertiesFormFields({
         minRows={def.fieldType === "multiline" ? 2 : undefined}
         value={typeof value === "string" ? value : ""}
         onChange={(e) => setKey(def.key, e.target.value)}
-        error={!!fieldError}
+        error={hasError}
         helperText={fieldError || undefined}
         sx={fieldSx}
         slotProps={{

@@ -50,6 +50,8 @@ export type DocumentLibraryFieldDefinition = {
   isLookup?: boolean;
   /** Label → source-list item id, used only for lookup columns. */
   lookupItemIdsByLabel?: Record<string, string>;
+  /** When this choice changes, copy these values onto matching form fields. */
+  derivedValuesByChoice?: Record<string, Record<string, string>>;
 };
 
 export type FieldUpdateFailure = {
