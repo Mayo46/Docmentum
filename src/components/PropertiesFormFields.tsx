@@ -4,6 +4,7 @@ import {
   Checkbox,
   FormControl,
   FormControlLabel,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Select,
@@ -16,13 +17,10 @@ import {
   formatFieldValueForInput,
   formatFieldValueForPatch,
 } from "../utils/fieldDefinitions";
+import moment from "moment";
 import { normalizeLookupKey } from "../utils/columns";
-import {
-  COLUMN_GROUP_LABELS,
-  COLUMN_GROUPS,
-  DOCUMENT_FIELD_ORDER,
-  GROUP_ORDER,
-} from "../utils/constants";
+import { derivedFieldsFromMapping } from "../queries/graph/dropdownValues";
+import { COLUMN_GROUP_LABELS, GROUP_ORDER } from "../utils/constants";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import { useState } from "react";
@@ -43,6 +41,7 @@ type Props = {
   values: PropertyFormValues;
   onChange: (values: PropertyFormValues) => void;
   disabled?: boolean;
+  fieldErrors?: Record<string, string>;
 };
 
 export function buildInitialFormValues(
@@ -72,13 +71,53 @@ const SKIP_PATCH_KEYS = new Set([
   "modifieddate",
 ]);
 
+const DERIVED_DOC_IDENTIFIER_KEYS = new Set(
+  ["_Category", "SubCategory", "Workflow", "ClaimWorkflow", "Function", "G2CompanyName"].map(
+    normalizeLookupKey,
+  ),
+);
+
+export function isFieldEmpty(
+  value: string | boolean | string[] | undefined,
+): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "boolean") return false;
+  if (Array.isArray(value)) return value.length === 0;
+  return String(value).trim() === "";
+}
+
+export function validateRequiredFields(
+  definitions: DocumentLibraryFieldDefinition[],
+  values: PropertyFormValues,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const def of definitions) {
+    if (!def.required) continue;
+    if (SKIP_PATCH_KEYS.has(normalizeLookupKey(def.key))) continue;
+    if (def.fieldType === "boolean" || def.fieldType === "dateTime") continue;
+    const isDerived = DERIVED_DOC_IDENTIFIER_KEYS.has(
+      normalizeLookupKey(def.key),
+    );
+    if (def.readOnly && !isDerived) continue;
+    if (isFieldEmpty(values[def.key])) {
+      errors[def.key] = `${def.displayName} is required`;
+    }
+  }
+  return errors;
+}
+
 export function formValuesToPatchPayload(
   definitions: DocumentLibraryFieldDefinition[],
   values: PropertyFormValues,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const def of definitions) {
-    if (def.readOnly) continue;
+    if (
+      def.readOnly &&
+      !DERIVED_DOC_IDENTIFIER_KEYS.has(normalizeLookupKey(def.key))
+    ) {
+      continue;
+    }
     if (SKIP_PATCH_KEYS.has(normalizeLookupKey(def.key))) continue;
     const raw = values[def.key];
     if (raw === undefined || raw === null) continue;
@@ -95,40 +134,28 @@ export default function PropertiesFormFields({
   values,
   onChange,
   disabled = false,
+  fieldErrors = {},
 }: Props) {
-  console.log("PropertiesFormFields", { definitions, values, disabled });
   const setKey = (key: string, value: string | boolean | string[]) => {
-    onChange({ ...values, [key]: value });
+    const next: PropertyFormValues = { ...values, [key]: value };
+    const def = definitions.find((field) => field.key === key);
+    if (typeof value === "string" && def?.derivedValuesByChoice) {
+      const derived =
+        def.derivedValuesByChoice[value] ?? derivedFieldsFromMapping(null);
+      for (const [fieldKey, fieldValue] of Object.entries(derived)) {
+        if (definitions.some((field) => field.key === fieldKey)) {
+          next[fieldKey] = fieldValue;
+        }
+      }
+    }
+    onChange(next);
   };
 
-  // const groupedDefinitions = definitions.reduce<
-  //   Record<string, DocumentLibraryFieldDefinition[]>
-  // >((acc, def) => {
-  //   let group = def.columnGroup ?? "";
-  //   // Show "Core Document Columns" under the Parent section.
-  //   if (group === COLUMN_GROUPS.CORE) {
-  //     group = COLUMN_GROUPS.DOCUMENT;
-  //   }
-  //   if (!acc[group]) {
-  //     acc[group] = [];
-  //   }
-  //   acc[group].push(def);
-  //   return acc;
-  // }, {});
-
-  const DOCUMENT_FIELD_ORDER_MAP = new Map(
-    DOCUMENT_FIELD_ORDER.map((key, index) => [key.toLowerCase(), index]),
-  );
 
   const groupedDefinitions = definitions.reduce<
     Record<string, DocumentLibraryFieldDefinition[]>
   >((acc, def) => {
-    let group = def.columnGroup ?? "";
-
-    // Show "Core Document Columns" under the Document section.
-    if (group === COLUMN_GROUPS.CORE) {
-      group = COLUMN_GROUPS.DOCUMENT;
-    }
+    const group = def.columnGroup ?? "";
 
     if (!acc[group]) {
       acc[group] = [];
@@ -139,31 +166,21 @@ export default function PropertiesFormFields({
     return acc;
   }, {});
 
-  // Apply the required order only to the Document section.
-  if (groupedDefinitions[COLUMN_GROUPS.DOCUMENT]) {
-    groupedDefinitions[COLUMN_GROUPS.DOCUMENT].sort((a, b) => {
-      const aIndex =
-        DOCUMENT_FIELD_ORDER_MAP.get(a.key.toLowerCase()) ??
-        Number.MAX_SAFE_INTEGER;
-
-      const bIndex =
-        DOCUMENT_FIELD_ORDER_MAP.get(b.key.toLowerCase()) ??
-        Number.MAX_SAFE_INTEGER;
-
-      return aIndex - bIndex;
-    });
-  }
+  const orderedGroups = [
+    ...GROUP_ORDER.filter((group) => groupedDefinitions[group]?.length),
+    ...Object.keys(groupedDefinitions).filter(
+      (group) => group && !GROUP_ORDER.includes(group),
+    ),
+    ...(groupedDefinitions[""]?.length ? [""] : []),
+  ];
 
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
-  >({
-    [COLUMN_GROUPS.DOCUMENT]: true,
-    [COLUMN_GROUPS.DOCUMENT_SET]: true,
-  });
+  >({});
   const toggleSection = (group: string) => {
     setExpandedSections((prev) => ({
       ...prev,
-      [group]: !prev[group],
+      [group]: !(prev[group] !== false),
     }));
   };
 
@@ -171,6 +188,8 @@ export default function PropertiesFormFields({
     const value = values[def.key];
     const isReadOnly = !!def.readOnly;
     const fieldSx = isReadOnly ? readOnlyFieldSx : editableFieldSx;
+    const fieldError = fieldErrors[def.key];
+    const hasError = !!fieldError;
 
     if (def.fieldType === "boolean") {
       return (
@@ -207,6 +226,9 @@ export default function PropertiesFormFields({
                 label={def.displayName}
                 size="small"
                 sx={fieldSx}
+                required={!!def.required}
+                error={hasError}
+                helperText={fieldError || undefined}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             )}
@@ -219,8 +241,10 @@ export default function PropertiesFormFields({
           fullWidth
           size="small"
           disabled={disabled || isReadOnly}
+          required={!!def.required}
+          error={hasError}
         >
-          <InputLabel id={`${def.key}-label`} shrink>
+          <InputLabel id={`${def.key}-label`} shrink required={!!def.required}>
             {def.displayName}
           </InputLabel>
           <Select
@@ -232,20 +256,16 @@ export default function PropertiesFormFields({
             onChange={(e) => setKey(def.key, String(e.target.value))}
             sx={fieldSx}
           >
-            <MenuItem value="">
-              <em>None</em>
-            </MenuItem>
             {options.map((c) => (
               <MenuItem key={c} value={c}>
                 {c}
               </MenuItem>
             ))}
-            {typeof value === "string" &&
-              value &&
-              !options.includes(value) && (
-                <MenuItem value={value}>{value}</MenuItem>
-              )}
+            {typeof value === "string" && value && !options.includes(value) && (
+              <MenuItem value={value}>{value}</MenuItem>
+            )}
           </Select>
+          {fieldError ? <FormHelperText>{fieldError}</FormHelperText> : null}
         </FormControl>
       );
     }
@@ -258,8 +278,11 @@ export default function PropertiesFormFields({
           type="number"
           size="small"
           disabled={disabled}
+          required={!!def.required}
           value={value === undefined || value === null ? "" : String(value)}
           onChange={(e) => setKey(def.key, e.target.value)}
+          error={hasError}
+          helperText={fieldError || undefined}
           sx={fieldSx}
           slotProps={{
             input: { readOnly: isReadOnly },
@@ -270,13 +293,17 @@ export default function PropertiesFormFields({
     }
 
     if (def.fieldType === "dateTime") {
+      const dateValue =
+        value && typeof value === "string"
+          ? moment(value).format("MM/DD/YYYY")
+          : "";
       return (
         <TextField
           key={def.key}
           label={def.displayName}
           size="small"
           fullWidth
-          value={typeof value === "string" ? value : ""}
+          value={dateValue}
           slotProps={{
             input: { readOnly: true },
             inputLabel: { shrink: true },
@@ -292,10 +319,13 @@ export default function PropertiesFormFields({
         label={def.displayName}
         size="small"
         disabled={disabled}
+        required={!!def.required}
         multiline={def.fieldType === "multiline"}
         minRows={def.fieldType === "multiline" ? 2 : undefined}
         value={typeof value === "string" ? value : ""}
         onChange={(e) => setKey(def.key, e.target.value)}
+        error={hasError}
+        helperText={fieldError || undefined}
         sx={fieldSx}
         slotProps={{
           input: { readOnly: isReadOnly },
@@ -308,41 +338,40 @@ export default function PropertiesFormFields({
   // return <Stack spacing={2}>{definitions.map(renderField)}</Stack>;
   return (
     <Stack spacing={3}>
-      {GROUP_ORDER.filter((group) => groupedDefinitions[group]?.length).map(
-        (group) => {
-          const expanded = expandedSections[group];
-          return (
-            <Stack key={group} spacing={2}>
-              <Box
-                sx={{
-                  p: "9px 16px",
-                  bgcolor: "#e9ecef",
-                  borderBottom: "1px solid #dee2e6",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  cursor: "pointer",
-                }}
-                onClick={() => toggleSection(group)}
-              >
-                <Typography fontWeight="bold" fontSize={15}>
-                  {COLUMN_GROUP_LABELS[group]}
-                </Typography>
-                {expanded ? (
-                  <ExpandLess fontSize="small" />
-                ) : (
-                  <ExpandMore fontSize="small" />
-                )}
-              </Box>
-              {expanded && (
-                <Stack spacing={2}>
-                  {groupedDefinitions[group].map(renderField)}
-                </Stack>
+      {orderedGroups.map((group) => {
+        const expanded = expandedSections[group] !== false;
+        const groupLabel = COLUMN_GROUP_LABELS[group] || group || "Properties";
+        return (
+          <Stack key={group || "ungrouped"} spacing={2}>
+            <Box
+              sx={{
+                p: "9px 16px",
+                bgcolor: "#e9ecef",
+                borderBottom: "1px solid #dee2e6",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                cursor: "pointer",
+              }}
+              onClick={() => toggleSection(group)}
+            >
+              <Typography fontWeight="bold" fontSize={15}>
+                {groupLabel}
+              </Typography>
+              {expanded ? (
+                <ExpandLess fontSize="small" />
+              ) : (
+                <ExpandMore fontSize="small" />
               )}
-            </Stack>
-          );
-        },
-      )}
+            </Box>
+            {expanded && (
+              <Stack spacing={2}>
+                {groupedDefinitions[group].map(renderField)}
+              </Stack>
+            )}
+          </Stack>
+        );
+      })}
     </Stack>
   );
 }

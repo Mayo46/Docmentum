@@ -14,13 +14,21 @@ import UploadPannel from "./UploadPannel";
 import VersionHistoryDialog from "./VersionHistoryDialog";
 import { useDocumentLibraryColumnDefs } from "../hooks/useDocumentLibraryColumnDefs";
 import { useDocumentLibraryGrouping } from "../hooks/useDocumentLibraryGrouping";
-import { useDocumentLibraryNavigation, type ParentReference } from "../hooks/useDocumentLibraryNavigation";
+import {
+  useDocumentLibraryNavigation,
+  type ParentReference,
+} from "../hooks/useDocumentLibraryNavigation";
 import { useDocumentLibraryProperties } from "../hooks/useDocumentLibraryProperties";
 import { useDocumentLibraryRows } from "../hooks/useDocumentLibraryRows";
 import { useDocumentLibrarySelection } from "../hooks/useDocumentLibrarySelection";
 import { useUploadDialog } from "../hooks/useUploadDialog";
 import type { DocumentLibraryGridAgContext } from "../common/GroupRowRenderer";
 import DocumentLibraryToolbar from "./DocumentLibraryToolbar";
+import {
+  checkDuplicateDocumentName,
+  getEnteredDocumentName,
+} from "../utils/documentName";
+import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
 
 export default function DocumentLibrary(props: DocumentLibraryProps) {
   const {
@@ -69,8 +77,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     parentDriveItemId,
     initialSegmentName,
   });
-
-  
   const { navigateInto, navigateToParent: navigateToParentSegment } =
     navigation;
 
@@ -124,7 +130,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     hasMore,
   } = useDocumentLibraryRows({
     client,
-    parentDriveItemId,
+    parentDriveItemId: navigation.currentParentDriveItemId ?? parentDriveItemId,
     documentType,
     externalRows,
     useExternalRows,
@@ -137,10 +143,11 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   const activeColumns = columns;
 
   const grouping = useDocumentLibraryGrouping({ rows, columns: activeColumns });
-
-  // Property editing is always available; the drawer shows all columns by default
-  // (or the configured `editableProperties` subset), respecting per-field read-only.
   const hasEditableProperties = true;
+  // const hasEditableProperties = useMemo(
+  //   () => normalizeEditablePropertiesInput(editableProperties).keys.length > 0,
+  //   [editableProperties],
+  // );
 
   const selection = useDocumentLibrarySelection({
     rows,
@@ -207,9 +214,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     groupingEnabled: grouping.groupingEnabled,
     showRowCheckbox,
     showActions: showActions && !isFlatDashboardView,
-    navigateInto: isFlatDashboardView
-      ? () => undefined
-      : navigateInto,
+    navigateInto: isFlatDashboardView ? () => undefined : navigateInto,
     documentUrlFromRow,
     openVersionHistory,
     onDeleteRow,
@@ -239,7 +244,11 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     if (uploadDialog.files.length === 0) return;
     properties.openUploadEditor(uploadDialog.files);
     uploadDialog.hideDialog();
-  }, [uploadDialog.files, uploadDialog.hideDialog, properties.openUploadEditor]);
+  }, [
+    uploadDialog.files,
+    uploadDialog.hideDialog,
+    properties.openUploadEditor,
+  ]);
 
   // Step 2 -> Step 1: only reachable before any file has been uploaded. Closes the
   // drawer and reopens the dialog with the still-pending selection.
@@ -311,6 +320,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     isLastStep,
     bulkActionLocked,
     primaryItemName,
+    primaryItemId,
     drawerMode,
     drawerOpen,
     uploadFiles,
@@ -326,6 +336,34 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   } = properties;
 
   const isUploadMode = drawerMode === "upload";
+
+  const validateDocumentName = useCallback(
+    async (enteredName: string) => {
+      if (isUploadMode) {
+        const docSetId = navigation.currentParentDriveItemId;
+        if (!docSetId) return "unique" as const;
+        return checkDuplicateDocumentName({
+          client,
+          parentDriveItemId: docSetId,
+          enteredName,
+        });
+      }
+      if (!primaryItemId) return "unique" as const;
+      return checkDuplicateDocumentName({
+        client,
+        currentItemId: primaryItemId,
+        enteredName,
+        originalName: getEnteredDocumentName(propertiesInitialValues ?? {}),
+      });
+    },
+    [
+      client,
+      isUploadMode,
+      navigation.currentParentDriveItemId,
+      primaryItemId,
+      propertiesInitialValues,
+    ],
+  );
 
   return (
     <Box sx={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
@@ -461,6 +499,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
             ? handleBackToFileSelection
             : undefined
         }
+        validateDocumentName={validateDocumentName}
       />
 
       <Snackbar

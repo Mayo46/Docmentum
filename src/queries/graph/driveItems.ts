@@ -27,11 +27,34 @@ export function createDriveItemsApi(deps: GraphClientDeps) {
       }
     },
 
-    async listChildren({ parentDriveItemId }: { parentDriveItemId?: string }) {
+    async getParentDriveItemId({ itemId }: { itemId: string }) {
+      const { accessToken, driveId } = await getContext();
+      try {
+        const res = await axios.get(
+          `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
+            `/items/${encodeURIComponent(itemId)}?$select=id,parentReference`,
+          { headers: { Authorization: `Bearer ${accessToken}` } },
+        );
+        const parentId = res.data?.parentReference?.id;
+        return typeof parentId === "string" && parentId.trim()
+          ? parentId.trim()
+          : null;
+      } catch (error) {
+        throw new Error(getAxiosErrorMessage(error));
+      }
+    },
+
+    async listChildren({
+      parentDriveItemId,
+      fieldKeys,
+    }: {
+      parentDriveItemId?: string;
+      fieldKeys?: string[];
+    }) {
       const { accessToken, driveId } = await getContext();
 
       const selectClause = buildDriveItemSelect(opts.columns);
-      const fieldSelectClause = buildFieldSelect(opts.columns);
+      const fieldSelectClause = buildFieldSelect(opts.columns, fieldKeys);
 
       let nextUrl =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +

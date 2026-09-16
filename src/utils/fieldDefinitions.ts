@@ -16,6 +16,7 @@ const PER_ITEM_UNIQUE_FIELD_KEYS = new Set([
   "filename",
   "linkfilename",
   "linkfilenamenomenu",
+  "documentname",
 ]);
 
 export function isPerItemUniqueField(key: string): boolean {
@@ -40,11 +41,6 @@ type GraphListColumn = {
   lookup?: { listId?: string; columnName?: string };
   columnGroup?: string;
 };
-
-/** True when a Graph list column should never be surfaced in the properties form. */
-export function isHiddenGraphListColumn(col: GraphListColumn): boolean {
-  return col.hidden === true;
-}
 
 function resolveFieldType(
   columnType: string,

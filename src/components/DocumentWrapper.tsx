@@ -22,6 +22,9 @@ export type DocumentWrapperProps = {
   /** Name of the SharePoint document library. */
   listName: string;
 
+  /** Config-Dev list whose column values populate choice fields (e.g. ClaimDocIdentifier). */
+  dropdownList?: string;
+
   /** Optional library containing the content types used for uploads. */
   contentTypesLibrary?: string;
 
@@ -46,7 +49,7 @@ export type DocumentWrapperProps = {
   /** Grid viewport height as pixels or a CSS height value. */
   gridHeight?: number | string;
 
-  /** List of document properties that can be edited by users. */
+  /** Host-owned properties form schema (fields, labels, groups, required, readonly, types). */
   editableProperties?: unknown;
 
   /** Returns the currently selected document rows. */
@@ -91,6 +94,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     graphToken,
     siteUrl,
     listName,
+    dropdownList,
     contentTypesLibrary,
     documentSetName,
     columns,
@@ -98,7 +102,6 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     showBreadcrumb = true,
     showUploadControls = true,
     showRowCheckbox = true,
-    // When omitted, the properties form shows all available columns (read-only respected).
     editableProperties,
     onSelectionChange,
     showToolbar = false,
@@ -145,12 +148,6 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     [columnsSignature],
   );
 
-  // const resolvedEditableProperties = useMemo(() => {
-  //   if (editableProperties != null) return editableProperties;
-  //   if (columns != null) return normalizedColumns;
-  //   return [];
-  // },[editableProperties, columns, normalizedColumns])
-
   const gridColumns = useMemo<DocumentLibraryColumn[]>(() => {
     if (normalizedColumns.length === 0) return defaultGridColumns;
 
@@ -178,6 +175,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     return createGraphClient({
       siteUrl,
       listName,
+      dropdownList,
       contentTypesLibrary,
       columns: normalizedColumns,
       getAccessToken: async () => graphToken,
@@ -189,6 +187,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     graphToken,
     siteUrl,
     listName,
+    dropdownList,
     contentTypesLibrary,
     normalizedColumns,
     userEmail,

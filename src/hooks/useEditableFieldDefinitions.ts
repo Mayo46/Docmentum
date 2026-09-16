@@ -3,22 +3,33 @@ import type {
   DocumentLibraryFieldDefinition,
   DocumentLibraryGraphClient,
 } from "../types";
-import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
+import {
+  getEditablePropertyConfig,
+  normalizeEditablePropertiesInput,
+} from "../utils/editableProperties";
 import { fallbackFieldDefinition } from "../utils/fieldDefinitions";
-import { FORCED_READONLY_FIELDS } from "../utils/constants";
-import { normalizeLookupKey } from "../utils/columns";
 
 type UseEditableFieldDefinitionsParams = {
   client: DocumentLibraryGraphClient | null;
   editableProperties?: unknown;
 };
 
-const CHOICE_FIELDS = new Set([
-  "ClaimType",
-  "ClaimWorkflow",
-  "DocumentType",
-  "G2CompanyName",
-]);
+function definitionFromConfig(
+  key: string,
+  config: ReturnType<typeof getEditablePropertyConfig>,
+  graphDef?: DocumentLibraryFieldDefinition,
+  labelOverride?: string,
+): DocumentLibraryFieldDefinition {
+  const base = graphDef ?? fallbackFieldDefinition(key, config?.displayName);
+  return {
+    ...base,
+    displayName: config?.displayName ?? labelOverride ?? base.displayName,
+    fieldType: config?.fieldType ?? base.fieldType,
+    readOnly: config?.readOnly ?? false,
+    required: config?.required ?? false,
+    columnGroup: config?.columnGroup ?? base.columnGroup,
+  };
+}
 
 export function useEditableFieldDefinitions({
   client,
@@ -29,7 +40,7 @@ export function useEditableFieldDefinitions({
     [editableProperties],
   );
 
-  const { keys, labelOverrides } = useMemo(
+  const { keys, labelOverrides, configs } = useMemo(
     () => normalizeEditablePropertiesInput(editableProperties),
     [editableSignature],
   );
@@ -43,8 +54,29 @@ export function useEditableFieldDefinitions({
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!client) {
+    if (!keys.length) {
       setDefinitions([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    const fromConfig = (graphDefs: DocumentLibraryFieldDefinition[] = []) =>
+      keys.map((k) => {
+        const config = getEditablePropertyConfig(configs, k);
+        const graphDef = graphDefs.find(
+          (d) => d.key === k || d.key.toLowerCase() === k.toLowerCase(),
+        );
+        return definitionFromConfig(
+          k,
+          config,
+          graphDef,
+          labelOverrides.get(k),
+        );
+      });
+
+    if (!client) {
+      setDefinitions(fromConfig());
       setError(null);
       return;
     }
@@ -54,36 +86,16 @@ export function useEditableFieldDefinitions({
 
     try {
       const defs = await client.getFieldDefinitions({ fieldKeys: keys });
-
-      const updatedDefinitions = defs.map((d) => {
-        const displayName = labelOverrides.get(d.key) ?? d.displayName;
-        const forcedReadOnly = FORCED_READONLY_FIELDS.some(
-          (field) =>
-            normalizeLookupKey(field) === normalizeLookupKey(d.key) ||
-            normalizeLookupKey(field) === normalizeLookupKey(displayName),
-        );
-
-        return {
-          ...d,
-          displayName,
-          ...(CHOICE_FIELDS.has(d.key) ? { fieldType: "choice" as const } : {}),
-          readOnly: d.readOnly || forcedReadOnly,
-        };
-      });
-
-      setDefinitions(updatedDefinitions);
+      setDefinitions(fromConfig(defs));
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Failed to load field definitions",
       );
-
-      setDefinitions(
-        keys.map((k) => fallbackFieldDefinition(k, labelOverrides.get(k))),
-      );
+      setDefinitions(fromConfig());
     } finally {
       setLoading(false);
     }
-  }, [client, keysSignature, labelOverrides]);
+  }, [client, keysSignature, labelOverrides, configs, keys]);
 
   useEffect(() => {
     load();

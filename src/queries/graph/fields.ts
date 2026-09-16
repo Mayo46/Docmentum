@@ -2,63 +2,36 @@ import type {
   DocumentLibraryFieldDefinition,
   FieldUpdateFailure,
 } from "../../types";
-import { normalizeLookupKey } from "../../utils/columns";
-import { FORCED_READONLY_FIELDS } from "../../utils/constants";
+import { normalizeLookupKey, toCanonicalKey } from "../../utils/columns";
 import {
   fallbackFieldDefinition,
-  isHiddenGraphListColumn,
   parseGraphListColumn,
 } from "../../utils/fieldDefinitions";
 import { resolveRequestedFieldKeys } from "./helpers";
 import { graphRequest } from "./graphRequest";
 import type { ContentTypeHelpers } from "./contentTypes";
-import type { DropdownValuesHelper } from "./dropdownValues";
+import {
+  choicesFromMappings,
+  derivedFieldsFromMapping,
+  type DropdownValuesHelper,
+} from "./dropdownValues";
 import type { GraphClientDeps } from "./types";
-
-function isForcedReadOnlyField(key: string, displayName?: string): boolean {
-  const names = [key, displayName]
-    .filter((value): value is string => Boolean(value?.trim()))
-    .map((value) => normalizeLookupKey(value));
-  return FORCED_READONLY_FIELDS.some((field) =>
-    names.includes(normalizeLookupKey(field)),
-  );
-}
-
-function applyReadOnly(
-  def: DocumentLibraryFieldDefinition,
-  documentSetGroups: string[],
-  readOnlyFields: string[],
-): DocumentLibraryFieldDefinition {
-  const isDocumentSetField = documentSetGroups.some(
-    (group) => group.trim() === (def.columnGroup ?? "").trim(),
-  );
-  const isConfiguredReadOnly = readOnlyFields.some(
-    (field) => normalizeLookupKey(field) === normalizeLookupKey(def.key),
-  );
-  if (
-    isDocumentSetField ||
-    isConfiguredReadOnly ||
-    isForcedReadOnlyField(def.key, def.displayName)
-  ) {
-    def.readOnly = true;
-  }
-  return def;
-}
 
 function withDropdownChoices(
   def: DocumentLibraryFieldDefinition,
   choicesByField: Record<string, string[]>,
+  derivedValuesByChoice: Record<string, Record<string, string>>,
 ): DocumentLibraryFieldDefinition {
-  const choices =
-    choicesByField[def.key] ??
-    (normalizeLookupKey(def.key) === "workflow"
-      ? choicesByField.ClaimWorkflow
-      : undefined);
+  const choices = choicesByField[def.key];
   if (!choices?.length) return def;
+  const isDocumentType = def.key === "DocumentType";
   return {
     ...def,
     fieldType: "choice",
     choices,
+    ...(isDocumentType && Object.keys(derivedValuesByChoice).length
+      ? { derivedValuesByChoice }
+      : {}),
   };
 }
 
@@ -74,29 +47,22 @@ export function createFieldsApi(
     async getFieldDefinitions({
       fieldKeys = [],
     }: { fieldKeys?: string[] } = {}) {
-      const {
-        accessToken,
-        siteId,
-        documentContentTypeIds,
-        documentSetGroups,
-        readOnlyFields,
-      } = await getContext();
+      const { accessToken, siteId, documentContentTypeIds } = await getContext();
       const requested = resolveRequestedFieldKeys(fieldKeys);
 
-      // No specific keys requested => surface every available (non-hidden) column.
-      const returnAll = requested.size === 0;
-
-      if (!siteId || !documentContentTypeIds.length) {
-        return returnAll
-          ? []
-          : fieldKeys.map((k) => fallbackFieldDefinition(k.trim()));
+      if (requested.size === 0) {
+        return [];
       }
 
-      const dropdownChoicesPromise = dropdownValues
-        .getDropdownChoices(accessToken)
+      if (!siteId || !documentContentTypeIds.length) {
+        return fieldKeys.map((k) => fallbackFieldDefinition(k.trim()));
+      }
+
+      const dropdownValuesPromise = dropdownValues
+        .getDocIdentifierMappings(accessToken)
         .catch((error) => {
-          console.warn("Failed to load ClaimDropdownValues", error);
-          return {} as Record<string, string[]>;
+          console.warn("Failed to load DocIdentifier mappings", error);
+          return [];
         });
 
       let columnRows = cachedListColumns;
@@ -114,36 +80,7 @@ export function createFieldsApi(
           ),
         );
 
-        // Merge and remove duplicate columns.
         const uniqueColumns = new Map<string, unknown>();
-        responses.forEach((response, index) => {
-          console.group(`Content Type ${index + 1}`);
-          // console.table(response.value);
-          console.table(
-            response.value.map((column) => {
-              const c = column as {
-                name: string;
-                displayName: string;
-                columnGroup?: string;
-                hidden?: boolean;
-                readOnly?: boolean;
-                required?: boolean;
-                type?: string;
-              };
-              return {
-                name: c.name,
-                displayName: c.displayName,
-                columnGroup: c.columnGroup,
-                columnType: c.type,
-                hidden: c.hidden,
-                readOnly: c.readOnly,
-                required: c.required,
-              };
-            }),
-          );
-          console.groupEnd();
-        });
-
         for (const response of responses) {
           for (const column of response.value ?? []) {
             const name = (column as { name?: string }).name;
@@ -159,7 +96,7 @@ export function createFieldsApi(
         cachedListColumns = columnRows;
       }
 
-      // Resolve ContentType choices once, reused whether returning all or a subset.
+      // Resolve ContentType choices for the ContentType field when it is requested.
       const resolveContentTypeChoices = async () => {
         try {
           return await contentTypes.getContentTypeChoices({
@@ -185,7 +122,11 @@ export function createFieldsApi(
         };
       };
 
-      const dropdownChoices = await dropdownChoicesPromise;
+      const mappings = await dropdownValuesPromise;
+      const dropdownChoices = choicesFromMappings(mappings);
+      const derivedValuesByChoice = Object.fromEntries(
+        mappings.map((row) => [row.DocIdentifier, derivedFieldsFromMapping(row)]),
+      );
 
       const withResolvedChoices = async (
         def: DocumentLibraryFieldDefinition,
@@ -193,37 +134,18 @@ export function createFieldsApi(
         return withDropdownChoices(
           await withContentTypeChoices(def),
           dropdownChoices,
+          derivedValuesByChoice,
         );
       };
-
-      if (returnAll) {
-        const out: DocumentLibraryFieldDefinition[] = [];
-        for (const col of columnRows) {
-          const raw = col as Parameters<typeof parseGraphListColumn>[0];
-          if (isHiddenGraphListColumn(raw)) continue;
-          const def = parseGraphListColumn(raw);
-
-          if (!def) continue;
-          applyReadOnly(def, documentSetGroups, readOnlyFields);
-          out.push(await withResolvedChoices(def));
-        }
-
-        return out;
-      }
 
       const parsed = new Map<string, DocumentLibraryFieldDefinition>();
       for (const col of columnRows) {
         const raw = col as Parameters<typeof parseGraphListColumn>[0];
-
-        if (isHiddenGraphListColumn(raw)) continue;
-
         const def = parseGraphListColumn(raw);
         if (!def) continue;
-        applyReadOnly(def, documentSetGroups, readOnlyFields);
         const norm = normalizeLookupKey(def.key);
-        if (requested.has(norm)) {
-          parsed.set(norm, def);
-        }
+        if (!requested.has(norm)) continue;
+        parsed.set(norm, def);
       }
 
       const out: DocumentLibraryFieldDefinition[] = [];
@@ -244,7 +166,9 @@ export function createFieldsApi(
       fieldKeys: string[];
     }) {
       const { accessToken, driveId } = await getContext();
-      const keys = fieldKeys.map((k) => k.trim()).filter(Boolean);
+      const keys = fieldKeys
+        .map((k) => toCanonicalKey(k) || k.trim())
+        .filter(Boolean);
 
       const baseUrl =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +

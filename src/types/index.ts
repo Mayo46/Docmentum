@@ -20,7 +20,13 @@ export type DocumentLibraryUploadColumn = {
 
 export type DocumentLibraryEditableProperty = {
   key: string;
+  displayName?: string;
+  /** @deprecated Use displayName */
   label?: string;
+  readOnly?: boolean;
+  required?: boolean;
+  columnType?: DocumentLibraryFieldType;
+  group?: string;
 };
 
 export type DocumentLibraryFieldType =
@@ -38,11 +44,14 @@ export type DocumentLibraryFieldDefinition = {
   choices?: string[];
   allowMultipleChoices?: boolean;
   readOnly?: boolean;
+  required?: boolean;
   columnGroup?: string;
   /** True when the SharePoint column is a lookup. PATCH then uses `{key}LookupId`. */
   isLookup?: boolean;
-  /** Title → ClaimDropdownValues item id, used only for lookup columns. */
+  /** Label → source-list item id, used only for lookup columns. */
   lookupItemIdsByLabel?: Record<string, string>;
+  /** When this choice changes, copy these values onto matching form fields. */
+  derivedValuesByChoice?: Record<string, Record<string, string>>;
 };
 
 export type FieldUpdateFailure = {
@@ -116,8 +125,10 @@ export type OnRefresh = () => void;
 
 export type DocumentLibraryGraphClient = {
   getDriveItemIdByName: (params: { name: string }) => Promise<string>;
+  getParentDriveItemId: (params: { itemId: string }) => Promise<string | null>;
   listChildren: (params: {
     parentDriveItemId?: string;
+    fieldKeys?: string[];
   }) => Promise<DocumentLibraryItemRow[]>;
   listChildrenPage: (params: {
     parentDriveItemId?: string;
