@@ -23,8 +23,6 @@ export type LibraryContext = {
   siteId: string;
   listId: string;
   documentContentTypeIds: string[];
-  documentSetGroups: string[];
-  readOnlyFields: string[];
 };
 
 export type GraphRequestContext = LibraryContext & {

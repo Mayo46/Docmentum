@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import DocumentWrapper from "./components/DocumentWrapper";
 
 const graphToken =
-  "eyJ0eXAiOiJKV1QiLCJub25jZSI6Im9OdHpIS3BZeXU5R1d6bWpvTDVacHBFcGdRdkF5ZTJaNmljSkVaenJuNGciLCJhbGciOiJSUzI1NiIsIng1dCI6IlQ1aDQwcTdHMHg0OXFuNDFsTTkta0tqcEQ5OCIsImtpZCI6IlQ1aDQwcTdHMHg0OXFuNDFsTTkta0tqcEQ5OCJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC8yZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkvIiwiaWF0IjoxNzg5MzYzNzM5LCJuYmYiOjE3ODkzNjM3MzksImV4cCI6MTc4OTM2ODcxNiwiYWNjdCI6MCwiYWNyIjoiMSIsImFjcnMiOlsicDEiLCJwZmRyIl0sImFpbyI6IkFZUUFlLzhlQUFBQTh2ZGkrRTAwWjRtdnNxejFpcHlzM1c5Z0pqNjZWUXFabUpWOUExRGYxOERzc00zbXNvemdzZlViUDhuaWNCTnN5ZFRobnJMdGgxMHdyS3N3QnhBbHlpeGtodnZsb3cxcFUvZVZab25GcTVMSDJjZklCa1gwMHZvNHFqZk94RlJOZWFpcEhBY2xxaHprOVE4RndTcUljdWFMOGVyeEFkb3Zjc3B1TFJ1N2Z0az0iLCJhbHRzZWNpZCI6IjU6OjEwMDMyMDA0QjYzNTk3MkYiLCJhbXIiOlsicHdkIiwicnNhIiwibWZhIl0sImFwcF9kaXNwbGF5bmFtZSI6IkcyIERvY3MgUmVzb3VyY2UgVUkgTm9uUHJvZCIsImFwcGlkIjoiYjEzMDUxMzEtZTcyMi00YWRhLTk1MDMtY2RjNjdmOTczMDcwIiwiYXBwaWRhY3IiOiIwIiwiZGV2aWNlaWQiOiJlN2Q1NmI4Mi1kYmZlLTRjOWYtOWY3MS0xOGMyYjkzZGM1ZGYiLCJlbWFpbCI6Im11YmFzaGlyLmFsdGFmQGdlbmVyYWxzdGFyLmNvbSIsImlkcCI6Imh0dHBzOi8vc3RzLndpbmRvd3MubmV0L2RhNTVhMTdjLTkwNmEtNGVkYS04MjM5LTE4ZmVjYjYwMjk2NS8iLCJpZHR5cCI6InVzZXIiLCJpcGFkZHIiOiI1Mi4xNTEuMjI4LjExNCIsIm5hbWUiOiJNdWJhc2hpciBBbHRhZiAoQ29uc3VsdGFudCkiLCJvaWQiOiJiMjI0ZWEwZi04M2NlLTRjMGMtYTkxNi1kM2JlN2UyNmRjMGQiLCJwbGF0ZiI6IjMiLCJwdWlkIjoiMTAwMzIwMDYzQjE5NUIzMCIsInJoIjoiMS5BV01Cb3BFbExfSWNxa2FaMklsR2RsbGx5UU1BQUFBQUFBQUF3QUFBQUFBQUFBQUFBRlpqQVEuIiwic2NwIjoiRGlyZWN0b3J5LlJlYWQuQWxsIEZpbGVzLlJlYWQgRmlsZXMuUmVhZC5BbGwgRmlsZXMuUmVhZFdyaXRlIEdyb3VwLlJlYWQuQWxsIFNpdGVzLlJlYWQuQWxsIFNpdGVzLlJlYWRXcml0ZS5BbGwgU2l0ZXMuU2VhcmNoLkFsbCBTaXRlcy5TZWxlY3RlZCBUZXJtU3RvcmUuUmVhZFdyaXRlLkFsbCBVc2VyLlJlYWQgVXNlci5SZWFkV3JpdGUuQWxsIHByb2ZpbGUgb3BlbmlkIGVtYWlsIiwic2lkIjoiMDA3ZDRlM2EtOGZkMC00MWYxLTQwZTYtYWQyZjA3ZjE2MWExIiwic2lnbmluX3N0YXRlIjpbImR2Y19tbmdkIiwiZHZjX2NtcCIsImlua25vd25udHdrIl0sInN1YiI6IlFXTzc3WWNxUjF1V1lSTXd4MHRTbm8zeVh3aFNHMjM5S2dzVXdScjZNbjAiLCJ0ZW5hbnRfcmVnaW9uX3Njb3BlIjoiTkEiLCJ0aWQiOiIyZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkiLCJ1bmlxdWVfbmFtZSI6Im11YmFzaGlyLmFsdGFmQGdlbmVyYWxzdGFyLmNvbSIsInV0aSI6InVHOEpEcGx2djAyelZKZUppY18zQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfYWNkIjoxNzYxOTA0OTk0LCJ4bXNfYWN0X2ZjdCI6IjMgOSIsInhtc19mdGQiOiJkRUV3ZzBRSUIwcDRvdEFmYkhXZTZINFVjYUpsbVlEanhjdl9jeGQ3eWtnQmRYTmxZWE4wTFdSemJYTSIsInhtc19pZHJlbCI6IjEgMjAiLCJ4bXNfcGZ0ZXhwIjoxNzg5NDU1MTE2LCJ4bXNfc3QiOnsic3ViIjoicHFFcDdHVzBON0xNN1RyVHZhUV9waFRBdk1NYUtNNFI4XzNLcWJCVWFHSSJ9LCJ4bXNfc3ViX2ZjdCI6IjMgNiIsInhtc190Y2R0IjoxNzUyNTg2MTA5LCJ4bXNfdG50X2ZjdCI6IjMgMTIifQ.dPgNuMYz7RYgJm1b8oLAp8b1RskqCuFH4otOkOm4lyeTv-SZPdXoV36Fwev3d6iRc6HHQ8t5vUdWmz1dlZIqd6eY3I3WwgsS3Y9RZVTGxdLg1-zDz3TTcsDmmDMsqfxqsDq72q0qpz-U50wtOkIeRuv_uFdS0d7quizxAMjgNaC81o6u5Wtue8CmCQSZTzwe7P1G-5sW4PGqTTSuauEW2OfjgOmxYPLsxPhJtPC_aGpqHoX_q1oLyZQqaElnKn55NnsdJVWJmV2XvcQ4qkFk1e6V1H5PWY507DmJuwRzGOxSdSMlWnU49w3cUrbHWunskYxTCWrj9NIDk1PTyfgEmw";
+  "eyJ0eXAiOiJKV1QiLCJub25jZSI6InAzZHhTbXJmNGx0akxwSlE4d1RXS2JueHV1eldETUtCZlhybG04WDcxRHMiLCJhbGciOiJSUzI1NiIsIng1dCI6IlQ1aDQwcTdHMHg0OXFuNDFsTTkta0tqcEQ5OCIsImtpZCI6IlQ1aDQwcTdHMHg0OXFuNDFsTTkta0tqcEQ5OCJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC8yZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkvIiwiaWF0IjoxNzg5NTM2NjY1LCJuYmYiOjE3ODk1MzY2NjUsImV4cCI6MTc4OTU0MDY2MywiYWNjdCI6MCwiYWNyIjoiMSIsImFjcnMiOlsicDEiLCJwZmRyIl0sImFpbyI6IkFZUUFlLzhlQUFBQUxHYXBkVHd0Z3FPcUFoNWFvWmdBTDYyWWhvUlR5Qm50MlVoWFZGQ01uRHYvWXpqaWtpRWRqbDZZSlNpT0FlOHJhc0c4UEhRVGlSNHlod1pEd25Cdkh2dnFNN2dwdEJHNkxLQmhGWW5qTHN0MVJjYm03Y25HcGtjb3NtOU8yQUgwOENxdkN3ZDNtL0tEamdDaWZoUCtRbDlhMmc0QURBUStnQUtKUmpIR1VXST0iLCJhbHRzZWNpZCI6IjU6OjEwMDMyMDA0QjYzNTk3MkYiLCJhbXIiOlsicHdkIiwibWZhIl0sImFwcF9kaXNwbGF5bmFtZSI6IkcyIERvY3MgUmVzb3VyY2UgVUkgTm9uUHJvZCIsImFwcGlkIjoiYjEzMDUxMzEtZTcyMi00YWRhLTk1MDMtY2RjNjdmOTczMDcwIiwiYXBwaWRhY3IiOiIwIiwiZGV2aWNlaWQiOiJlN2Q1NmI4Mi1kYmZlLTRjOWYtOWY3MS0xOGMyYjkzZGM1ZGYiLCJlbWFpbCI6Im11YmFzaGlyLmFsdGFmQGdlbmVyYWxzdGFyLmNvbSIsImlkcCI6Imh0dHBzOi8vc3RzLndpbmRvd3MubmV0L2RhNTVhMTdjLTkwNmEtNGVkYS04MjM5LTE4ZmVjYjYwMjk2NS8iLCJpZHR5cCI6InVzZXIiLCJpcGFkZHIiOiI1Mi4xNTEuMjI4LjExNCIsIm5hbWUiOiJNdWJhc2hpciBBbHRhZiAoQ29uc3VsdGFudCkiLCJvaWQiOiJiMjI0ZWEwZi04M2NlLTRjMGMtYTkxNi1kM2JlN2UyNmRjMGQiLCJwbGF0ZiI6IjMiLCJwdWlkIjoiMTAwMzIwMDYzQjE5NUIzMCIsInJoIjoiMS5BV01Cb3BFbExfSWNxa2FaMklsR2RsbGx5UU1BQUFBQUFBQUF3QUFBQUFBQUFBQUFBRlpqQVEuIiwic2NwIjoiRGlyZWN0b3J5LlJlYWQuQWxsIEZpbGVzLlJlYWQgRmlsZXMuUmVhZC5BbGwgRmlsZXMuUmVhZFdyaXRlIEdyb3VwLlJlYWQuQWxsIFNpdGVzLlJlYWQuQWxsIFNpdGVzLlJlYWRXcml0ZS5BbGwgU2l0ZXMuU2VhcmNoLkFsbCBTaXRlcy5TZWxlY3RlZCBUZXJtU3RvcmUuUmVhZFdyaXRlLkFsbCBVc2VyLlJlYWQgVXNlci5SZWFkV3JpdGUuQWxsIHByb2ZpbGUgb3BlbmlkIGVtYWlsIiwic2lkIjoiMDA3ZDRlM2EtOGZkMC00MWYxLTQwZTYtYWQyZjA3ZjE2MWExIiwic2lnbmluX3N0YXRlIjpbImR2Y19tbmdkIiwiZHZjX2NtcCIsImlua25vd25udHdrIl0sInN1YiI6IlFXTzc3WWNxUjF1V1lSTXd4MHRTbm8zeVh3aFNHMjM5S2dzVXdScjZNbjAiLCJ0ZW5hbnRfcmVnaW9uX3Njb3BlIjoiTkEiLCJ0aWQiOiIyZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkiLCJ1bmlxdWVfbmFtZSI6Im11YmFzaGlyLmFsdGFmQGdlbmVyYWxzdGFyLmNvbSIsInV0aSI6Ijd5SzBNZDh2Z1VPUlNnaWlVeWc0QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfYWNkIjoxNzYxOTA0OTk0LCJ4bXNfYWN0X2ZjdCI6IjMgOSIsInhtc19mdGQiOiJfbWg5YktjU2RWZHh6blIxZnpxdTVGc005UHNGRERqYk5NelUwdkNNT2RzQmRYTnViM0owYUMxa2MyMXoiLCJ4bXNfaWRyZWwiOiIxMCAxIiwieG1zX3BmdGV4cCI6MTc4OTYyNzA2MywieG1zX3N0Ijp7InN1YiI6InBxRXA3R1cwTjdMTTdUclR2YVFfcGhUQXZNTWFLTTRSOF8zS3FiQlVhR0kifSwieG1zX3N1Yl9mY3QiOiIxMiAzIiwieG1zX3RjZHQiOjE3NTI1ODYxMDksInhtc190bnRfZmN0IjoiMyA4In0.aWWlAxDz3wEa3-avl8JX4Pnwy1imvuzADthuFhOQRMyzZgHMC1DNZIvRM1sr-zHRMcOfUrZUG6O20W4v8i5re8nRVms6DXjp4wUEUPfRm8_AWIV9zrfiZVit0prdlHLMLbnG2NZpDOkiRWz-8bY-wrFkrHPi9-hJQIYJSJZi2K6ZaZqfk8KAZZezMZrvWlKINPsp_aMSjPRrsmBAmTUaZuhK1CiXLxpDx2gnF-vxByUqfGHrLNaocYD7su_X_QS4zWjvLv2h0C5385Gi4eY9qMSG_V8ML0Ly7wsGr4UvmdSwXP8lCHZvbqAKLMgwUfM7uu98aZlkKyghBQE8qov9gw";
   const meta: Meta<typeof DocumentWrapper> = {
   title: "App",
   component: DocumentWrapper,
@@ -217,22 +217,6 @@ export const ClaimsGenesisDev: Story = {
         columnType: "choice",
       },
       {
-        key: "Recipient",
-        displayName: "Recipient",
-        group: "document",
-        readOnly: false,
-        required: false,
-        columnType: "text",
-      },
-      {
-        key: "SendNotification",
-        displayName: "Send Notification",
-        group: "document",
-        readOnly: false,
-        required: false,
-        columnType: "boolean",
-      },
-      {
         key: "_Comments",
         displayName: "Comments",
         group: "document",
@@ -275,12 +259,12 @@ export const ClaimsGenesisDev: Story = {
         columnType: "dateTime",
       },
       {
-        key: "Companies",
+        key: "G2CompanyName",
         displayName: "Genre Company",
         group: "claim",
         readOnly: true,
         required: true,
-        columnType: "text",
+        columnType: "choice",
       },
       {
         key: "Created",
@@ -424,14 +408,6 @@ export const FinancialSupportingDocumentsDev: Story = {
         readOnly: true,
         required: true,
         columnType: "dateTime",
-      },
-      {
-        key: "Recipient",
-        displayName: "Recipient",
-        group: "document",
-        readOnly: false,
-        required: false,
-        columnType: "text",
       },
       {
         key: "Function",

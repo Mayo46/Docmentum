@@ -20,12 +20,7 @@ import {
 import moment from "moment";
 import { normalizeLookupKey } from "../utils/columns";
 import { derivedFieldsFromMapping } from "../queries/graph/dropdownValues";
-import {
-  COLUMN_GROUP_LABELS,
-  COLUMN_GROUPS,
-  DOCUMENT_FIELD_ORDER,
-  GROUP_ORDER,
-} from "../utils/constants";
+import { COLUMN_GROUP_LABELS, GROUP_ORDER } from "../utils/constants";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import { useState } from "react";
@@ -157,20 +152,10 @@ export default function PropertiesFormFields({
   };
 
 
-  const DOCUMENT_FIELD_ORDER_MAP = new Map(
-    DOCUMENT_FIELD_ORDER.map((key, index) => [key.toLowerCase(), index]),
-  );
-
   const groupedDefinitions = definitions.reduce<
     Record<string, DocumentLibraryFieldDefinition[]>
   >((acc, def) => {
-    // Use custom group from definition first, then fall back to SharePoint's columnGroup
-    let group = def.columnGroup ?? "";
-
-    // Show "Core Document Columns" under the Document section.
-    if (group === COLUMN_GROUPS.CORE) {
-      group = COLUMN_GROUPS.DOCUMENT;
-    }
+    const group = def.columnGroup ?? "";
 
     if (!acc[group]) {
       acc[group] = [];
@@ -181,35 +166,21 @@ export default function PropertiesFormFields({
     return acc;
   }, {});
 
-  // Apply the required order only to the Document section.
-  if (groupedDefinitions[COLUMN_GROUPS.DOCUMENT]) {
-    groupedDefinitions[COLUMN_GROUPS.DOCUMENT].sort((a, b) => {
-      const aIndex =
-        DOCUMENT_FIELD_ORDER_MAP.get(a.key.toLowerCase()) ??
-        Number.MAX_SAFE_INTEGER;
-
-      const bIndex =
-        DOCUMENT_FIELD_ORDER_MAP.get(b.key.toLowerCase()) ??
-        Number.MAX_SAFE_INTEGER;
-
-      return aIndex - bIndex;
-    });
-  }
+  const orderedGroups = [
+    ...GROUP_ORDER.filter((group) => groupedDefinitions[group]?.length),
+    ...Object.keys(groupedDefinitions).filter(
+      (group) => group && !GROUP_ORDER.includes(group),
+    ),
+    ...(groupedDefinitions[""]?.length ? [""] : []),
+  ];
 
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
-  >({
-    [COLUMN_GROUPS.DOCUMENT]: true,
-    [COLUMN_GROUPS.DOCUMENT_SET]: true,
-    // Auto-expand custom groups for editableProperties drawer
-    document: true,
-    claim: true,
-    enterprise: true,
-  });
+  >({});
   const toggleSection = (group: string) => {
     setExpandedSections((prev) => ({
       ...prev,
-      [group]: !prev[group],
+      [group]: !(prev[group] !== false),
     }));
   };
 
@@ -367,42 +338,40 @@ export default function PropertiesFormFields({
   // return <Stack spacing={2}>{definitions.map(renderField)}</Stack>;
   return (
     <Stack spacing={3}>
-      {GROUP_ORDER.filter((group) => groupedDefinitions[group]?.length).map(
-        (group) => {
-          const expanded = expandedSections[group];
-          const groupLabel = COLUMN_GROUP_LABELS[group] || group;
-          return (
-            <Stack key={group} spacing={2}>
-              <Box
-                sx={{
-                  p: "9px 16px",
-                  bgcolor: "#e9ecef",
-                  borderBottom: "1px solid #dee2e6",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  cursor: "pointer",
-                }}
-                onClick={() => toggleSection(group)}
-              >
-                <Typography fontWeight="bold" fontSize={15}>
-                  {groupLabel}
-                </Typography>
-                {expanded ? (
-                  <ExpandLess fontSize="small" />
-                ) : (
-                  <ExpandMore fontSize="small" />
-                )}
-              </Box>
-              {expanded && (
-                <Stack spacing={2}>
-                  {groupedDefinitions[group].map(renderField)}
-                </Stack>
+      {orderedGroups.map((group) => {
+        const expanded = expandedSections[group] !== false;
+        const groupLabel = COLUMN_GROUP_LABELS[group] || group || "Properties";
+        return (
+          <Stack key={group || "ungrouped"} spacing={2}>
+            <Box
+              sx={{
+                p: "9px 16px",
+                bgcolor: "#e9ecef",
+                borderBottom: "1px solid #dee2e6",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                cursor: "pointer",
+              }}
+              onClick={() => toggleSection(group)}
+            >
+              <Typography fontWeight="bold" fontSize={15}>
+                {groupLabel}
+              </Typography>
+              {expanded ? (
+                <ExpandLess fontSize="small" />
+              ) : (
+                <ExpandMore fontSize="small" />
               )}
-            </Stack>
-          );
-        },
-      )}
+            </Box>
+            {expanded && (
+              <Stack spacing={2}>
+                {groupedDefinitions[group].map(renderField)}
+              </Stack>
+            )}
+          </Stack>
+        );
+      })}
     </Stack>
   );
 }

@@ -28,6 +28,7 @@ import {
   checkDuplicateDocumentName,
   getEnteredDocumentName,
 } from "../utils/documentName";
+import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
 
 export default function DocumentLibrary(props: DocumentLibraryProps) {
   const {
@@ -142,10 +143,11 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   const activeColumns = columns;
 
   const grouping = useDocumentLibraryGrouping({ rows, columns: activeColumns });
-
-  // Property editing is always available; the drawer shows all columns by default
-  // (or the configured `editableProperties` subset), respecting per-field read-only.
   const hasEditableProperties = true;
+  // const hasEditableProperties = useMemo(
+  //   () => normalizeEditablePropertiesInput(editableProperties).keys.length > 0,
+  //   [editableProperties],
+  // );
 
   const selection = useDocumentLibrarySelection({
     rows,

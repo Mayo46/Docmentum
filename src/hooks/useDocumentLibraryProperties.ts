@@ -33,9 +33,8 @@ export function useDocumentLibraryProperties({
     [JSON.stringify(editableProperties ?? null)],
   );
   const editableKeysSignature = editableKeys.join("|");
-  // Property editing is always available; when no explicit keys are configured the
-  // form falls back to showing all available columns (read-only ones stay disabled).
   const hasEditableProperties = true;
+  // const hasEditableProperties = editableKeys.length > 0;
   const uploadPrefillSignature = useMemo(
     () => JSON.stringify(uploadPrefillProperties ?? {}),
     [uploadPrefillProperties],

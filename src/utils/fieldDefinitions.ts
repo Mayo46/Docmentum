@@ -42,11 +42,6 @@ type GraphListColumn = {
   columnGroup?: string;
 };
 
-/** True when a Graph list column should never be surfaced in the properties form. */
-export function isHiddenGraphListColumn(col: GraphListColumn): boolean {
-  return col.hidden === true;
-}
-
 function resolveFieldType(
   columnType: string,
   col: GraphListColumn,

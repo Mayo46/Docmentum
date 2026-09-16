@@ -49,7 +49,7 @@ export type DocumentWrapperProps = {
   /** Grid viewport height as pixels or a CSS height value. */
   gridHeight?: number | string;
 
-  /** List of document properties that can be edited by users. */
+  /** Host-owned properties form schema (fields, labels, groups, required, readonly, types). */
   editableProperties?: unknown;
 
   /** Returns the currently selected document rows. */
@@ -102,7 +102,6 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     showBreadcrumb = true,
     showUploadControls = true,
     showRowCheckbox = true,
-    // When omitted, the properties form shows all available columns (read-only respected).
     editableProperties,
     onSelectionChange,
     showToolbar = false,
@@ -148,12 +147,6 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     () => normalizeColumnsInput(columns),
     [columnsSignature],
   );
-
-  // const resolvedEditableProperties = useMemo(() => {
-  //   if (editableProperties != null) return editableProperties;
-  //   if (columns != null) return normalizedColumns;
-  //   return [];
-  // },[editableProperties, columns, normalizedColumns])
 
   const gridColumns = useMemo<DocumentLibraryColumn[]>(() => {
     if (normalizedColumns.length === 0) return defaultGridColumns;

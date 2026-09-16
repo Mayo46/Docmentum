@@ -2,11 +2,7 @@ import axios from "axios";
 import { getAxiosErrorMessage, graphRequest } from "./graphRequest";
 import { escapeODataString, parseSiteUrl } from "./helpers";
 import type { GraphClientOptions, LibraryContext } from "./types";
-import {
-  resolveDocumentContentTypes,
-  resolveDocumentSetGroups,
-  resolveReadOnlyFields,
-} from "./documentContentType";
+import { resolveDocumentContentTypes } from "./documentContentType";
 
 export async function resolveListByDisplayName(params: {
   graphBaseUrl: string;
@@ -39,8 +35,6 @@ export function createLibraryResolver(params: {
         siteId: "",
         listId: "",
         documentContentTypeIds: [],
-        documentSetGroups: [],
-        readOnlyFields: [],
       }
     : null;
 
@@ -86,8 +80,6 @@ export function createLibraryResolver(params: {
       accessToken,
     });
     const documentContentTypeNames = resolveDocumentContentTypes(opts.siteUrl);
-    const documentSetGroups = resolveDocumentSetGroups(opts.siteUrl);
-    const readOnlyFields = resolveReadOnlyFields(opts.siteUrl);
 
     const contentTypes = await graphRequest<{
       value: Array<{
@@ -118,8 +110,6 @@ export function createLibraryResolver(params: {
       siteId: site.id,
       listId: list.id,
       documentContentTypeIds: matchingContentTypes.map((ct) => ct.id),
-      documentSetGroups,
-      readOnlyFields,
     };
 
     return resolvedLibrary;
@@ -135,8 +125,6 @@ export function createLibraryResolver(params: {
       siteId: lib.siteId,
       listId: lib.listId,
       documentContentTypeIds: lib.documentContentTypeIds,
-      documentSetGroups: lib.documentSetGroups,
-      readOnlyFields: lib.readOnlyFields,
     };
   }
 

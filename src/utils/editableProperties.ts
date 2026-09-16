@@ -147,11 +147,6 @@ export function getEditablePropertyConfig(
   return configs.get(key) ?? configs.get(normalizeLookupKey(key));
 }
 
-/** @deprecated Use normalizeEditablePropertiesInput — kept for call sites that only need keys. */
-export function normalizeEditablePropertyKeys(input?: unknown): string[] {
-  return normalizeEditablePropertiesInput(input).keys;
-}
-
 export function editablePropertyLabel(
   key: string,
   definitions: Map<string, { displayName: string }>,
