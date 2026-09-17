@@ -72,9 +72,14 @@ const SKIP_PATCH_KEYS = new Set([
 ]);
 
 const DERIVED_DOC_IDENTIFIER_KEYS = new Set(
-  ["_Category", "SubCategory", "Workflow", "ClaimWorkflow", "Function", "G2CompanyName"].map(
-    normalizeLookupKey,
-  ),
+  [
+    "_Category",
+    "SubCategory",
+    "Workflow",
+    "ClaimWorkflow",
+    "Function",
+    "G2CompanyName",
+  ].map(normalizeLookupKey),
 );
 
 export function isFieldEmpty(
@@ -95,10 +100,11 @@ export function validateRequiredFields(
     if (!def.required) continue;
     if (SKIP_PATCH_KEYS.has(normalizeLookupKey(def.key))) continue;
     if (def.fieldType === "boolean" || def.fieldType === "dateTime") continue;
-    const isDerived = DERIVED_DOC_IDENTIFIER_KEYS.has(
-      normalizeLookupKey(def.key),
-    );
-    if (def.readOnly && !isDerived) continue;
+    // if fields are read only, but not derived, skip validation
+    // const isDerived = DERIVED_DOC_IDENTIFIER_KEYS.has(
+    //   normalizeLookupKey(def.key),
+    // );
+    // if (def.readOnly && !isDerived) continue;
     if (isFieldEmpty(values[def.key])) {
       errors[def.key] = `${def.displayName} is required`;
     }
@@ -150,7 +156,6 @@ export default function PropertiesFormFields({
     }
     onChange(next);
   };
-
 
   const groupedDefinitions = definitions.reduce<
     Record<string, DocumentLibraryFieldDefinition[]>

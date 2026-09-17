@@ -22,7 +22,6 @@ export type LibraryContext = {
   driveId: string;
   siteId: string;
   listId: string;
-  documentContentTypeIds: string[];
 };
 
 export type GraphRequestContext = LibraryContext & {

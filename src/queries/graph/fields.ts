@@ -3,10 +3,7 @@ import type {
   FieldUpdateFailure,
 } from "../../types";
 import { normalizeLookupKey, toCanonicalKey } from "../../utils/columns";
-import {
-  fallbackFieldDefinition,
-  parseGraphListColumn,
-} from "../../utils/fieldDefinitions";
+import { fallbackFieldDefinition } from "../../utils/fieldDefinitions";
 import { resolveRequestedFieldKeys } from "./helpers";
 import { graphRequest } from "./graphRequest";
 import type { ContentTypeHelpers } from "./contentTypes";
@@ -41,118 +38,61 @@ export function createFieldsApi(
   dropdownValues: DropdownValuesHelper,
 ) {
   const { graphBaseUrl, getContext } = deps;
-  let cachedListColumns: unknown[] | null = null;
 
   return {
     async getFieldDefinitions({
       fieldKeys = [],
     }: { fieldKeys?: string[] } = {}) {
-      const { accessToken, siteId, documentContentTypeIds } = await getContext();
+      const { accessToken, siteId } = await getContext();
       const requested = resolveRequestedFieldKeys(fieldKeys);
 
       if (requested.size === 0) {
         return [];
       }
 
-      if (!siteId || !documentContentTypeIds.length) {
-        return fieldKeys.map((k) => fallbackFieldDefinition(k.trim()));
-      }
-
-      const dropdownValuesPromise = dropdownValues
+      const mappings = await dropdownValues
         .getDocIdentifierMappings(accessToken)
         .catch((error) => {
           console.warn("Failed to load DocIdentifier mappings", error);
           return [];
         });
-
-      let columnRows = cachedListColumns;
-
-      if (!columnRows) {
-        const responses = await Promise.all(
-          documentContentTypeIds.map((id) =>
-            graphRequest<{ value: unknown[] }>({
-              url:
-                `${graphBaseUrl}/sites/${encodeURIComponent(siteId)}` +
-                `/contentTypes/${encodeURIComponent(id)}/columns`,
-              method: "GET",
-              accessToken,
-            }),
-          ),
-        );
-
-        const uniqueColumns = new Map<string, unknown>();
-        for (const response of responses) {
-          for (const column of response.value ?? []) {
-            const name = (column as { name?: string }).name;
-
-            if (name && !uniqueColumns.has(name)) {
-              uniqueColumns.set(name, column);
-            }
-          }
-        }
-
-        columnRows = [...uniqueColumns.values()];
-
-        cachedListColumns = columnRows;
-      }
-
-      // Resolve ContentType choices for the ContentType field when it is requested.
-      const resolveContentTypeChoices = async () => {
-        try {
-          return await contentTypes.getContentTypeChoices({
-            accessToken,
-            siteId,
-          });
-        } catch {
-          return [];
-        }
-      };
-
-      const withContentTypeChoices = async (
-        def: DocumentLibraryFieldDefinition,
-      ): Promise<DocumentLibraryFieldDefinition> => {
-        if (normalizeLookupKey(def.key) !== "contenttype") return def;
-        const choices = await resolveContentTypeChoices();
-        if (choices.length === 0) return def;
-        return {
-          ...def,
-          fieldType: "choice",
-          choices,
-          allowMultipleChoices: false,
-        };
-      };
-
-      const mappings = await dropdownValuesPromise;
       const dropdownChoices = choicesFromMappings(mappings);
       const derivedValuesByChoice = Object.fromEntries(
-        mappings.map((row) => [row.DocIdentifier, derivedFieldsFromMapping(row)]),
+        mappings.map((row) => [
+          row.DocIdentifier,
+          derivedFieldsFromMapping(row),
+        ]),
       );
 
-      const withResolvedChoices = async (
-        def: DocumentLibraryFieldDefinition,
-      ): Promise<DocumentLibraryFieldDefinition> => {
-        return withDropdownChoices(
-          await withContentTypeChoices(def),
-          dropdownChoices,
-          derivedValuesByChoice,
-        );
-      };
-
-      const parsed = new Map<string, DocumentLibraryFieldDefinition>();
-      for (const col of columnRows) {
-        const raw = col as Parameters<typeof parseGraphListColumn>[0];
-        const def = parseGraphListColumn(raw);
-        if (!def) continue;
-        const norm = normalizeLookupKey(def.key);
-        if (!requested.has(norm)) continue;
-        parsed.set(norm, def);
-      }
+      const contentTypeChoices =
+        siteId &&
+        [...requested.values()].some(
+          (key) => normalizeLookupKey(key) === "contenttype",
+        )
+          ? await contentTypes
+              .getContentTypeChoices({ accessToken, siteId })
+              .catch(() => [] as string[])
+          : [];
 
       const out: DocumentLibraryFieldDefinition[] = [];
       for (const [, canonKey] of requested) {
-        const norm = normalizeLookupKey(canonKey);
-        const baseDef = parsed.get(norm) ?? fallbackFieldDefinition(canonKey);
-        out.push(await withResolvedChoices(baseDef));
+        let def = fallbackFieldDefinition(canonKey);
+
+        if (
+          normalizeLookupKey(def.key) === "contenttype" &&
+          contentTypeChoices.length > 0
+        ) {
+          def = {
+            ...def,
+            fieldType: "choice",
+            choices: contentTypeChoices,
+            allowMultipleChoices: false,
+          };
+        }
+
+        out.push(
+          withDropdownChoices(def, dropdownChoices, derivedValuesByChoice),
+        );
       }
 
       return out;

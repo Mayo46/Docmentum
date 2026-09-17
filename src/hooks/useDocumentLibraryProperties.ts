@@ -43,7 +43,7 @@ export function useDocumentLibraryProperties({
   const { definitions: fieldDefinitions, loading: fieldDefinitionsLoading } =
     useEditableFieldDefinitions({ client, editableProperties });
 
-  // Upload reuses the same form but drops read-only / content-type-only columns.
+  // Upload reuses the same form but drops read-only columns.
   const uploadFieldDefinitions = useMemo(
     () => filterFieldDefinitionsForUpload(fieldDefinitions),
     [fieldDefinitions],

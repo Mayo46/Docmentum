@@ -28,7 +28,6 @@ import {
   checkDuplicateDocumentName,
   getEnteredDocumentName,
 } from "../utils/documentName";
-import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
 
 export default function DocumentLibrary(props: DocumentLibraryProps) {
   const {

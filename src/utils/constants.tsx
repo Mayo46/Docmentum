@@ -16,19 +16,6 @@ export const DEFAULT_FIELD_SELECT_COLUMNS = [
   "ModifiedBy",
 ];
 
-/**
- * Content types whose SharePoint columns are fetched for choice/lookup metadata.
- * Field schema (which fields, labels, required, readonly, type, group) comes from
- * `editableProperties` on the host, not from these mappings.
- */
-export const SITE_CONTENT_TYPES: Record<string, string[]> = {
-  Claims: ["G2 Claim", "G2 Claim Document"],
-
-  Underwriting: ["G2 Underwriting", "G2 Underwriting Document"],
-
-  FinancialSupportingDocuments: ["G2 Financial Supporting Document"],
-};
-
 export const COLUMN_GROUP_LABELS: Record<string, string> = {
   document: "Document Information",
   claim: "Claim Information",

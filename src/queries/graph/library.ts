@@ -2,7 +2,6 @@ import axios from "axios";
 import { getAxiosErrorMessage, graphRequest } from "./graphRequest";
 import { escapeODataString, parseSiteUrl } from "./helpers";
 import type { GraphClientOptions, LibraryContext } from "./types";
-import { resolveDocumentContentTypes } from "./documentContentType";
 
 export async function resolveListByDisplayName(params: {
   graphBaseUrl: string;
@@ -34,7 +33,6 @@ export function createLibraryResolver(params: {
         driveId: opts.driveId,
         siteId: "",
         listId: "",
-        documentContentTypeIds: [],
       }
     : null;
 
@@ -79,37 +77,10 @@ export function createLibraryResolver(params: {
       method: "GET",
       accessToken,
     });
-    const documentContentTypeNames = resolveDocumentContentTypes(opts.siteUrl);
-
-    const contentTypes = await graphRequest<{
-      value: Array<{
-        id: string;
-        name: string;
-      }>;
-    }>({
-      url:
-        `${graphBaseUrl}/sites/${encodeURIComponent(site.id)}` +
-        `/contentTypes`,
-      method: "GET",
-      accessToken,
-    });
-
-    const matchingContentTypes = contentTypes.value.filter((ct) =>
-      documentContentTypeNames.includes(ct.name),
-    );
-
-    if (matchingContentTypes.length !== documentContentTypeNames.length) {
-      const missing = documentContentTypeNames.filter(
-        (name) => !matchingContentTypes.some((ct) => ct.name === name),
-      );
-
-      throw new Error(`Content type(s) not found: ${missing.join(", ")}.`);
-    }
     resolvedLibrary = {
       driveId: drive.id,
       siteId: site.id,
       listId: list.id,
-      documentContentTypeIds: matchingContentTypes.map((ct) => ct.id),
     };
 
     return resolvedLibrary;
@@ -124,7 +95,6 @@ export function createLibraryResolver(params: {
       driveId: lib.driveId,
       siteId: lib.siteId,
       listId: lib.listId,
-      documentContentTypeIds: lib.documentContentTypeIds,
     };
   }
 

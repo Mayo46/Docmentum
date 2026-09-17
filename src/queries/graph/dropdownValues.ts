@@ -45,7 +45,9 @@ function asBoolean(value: unknown): boolean {
   return value === 1;
 }
 
-function toMapping(fields?: Record<string, unknown>): DocIdentifierMapping | null {
+function toMapping(
+  fields?: Record<string, unknown>,
+): DocIdentifierMapping | null {
   const DocIdentifier = asText(fields?.DocIdentifier);
   if (!DocIdentifier) return null;
   return {
@@ -189,4 +191,6 @@ export function createDropdownValuesHelper(params: {
   return { getDropdownChoices, getDocIdentifierMappings };
 }
 
-export type DropdownValuesHelper = ReturnType<typeof createDropdownValuesHelper>;
+export type DropdownValuesHelper = ReturnType<
+  typeof createDropdownValuesHelper
+>;

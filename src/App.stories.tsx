@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import DocumentWrapper from "./components/DocumentWrapper";
 
 const graphToken =
-  "eyJ0eXAiOiJKV1QiLCJub25jZSI6InAzZHhTbXJmNGx0akxwSlE4d1RXS2JueHV1eldETUtCZlhybG04WDcxRHMiLCJhbGciOiJSUzI1NiIsIng1dCI6IlQ1aDQwcTdHMHg0OXFuNDFsTTkta0tqcEQ5OCIsImtpZCI6IlQ1aDQwcTdHMHg0OXFuNDFsTTkta0tqcEQ5OCJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC8yZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkvIiwiaWF0IjoxNzg5NTM2NjY1LCJuYmYiOjE3ODk1MzY2NjUsImV4cCI6MTc4OTU0MDY2MywiYWNjdCI6MCwiYWNyIjoiMSIsImFjcnMiOlsicDEiLCJwZmRyIl0sImFpbyI6IkFZUUFlLzhlQUFBQUxHYXBkVHd0Z3FPcUFoNWFvWmdBTDYyWWhvUlR5Qm50MlVoWFZGQ01uRHYvWXpqaWtpRWRqbDZZSlNpT0FlOHJhc0c4UEhRVGlSNHlod1pEd25Cdkh2dnFNN2dwdEJHNkxLQmhGWW5qTHN0MVJjYm03Y25HcGtjb3NtOU8yQUgwOENxdkN3ZDNtL0tEamdDaWZoUCtRbDlhMmc0QURBUStnQUtKUmpIR1VXST0iLCJhbHRzZWNpZCI6IjU6OjEwMDMyMDA0QjYzNTk3MkYiLCJhbXIiOlsicHdkIiwibWZhIl0sImFwcF9kaXNwbGF5bmFtZSI6IkcyIERvY3MgUmVzb3VyY2UgVUkgTm9uUHJvZCIsImFwcGlkIjoiYjEzMDUxMzEtZTcyMi00YWRhLTk1MDMtY2RjNjdmOTczMDcwIiwiYXBwaWRhY3IiOiIwIiwiZGV2aWNlaWQiOiJlN2Q1NmI4Mi1kYmZlLTRjOWYtOWY3MS0xOGMyYjkzZGM1ZGYiLCJlbWFpbCI6Im11YmFzaGlyLmFsdGFmQGdlbmVyYWxzdGFyLmNvbSIsImlkcCI6Imh0dHBzOi8vc3RzLndpbmRvd3MubmV0L2RhNTVhMTdjLTkwNmEtNGVkYS04MjM5LTE4ZmVjYjYwMjk2NS8iLCJpZHR5cCI6InVzZXIiLCJpcGFkZHIiOiI1Mi4xNTEuMjI4LjExNCIsIm5hbWUiOiJNdWJhc2hpciBBbHRhZiAoQ29uc3VsdGFudCkiLCJvaWQiOiJiMjI0ZWEwZi04M2NlLTRjMGMtYTkxNi1kM2JlN2UyNmRjMGQiLCJwbGF0ZiI6IjMiLCJwdWlkIjoiMTAwMzIwMDYzQjE5NUIzMCIsInJoIjoiMS5BV01Cb3BFbExfSWNxa2FaMklsR2RsbGx5UU1BQUFBQUFBQUF3QUFBQUFBQUFBQUFBRlpqQVEuIiwic2NwIjoiRGlyZWN0b3J5LlJlYWQuQWxsIEZpbGVzLlJlYWQgRmlsZXMuUmVhZC5BbGwgRmlsZXMuUmVhZFdyaXRlIEdyb3VwLlJlYWQuQWxsIFNpdGVzLlJlYWQuQWxsIFNpdGVzLlJlYWRXcml0ZS5BbGwgU2l0ZXMuU2VhcmNoLkFsbCBTaXRlcy5TZWxlY3RlZCBUZXJtU3RvcmUuUmVhZFdyaXRlLkFsbCBVc2VyLlJlYWQgVXNlci5SZWFkV3JpdGUuQWxsIHByb2ZpbGUgb3BlbmlkIGVtYWlsIiwic2lkIjoiMDA3ZDRlM2EtOGZkMC00MWYxLTQwZTYtYWQyZjA3ZjE2MWExIiwic2lnbmluX3N0YXRlIjpbImR2Y19tbmdkIiwiZHZjX2NtcCIsImlua25vd25udHdrIl0sInN1YiI6IlFXTzc3WWNxUjF1V1lSTXd4MHRTbm8zeVh3aFNHMjM5S2dzVXdScjZNbjAiLCJ0ZW5hbnRfcmVnaW9uX3Njb3BlIjoiTkEiLCJ0aWQiOiIyZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkiLCJ1bmlxdWVfbmFtZSI6Im11YmFzaGlyLmFsdGFmQGdlbmVyYWxzdGFyLmNvbSIsInV0aSI6Ijd5SzBNZDh2Z1VPUlNnaWlVeWc0QUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfYWNkIjoxNzYxOTA0OTk0LCJ4bXNfYWN0X2ZjdCI6IjMgOSIsInhtc19mdGQiOiJfbWg5YktjU2RWZHh6blIxZnpxdTVGc005UHNGRERqYk5NelUwdkNNT2RzQmRYTnViM0owYUMxa2MyMXoiLCJ4bXNfaWRyZWwiOiIxMCAxIiwieG1zX3BmdGV4cCI6MTc4OTYyNzA2MywieG1zX3N0Ijp7InN1YiI6InBxRXA3R1cwTjdMTTdUclR2YVFfcGhUQXZNTWFLTTRSOF8zS3FiQlVhR0kifSwieG1zX3N1Yl9mY3QiOiIxMiAzIiwieG1zX3RjZHQiOjE3NTI1ODYxMDksInhtc190bnRfZmN0IjoiMyA4In0.aWWlAxDz3wEa3-avl8JX4Pnwy1imvuzADthuFhOQRMyzZgHMC1DNZIvRM1sr-zHRMcOfUrZUG6O20W4v8i5re8nRVms6DXjp4wUEUPfRm8_AWIV9zrfiZVit0prdlHLMLbnG2NZpDOkiRWz-8bY-wrFkrHPi9-hJQIYJSJZi2K6ZaZqfk8KAZZezMZrvWlKINPsp_aMSjPRrsmBAmTUaZuhK1CiXLxpDx2gnF-vxByUqfGHrLNaocYD7su_X_QS4zWjvLv2h0C5385Gi4eY9qMSG_V8ML0Ly7wsGr4UvmdSwXP8lCHZvbqAKLMgwUfM7uu98aZlkKyghBQE8qov9gw";
+  "Bearer eyJ0eXAiOiJKV1QiLCJub25jZSI6ImlXSXFIRmhjeGRJMUh2VVZnY3RyYzFTbjU3WjlSVkNaNjZOTWJmR1FqdDQiLCJhbGciOiJSUzI1NiIsIng1dCI6IlQ1aDQwcTdHMHg0OXFuNDFsTTkta0tqcEQ5OCIsImtpZCI6IlQ1aDQwcTdHMHg0OXFuNDFsTTkta0tqcEQ5OCJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC8yZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkvIiwiaWF0IjoxNzg5NjI0MDE2LCJuYmYiOjE3ODk2MjQwMTYsImV4cCI6MTc4OTYyOTE1NSwiYWNjdCI6MCwiYWNyIjoiMSIsImFjcnMiOlsicDEiLCJwZmRyIl0sImFpbyI6IkFZUUFlLzhlQUFBQUt5cTFTVktncnZvelZMRERnaVhHNXpSWFl4OG9GMWNhMXYxUnhZWEJxUlFucVhnK1crZTBLYXQ1STNpMVlMMTZDTEsxK0hhK21mdUJuTm84TWlrUDJVTkdIOWlmdHNwTHNMbGZqajE4VERLN3ZTblhWaFpXU2RyQ1RJMVRGaHFVY3hnZ3pZaWl6U21rNGJGQUIzdEw2bFh1RENuckhGTStWTk1IbHk4enhVaz0iLCJhbHRzZWNpZCI6IjU6OjEwMDMyMDA0QjYzNTk3MkYiLCJhbXIiOlsicHdkIiwibWZhIl0sImFwcF9kaXNwbGF5bmFtZSI6IkcyIERvY3MgUmVzb3VyY2UgVUkgTm9uUHJvZCIsImFwcGlkIjoiYjEzMDUxMzEtZTcyMi00YWRhLTk1MDMtY2RjNjdmOTczMDcwIiwiYXBwaWRhY3IiOiIwIiwiZGV2aWNlaWQiOiJlN2Q1NmI4Mi1kYmZlLTRjOWYtOWY3MS0xOGMyYjkzZGM1ZGYiLCJlbWFpbCI6Im11YmFzaGlyLmFsdGFmQGdlbmVyYWxzdGFyLmNvbSIsImlkcCI6Imh0dHBzOi8vc3RzLndpbmRvd3MubmV0L2RhNTVhMTdjLTkwNmEtNGVkYS04MjM5LTE4ZmVjYjYwMjk2NS8iLCJpZHR5cCI6InVzZXIiLCJpcGFkZHIiOiI1Mi4xNTEuMjI4LjExNCIsIm5hbWUiOiJNdWJhc2hpciBBbHRhZiAoQ29uc3VsdGFudCkiLCJvaWQiOiJiMjI0ZWEwZi04M2NlLTRjMGMtYTkxNi1kM2JlN2UyNmRjMGQiLCJwbGF0ZiI6IjMiLCJwdWlkIjoiMTAwMzIwMDYzQjE5NUIzMCIsInJoIjoiMS5BV01Cb3BFbExfSWNxa2FaMklsR2RsbGx5UU1BQUFBQUFBQUF3QUFBQUFBQUFBQUFBRlpqQVEuIiwic2NwIjoiRGlyZWN0b3J5LlJlYWQuQWxsIEZpbGVzLlJlYWQgRmlsZXMuUmVhZC5BbGwgRmlsZXMuUmVhZFdyaXRlIEdyb3VwLlJlYWQuQWxsIFNpdGVzLlJlYWQuQWxsIFNpdGVzLlJlYWRXcml0ZS5BbGwgU2l0ZXMuU2VhcmNoLkFsbCBTaXRlcy5TZWxlY3RlZCBUZXJtU3RvcmUuUmVhZFdyaXRlLkFsbCBVc2VyLlJlYWQgVXNlci5SZWFkV3JpdGUuQWxsIHByb2ZpbGUgb3BlbmlkIGVtYWlsIiwic2lkIjoiMDA3ZDRlM2EtOGZkMC00MWYxLTQwZTYtYWQyZjA3ZjE2MWExIiwic2lnbmluX3N0YXRlIjpbImR2Y19tbmdkIiwiZHZjX2NtcCIsImlua25vd25udHdrIl0sInN1YiI6IlFXTzc3WWNxUjF1V1lSTXd4MHRTbm8zeVh3aFNHMjM5S2dzVXdScjZNbjAiLCJ0ZW5hbnRfcmVnaW9uX3Njb3BlIjoiTkEiLCJ0aWQiOiIyZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkiLCJ1bmlxdWVfbmFtZSI6Im11YmFzaGlyLmFsdGFmQGdlbmVyYWxzdGFyLmNvbSIsInV0aSI6IktDY29PclU5dDB5RW41eHA0UlFaQUEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfYWNkIjoxNzYxOTA0OTk0LCJ4bXNfYWN0X2ZjdCI6IjMgOSIsInhtc19mdGQiOiI5aXMtOEt2RktoTE9xQ3J3QWJSa1UzUzhIeGxIc25wV1NqVGZ4M3BlRHhzQmRYTnpiM1YwYUMxa2MyMXoiLCJ4bXNfaWRyZWwiOiIxIDIwIiwieG1zX3BmdGV4cCI6MTc4OTcxNTU1NSwieG1zX3N0Ijp7InN1YiI6InBxRXA3R1cwTjdMTTdUclR2YVFfcGhUQXZNTWFLTTRSOF8zS3FiQlVhR0kifSwieG1zX3N1Yl9mY3QiOiIxNCAzIiwieG1zX3RjZHQiOjE3NTI1ODYxMDksInhtc190bnRfZmN0IjoiMyAxNiJ9.hxFcqh4pTv8pkv2tnsud39zs2EhcLFowaGWZNY3A51TKiK4OWFilcOFCTkIKDGKQLm6zIEv6B8J7Tyy8LRfxKL9pPiPJ6RC6kZbuAhhMN98KMpgMTZHPN-3Aoppiz4eliY25M2umjHJG2O4JBFmym1VP2yZyyzSYjUAjCoHuzTOSvLZNYGPR_H3tAEEoPsM9mFVqbODLSRnzr7GlTMhGGKQAWG1NX-1iNjQFG6Rt2Cpq9m-G5WtEg3iGwbz8oZQx5Q903VjhxPIZWB9aYNV1hOclRSAaoP7YiTrAr3EO0go1s1hp3Jw6YIjKT-1Vf2JViywW_qHHbohQHN0vtfj_yg";
   const meta: Meta<typeof DocumentWrapper> = {
   title: "App",
   component: DocumentWrapper,
@@ -69,12 +69,6 @@ export const Underwriting: Story = {
     documentType: "favorites",
     onSelectionChange: fn(),
 
-    // editableProperties: {
-    //   "DocumentName": "",
-    //   "ClaimID": "",
-    //   "SubCategory": "",
-    //   "Category": "",
-    // },
     onFavorite: async (itemIds: string[]) => {
       console.log("onFavorite called with:", itemIds);
       // await myProjectApi.addFavorites(itemIds);
@@ -144,20 +138,6 @@ export const ClaimsGenesisDev: Story = {
       console.log("onUnfavorite called with:", itemIds);
       // await myProjectApi.removeFavorites(itemIds);
     },
-    // editableProperties: {
-    //   DocumentType: "",
-    //   DocumentName: "",
-    //   ReceivedDate: "",
-    //   SubCategory: "",
-    //   Category: "",
-    //   ClaimWorkflow: "",
-    //   Recipient: "",
-    //   SendNotification: "",
-    //   Comments: "",
-    //   ClaimID: "",
-    //   CheckedOutDate: "",
-    //   CheckedOutBy: "",
-    // },
     editableProperties: [
       // Document Information
       {
@@ -185,10 +165,10 @@ export const ClaimsGenesisDev: Story = {
         columnType: "text",
       },
       {
-        key: "ReceivedDate",
-        displayName: "Received Date",
+        key: "DateReceived",
+        displayName: "Date Received",
         group: "document",
-        readOnly: false,
+        readOnly: true,
         required: true,
         columnType: "dateTime",
       },
@@ -226,14 +206,6 @@ export const ClaimsGenesisDev: Story = {
       },
 
       // Claim Information
-      {
-        key: "ClaimIDSelection",
-        displayName: "Claim ID Selection",
-        group: "claim",
-        readOnly: true,
-        required: false,
-        columnType: "text",
-      },
       {
         key: "ClaimID",
         displayName: "Claim ID",
