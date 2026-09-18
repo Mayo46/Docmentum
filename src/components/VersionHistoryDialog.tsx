@@ -25,6 +25,8 @@ type Props = {
   onClose: () => void;
   /** Called after a successful restore so the parent grid can refresh. */
   onRestored: () => void;
+  /** When false, version history is view-only (no Restore button). */
+  canRestore?: boolean;
 };
 
 function formatDate(value?: string) {
@@ -46,7 +48,7 @@ function formatIdentityDisplay(raw: unknown): string | undefined {
 }
 
 export default function VersionHistoryDialog(props: Props) {
-  const { open, itemId, client, onClose, onRestored } = props;
+  const { open, itemId, client, onClose, onRestored, canRestore = true } = props;
   const [versions, setVersions] = useState<DocumentLibraryVersion[]>([]);
   const [loading, setLoading] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
@@ -136,6 +138,7 @@ export default function VersionHistoryDialog(props: Props) {
                     </Typography>
                   ) : null}
                 </Box>
+                {canRestore ? (
                 <Tooltip title="Replace the current file in the library with this version">
                   <span>
                     <Button
@@ -165,6 +168,7 @@ export default function VersionHistoryDialog(props: Props) {
                     </Button>
                   </span>
                 </Tooltip>
+                ) : null}
               </Box>
             ))}
           </Box>

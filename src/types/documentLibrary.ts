@@ -33,6 +33,8 @@ export type OnToast = (next: DocumentLibraryToast) => void;
  */
 export type DocumentLibraryDocumentType = "library" | "favorites" | "checkout";
 
+export type DocumentLibraryUserRole = "admin" | "importer" | "viewer";
+
 export type DocumentLibraryProps = {
   client: DocumentLibraryGraphClient;
   parentDriveItemId: string;
@@ -69,6 +71,9 @@ export type DocumentLibraryProps = {
 
   /** Which document source to fetch @default "library" */
   documentType?: DocumentLibraryDocumentType;
+
+  /** Current user's role. Viewers cannot import documents or restore versions. */
+  userRole?: DocumentLibraryUserRole | string;
   
   /** Optional externally supplied document rows. When provided, the grid displays these rows instead of loading documents from SharePoint. */
   externalRows?: DocumentLibraryItemRow[];

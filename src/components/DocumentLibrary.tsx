@@ -28,6 +28,7 @@ import {
   checkDuplicateDocumentName,
   getEnteredDocumentName,
 } from "../utils/documentName";
+import { canImportDocuments, canRestoreVersions } from "../utils/userRole";
 
 export default function DocumentLibrary(props: DocumentLibraryProps) {
   const {
@@ -50,6 +51,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     dashboardName,
     onActionLoadingChange,
     documentType = "library",
+    userRole,
     externalRows,
     onFavorite,
     onUnfavorite,
@@ -57,6 +59,8 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     externalHasMore,
     onLoadMoreExternal,
   } = props;
+  const allowImportDocs = canImportDocuments(userRole);
+  const allowRestoreVersions = canRestoreVersions(userRole);
 
   const [toast, setToast] = useState<DocumentLibraryToast | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -382,7 +386,9 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
       <UploadPannel
         uploadsEnabled={navigation.uploadsEnabled && !isFlatDashboardView}
         showBreadcrumb={showBreadcrumb && !isFlatDashboardView}
-        showUploadControls={showUploadControls && !isFlatDashboardView}
+        showUploadControls={
+          showUploadControls && !isFlatDashboardView && allowImportDocs
+        }
         loading={loading}
         segments={navigation.segments}
         onBreadcrumbClick={navigation.onBreadcrumbClick}
@@ -433,6 +439,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         client={client}
         onClose={() => setVersionsOpen(false)}
         onRestored={refresh}
+        canRestore={allowRestoreVersions}
       />
 
       <DeleteDialog

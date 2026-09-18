@@ -194,4 +194,5 @@ export type {
   DocumentLibraryContextMenuState,
   DocumentLibraryToast,
   DocumentLibraryDocumentType,
+  DocumentLibraryUserRole,
 } from "./documentLibrary";
