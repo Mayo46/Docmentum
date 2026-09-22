@@ -30,7 +30,6 @@ import {
   getEnteredDocumentName,
 } from "../utils/documentName";
 import {
-  canDeleteDocument,
   canDeleteDocuments,
   canImportDocuments,
   canRestoreVersions,
