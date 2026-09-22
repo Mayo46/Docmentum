@@ -71,11 +71,17 @@ export type DocumentWrapperProps = {
   /** Which document source to fetch @default "library" */
   documentType?: DocumentLibraryDocumentType;
 
-  /** Current user's email/UPN used to resolve the site-specific SharePoint user ID for checkout documents. */
+  /** Current user's email/UPN used to resolve checkout user id and Importer delete ownership. */
   userEmail?: string;
 
   /** Current user's role. Viewers cannot import documents or restore versions. */
   userRole?: DocumentLibraryUserRole | string;
+
+  /**
+   * Importer-only. Host handles delete via its private API.
+   * Receives item IDs the current user imported. Not called for Admin.
+   */
+  onDeleteDocuments?: (itemIds: string[]) => Promise<void>;
 
   /** Optional externally supplied document rows. When provided, the grid displays these rows instead of loading documents from SharePoint. */
   externalRows?: DocumentLibraryItemRow[];
@@ -115,6 +121,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     documentType = "library",
     userEmail,
     userRole,
+    onDeleteDocuments,
     gridHeight,
     externalRows,
     externalTotalCount,
@@ -266,6 +273,8 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
             onActionLoadingChange={onActionLoadingChange}
             documentType={documentType}
             userRole={userRole}
+            userEmail={userEmail}
+            onDeleteDocuments={onDeleteDocuments}
             gridHeight={gridHeight}
             externalRows={externalRows}
             externalTotalCount={externalTotalCount}

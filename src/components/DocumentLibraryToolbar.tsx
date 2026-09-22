@@ -18,10 +18,12 @@ interface DocumentLibraryToolbarProps {
   client: DocumentLibraryGraphClient;
   onToast: OnToast;
   onRefresh: OnRefresh;
-  onEditProperties?: (itemIds: string[]) => void; 
+  onEditProperties?: (itemIds: string[]) => void;
   onActionLoadingChange?: (loading: boolean) => void;
   onFavorite?: (itemIds: string[]) => Promise<void>;
   onUnfavorite?: (itemIds: string[]) => Promise<void>;
+  onDeleteDocument?: (rows: DocumentLibraryGridRow[]) => void;
+  userRole?: string;
 }
 
 const DocumentLibraryToolbar = ({
@@ -36,6 +38,8 @@ const DocumentLibraryToolbar = ({
   onActionLoadingChange,
   onFavorite,
   onUnfavorite,
+  onDeleteDocument,
+  userRole,
 }: DocumentLibraryToolbarProps) => {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
@@ -72,21 +76,23 @@ const DocumentLibraryToolbar = ({
           {title}
         </Typography>
       </Box>
-        <ActionMenu
-          anchorEl={menuAnchor}
-          open={Boolean(menuAnchor)}
-          onClose={closeActionMenu}
-          actions={actions}
-          selectedRows={selectedRows}
-          client={client}
-          onToast={onToast}
-          onRefresh={onRefresh}
-          onEditProperties={onEditProperties}
-          disabled={selectedRows.length === 0}
-          onActionLoadingChange={onActionLoadingChange}
-          onFavorite={onFavorite}
-          onUnfavorite={onUnfavorite}
-        />
+      <ActionMenu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={closeActionMenu}
+        actions={actions}
+        selectedRows={selectedRows}
+        client={client}
+        onToast={onToast}
+        onRefresh={onRefresh}
+        onEditProperties={onEditProperties}
+        disabled={selectedRows.length === 0}
+        onActionLoadingChange={onActionLoadingChange}
+        onFavorite={onFavorite}
+        onUnfavorite={onUnfavorite}
+        onDeleteDocument={onDeleteDocument}
+        userRole={userRole}
+      />
     </>
   );
 };

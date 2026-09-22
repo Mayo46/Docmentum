@@ -1,5 +1,5 @@
 import type { DocumentLibraryItemRow } from "../../types";
-import { getFieldDisplayName } from "./helpers";
+import { getFieldDisplayName, getIdentityEmail } from "./helpers";
 
 /** Maps a Graph driveItem (+ optional listItem.fields) to a grid row. */
 export function mapDriveItemToRow(
@@ -32,6 +32,7 @@ export function mapDriveItemToRow(
     contentTypeName,
     isContainer,
     createdByDisplayName: getFieldDisplayName(item.createdBy),
+    createdByEmail: getIdentityEmail(item.createdBy),
     modifiedByDisplayName: getFieldDisplayName(item.lastModifiedBy),
   };
 }

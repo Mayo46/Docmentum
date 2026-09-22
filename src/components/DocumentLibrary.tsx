@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Snackbar } from "@mui/material";
 import type {
+  DocumentLibraryGridRow,
   DocumentLibraryItemRow,
   DocumentLibraryProps,
   DocumentLibraryToast,
@@ -28,7 +29,14 @@ import {
   checkDuplicateDocumentName,
   getEnteredDocumentName,
 } from "../utils/documentName";
-import { canImportDocuments, canRestoreVersions } from "../utils/userRole";
+import {
+  canDeleteDocument,
+  canDeleteDocuments,
+  canImportDocuments,
+  canRestoreVersions,
+  isImporterRole,
+  splitRowsByDeletePermission,
+} from "../utils/userRole";
 
 export default function DocumentLibrary(props: DocumentLibraryProps) {
   const {
@@ -52,6 +60,8 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     onActionLoadingChange,
     documentType = "library",
     userRole,
+    userEmail,
+    onDeleteDocuments,
     externalRows,
     onFavorite,
     onUnfavorite,
@@ -61,11 +71,17 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   } = props;
   const allowImportDocs = canImportDocuments(userRole);
   const allowRestoreVersions = canRestoreVersions(userRole);
+  const allowDeleteDocuments = canDeleteDocuments(userRole);
+  const importerOnlyOwnDeletes = isImporterRole(userRole);
 
   const [toast, setToast] = useState<DocumentLibraryToast | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] =
-    useState<DocumentLibraryItemRow | null>(null);
+  const [deleteDocuments, setDeleteDocuments] = useState<
+    DocumentLibraryItemRow[]
+  >([]);
+  const [skippedDocuments, setSkippedDocuments] = useState<
+    DocumentLibraryItemRow[]
+  >([]);
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [versionsTarget, setVersionsTarget] =
     useState<DocumentLibraryItemRow | null>(null);
@@ -207,10 +223,46 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     setVersionsOpen(true);
   }, []);
 
-  const onDeleteRow = useCallback((row: DocumentLibraryItemRow) => {
-    setDeleteTarget(row);
-    setDeleteOpen(true);
+  const closeDeleteDialog = useCallback(() => {
+    setDeleteOpen(false);
+    setDeleteDocuments([]);
+    setSkippedDocuments([]);
   }, []);
+
+  const openDeleteDialog = useCallback(
+    (rows: Array<DocumentLibraryItemRow | DocumentLibraryGridRow>) => {
+      if (!allowDeleteDocuments) return;
+      const targets = rows.filter((row): row is DocumentLibraryItemRow => {
+        if ("rowType" in row && row.rowType === "group") return false;
+        return !row.isContainer;
+      });
+      if (targets.length === 0) return;
+
+      if (importerOnlyOwnDeletes) {
+        const { owned, skipped } = splitRowsByDeletePermission(
+          targets,
+          userRole,
+          userEmail,
+        );
+        setDeleteDocuments(owned);
+        setSkippedDocuments(skipped);
+        setDeleteOpen(true);
+        return;
+      }
+
+      setDeleteDocuments(targets);
+      setSkippedDocuments([]);
+      setDeleteOpen(true);
+    },
+    [allowDeleteDocuments, importerOnlyOwnDeletes, userEmail, userRole],
+  );
+
+  const onDeleteRow = useCallback(
+    (row: DocumentLibraryItemRow) => {
+      openDeleteDialog([row]);
+    },
+    [openDeleteDialog],
+  );
 
   const columnDefs = useDocumentLibraryColumnDefs({
     columns: activeColumns,
@@ -277,20 +329,51 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   ]);
 
   const handleDeleteConfirm = useCallback(async () => {
-    if (!deleteTarget) return;
+    if (deleteDocuments.length === 0) return;
     try {
-      await client.deleteItem({ itemId: deleteTarget.itemId });
-      onToast({ kind: "success", message: "Deleted." });
-      setDeleteOpen(false);
-      setDeleteTarget(null);
+      onActionLoadingChange?.(true);
+      if (importerOnlyOwnDeletes) {
+        if (!onDeleteDocuments) {
+          onToast({
+            kind: "error",
+            message: "Delete is not configured for the Importer role.",
+          });
+          return;
+        }
+        await onDeleteDocuments(deleteDocuments.map((row) => row.itemId));
+      } else {
+        await Promise.all(
+          deleteDocuments.map((row) =>
+            client.deleteItem({ itemId: row.itemId }),
+          ),
+        );
+      }
+      const count = deleteDocuments.length;
+      onToast({
+        kind: "success",
+        message:
+          count === 1 ? "Deleted." : `${count} documents deleted successfully.`,
+      });
+      closeDeleteDialog();
       await refresh();
     } catch (e) {
       onToast({
         kind: "error",
         message: e instanceof Error ? e.message : "Delete failed",
       });
+    } finally {
+      onActionLoadingChange?.(false);
     }
-  }, [client, deleteTarget, refresh, onToast]);
+  }, [
+    client,
+    closeDeleteDialog,
+    deleteDocuments,
+    importerOnlyOwnDeletes,
+    onActionLoadingChange,
+    onDeleteDocuments,
+    onToast,
+    refresh,
+  ]);
 
   const selectedRows = useMemo(
     () =>
@@ -382,6 +465,8 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         onActionLoadingChange={onActionLoadingChange}
         onFavorite={onFavorite}
         onUnfavorite={onUnfavorite}
+        onDeleteDocument={openDeleteDialog}
+        userRole={userRole}
       />
       <UploadPannel
         uploadsEnabled={navigation.uploadsEnabled && !isFlatDashboardView}
@@ -444,8 +529,9 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
 
       <DeleteDialog
         open={deleteOpen}
-        deleteTarget={deleteTarget}
-        onClose={() => setDeleteOpen(false)}
+        documents={deleteDocuments}
+        skippedDocuments={skippedDocuments}
+        onClose={closeDeleteDialog}
         onConfirm={handleDeleteConfirm}
       />
 

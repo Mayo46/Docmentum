@@ -74,6 +74,15 @@ export type DocumentLibraryProps = {
 
   /** Current user's role. Viewers cannot import documents or restore versions. */
   userRole?: DocumentLibraryUserRole | string;
+
+  /** Current user's email used to decide which documents an Importer may delete. */
+  userEmail?: string;
+
+  /**
+   * Importer-only. Host handles delete via its private API.
+   * Receives item IDs the current user imported. Not called for Admin.
+   */
+  onDeleteDocuments?: (itemIds: string[]) => Promise<void>;
   
   /** Optional externally supplied document rows. When provided, the grid displays these rows instead of loading documents from SharePoint. */
   externalRows?: DocumentLibraryItemRow[];

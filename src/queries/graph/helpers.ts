@@ -1,5 +1,16 @@
 import { normalizeLookupKey } from "../../utils/columns";
 
+export function getIdentityEmail(person?: unknown): string | undefined {
+  if (!person || typeof person !== "object") return undefined;
+  const p = person as Record<string, any>;
+  const email =
+    p?.user?.email ??
+    p?.user?.userPrincipalName ??
+    p?.email ??
+    p?.userPrincipalName;
+  return typeof email === "string" && email.trim() ? email.trim() : undefined;
+}
+
 export function getFieldDisplayName(person?: unknown): string | undefined {
   if (!person || typeof person !== "object") return undefined;
   const p = person as Record<string, any>;

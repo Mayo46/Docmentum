@@ -9,12 +9,12 @@ import {
   handleCheckin,
   handleCheckout,
   handleCopyUrl,
-  handleDelete,
   handleExport,
   handleFavorite,
   handleUnfavorite,
 } from "../actions/documentActions";
 import type { OnToast } from "../types/documentLibrary";
+import { canDeleteDocuments } from "../utils/userRole";
 
 type Props = {
   anchorEl: HTMLElement | null;
@@ -30,6 +30,8 @@ type Props = {
   onActionLoadingChange?: (loading: boolean) => void;
   onFavorite?: (itemIds: string[]) => Promise<void>;
   onUnfavorite?: (itemIds: string[]) => Promise<void>;
+  onDeleteDocument?: (rows: DocumentLibraryGridRow[]) => void;
+  userRole?: string;
 };
 
 export default function ActionMenu({
@@ -46,6 +48,8 @@ export default function ActionMenu({
   onActionLoadingChange,
   onFavorite,
   onUnfavorite,
+  onDeleteDocument,
+  userRole,
 }: Props) {
   const selectedItemIds = selectedRows
     ?.filter((row) => row.rowType === "data")
@@ -95,12 +99,9 @@ export default function ActionMenu({
         ),
     },
     {
-      show: actions?.deleteDocuments,
+      show: actions?.deleteDocuments && canDeleteDocuments(userRole),
       label: "Delete Selected Docs",
-      onClick: () =>
-        executeAction(() =>
-          handleDelete(selectedRows, client, onToast, onRefresh),
-        ),
+      onClick: () => onDeleteDocument?.(selectedRows),
     },
     {
       show: actions?.exportDocuments,

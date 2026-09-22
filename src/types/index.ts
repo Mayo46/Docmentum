@@ -72,6 +72,7 @@ export type DocumentLibraryItemRow = {
   parentReference?: DocumentLibraryParentReference;
   fields: Record<string, unknown>;
   createdByDisplayName?: string;
+  createdByEmail?: string;
   modifiedByDisplayName?: string;
   documentClientUrl?: string;
   contentTypeName?: string;

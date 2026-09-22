@@ -18,7 +18,9 @@ import type {
 
 import GroupSelectionCheckbox from "../common/GroupSelectionCheckbox";
 import GroupSelectionHeader from "../common/GroupSelectionHeader";
-
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import {
   GROUP_SELECTION_COL_ID,
   GROUP_SELECTION_COL_WIDTH,
@@ -80,8 +82,10 @@ export function useDocumentLibraryColumnDefs({
 
     const actionsColDef: ColDef<DocumentLibraryGridRow> = {
       headerName: "Actions",
-      flex: 0.9,
-      minWidth: 180,
+      // flex: 0.9,
+      width: 100,
+      minWidth: 100,
+      maxWidth: 100,
       sortable: false,
       resizable: false,
       pinned: "left",
@@ -111,21 +115,24 @@ export function useDocumentLibraryColumnDefs({
             }}
           >
             {!row.isContainer ? (
-              <Button
-                size="small"
-                onClick={() => openVersionHistory(row)}
-              >
-                Versions
-              </Button>
+              <Tooltip title="Version history">
+                <IconButton
+                  size="small"
+                  onClick={() => openVersionHistory(row)}
+                  aria-label="Version history"
+                >
+                  <HistoryOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             ) : null}
 
-            <Button
+            {/* <Button
               size="small"
               color="error"
               onClick={() => onDeleteRow(row)}
             >
               Delete
-            </Button>
+            </Button> */}
           </Stack>
         );
       },
