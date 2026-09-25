@@ -5,6 +5,7 @@ export const DEFAULT_DRIVE_SELECT_COLUMNS = [
   "folder",
   "file",
   "package",
+  "parentReference",
   "createdBy",
   "lastModifiedBy",
 ];

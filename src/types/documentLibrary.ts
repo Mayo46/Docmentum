@@ -80,9 +80,10 @@ export type DocumentLibraryProps = {
 
   /**
    * Importer-only. Host handles delete via its private API.
-   * Receives item IDs the current user imported. Not called for Admin.
+   * Receives the owned item IDs and the parent document set drive item ID.
+   * Called once per document set. Not called for Admin.
    */
-  onDeleteDocuments?: (itemIds: string[]) => Promise<void>;
+  onDeleteDocuments?: (itemIds: string[], docSetId: string) => Promise<void>;
   
   /** Optional externally supplied document rows. When provided, the grid displays these rows instead of loading documents from SharePoint. */
   externalRows?: DocumentLibraryItemRow[];

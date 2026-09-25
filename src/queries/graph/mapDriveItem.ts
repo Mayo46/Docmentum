@@ -24,6 +24,16 @@ export function mapDriveItemToRow(
     isContainer = true;
   }
 
+  const parent = item.parentReference;
+  const parentItemId =
+    typeof parent?.id === "string" && parent.id.trim()
+      ? parent.id.trim()
+      : undefined;
+  const parentName =
+    typeof parent?.name === "string" && parent.name.trim()
+      ? parent.name.trim()
+      : "";
+
   return {
     itemId: item.id,
     name: item.name,
@@ -31,6 +41,9 @@ export function mapDriveItemToRow(
     fields,
     contentTypeName,
     isContainer,
+    parentReference: parentItemId
+      ? { itemId: parentItemId, name: parentName }
+      : undefined,
     createdByDisplayName: getFieldDisplayName(item.createdBy),
     createdByEmail: getIdentityEmail(item.createdBy),
     modifiedByDisplayName: getFieldDisplayName(item.lastModifiedBy),

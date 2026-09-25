@@ -29,6 +29,7 @@ import {
   checkDuplicateDocumentName,
   getEnteredDocumentName,
 } from "../utils/documentName";
+import { deleteDocumentsByDocSet } from "../utils/documentSet";
 import {
   canDeleteDocuments,
   canImportDocuments,
@@ -339,7 +340,13 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
           });
           return;
         }
-        await onDeleteDocuments(deleteDocuments.map((row) => row.itemId));
+        await deleteDocumentsByDocSet({
+          rows: deleteDocuments,
+          fallbackDocSetId:
+            navigation.currentParentDriveItemId ?? parentDriveItemId,
+          client,
+          onDeleteDocuments,
+        });
       } else {
         await Promise.all(
           deleteDocuments.map((row) =>
@@ -368,9 +375,11 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     closeDeleteDialog,
     deleteDocuments,
     importerOnlyOwnDeletes,
+    navigation.currentParentDriveItemId,
     onActionLoadingChange,
     onDeleteDocuments,
     onToast,
+    parentDriveItemId,
     refresh,
   ]);
 
