@@ -1,4 +1,3 @@
-import type { MouseEvent } from "react";
 import type { ICellRendererParams } from "ag-grid-community";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -30,8 +29,6 @@ export const groupSelectionCheckboxSx: SxProps<Theme> = {
 
 export type DocumentLibraryGridAgContext = {
     toggleGroupId: (id: string) => void;
-    onGroupContextMenu?: (event: MouseEvent, groupId: string) => void;
-    canEditProperties?: boolean;
     selectionEnabled?: boolean;
     isItemSelected?: (itemId: string) => boolean;
     toggleItemSelection?: (itemId: string) => void;
@@ -65,17 +62,9 @@ export default function GroupRowRenderer(
         : false;
     const levelPad = 12 + data.level * 20;
     const actionsColWidth = props.context?.groupActionsColumnWidth ?? 0;
-    const onContextMenu =
-        props.context?.canEditProperties && props.context?.onGroupContextMenu
-            ? (e: MouseEvent) => {
-                e.preventDefault();
-                props.context?.onGroupContextMenu?.(e, data.id);
-            }
-            : undefined;
 
     return (
         <Box
-            onContextMenu={onContextMenu}
             sx={{
                 display: "flex",
                 alignItems: "center",

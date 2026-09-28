@@ -6,7 +6,6 @@ import { useEditableFieldDefinitions } from "./useEditableFieldDefinitions";
 import { normalizeEditablePropertiesInput } from "../utils/editableProperties";
 import { filterFieldDefinitionsForUpload } from "../utils/fieldDefinitions";
 import type { UseDocumentLibraryPropertiesParams } from "../types/documentLibraryProperties";
-import { useContextMenu } from "./documentLibraryProperties/useContextMenu";
 import { useDrawerControls } from "./documentLibraryProperties/useDrawerControls";
 import { useStepNavigation } from "./documentLibraryProperties/useStepNavigation";
 import { useDrawerValueSeeding } from "./documentLibraryProperties/useDrawerValueSeeding";
@@ -23,7 +22,6 @@ export function useDocumentLibraryProperties({
   rows,
   groupTree,
   selectedItemIds,
-  groupingEnabled,
   refresh,
   onToast,
   clearSelection,
@@ -66,19 +64,6 @@ export function useDocumentLibraryProperties({
   const [bulkActionLocked, setBulkActionLocked] = useState(false);
 
   const {
-    contextMenu,
-    setContextMenu,
-    handleGroupContextMenu,
-    onRowContextMenu,
-    contextMenuBulkSelectedCount,
-  } = useContextMenu({
-    enabled: hasEditableProperties,
-    groupingEnabled,
-    groupTree,
-    selectedItemIds,
-  });
-
-  const {
     openPropertiesEditor,
     openUploadEditor,
     closeDrawer,
@@ -91,7 +76,6 @@ export function useDocumentLibraryProperties({
     setPropertiesInitialValues,
     setStepIndex,
     setBulkActionLocked,
-    setContextMenu,
   });
 
   const {
@@ -137,7 +121,6 @@ export function useDocumentLibraryProperties({
     safeStepIndex,
     isLastStep,
     stepTotal,
-    propertiesInitialValues,
     refresh,
     onToast,
     clearSelection,
@@ -170,9 +153,6 @@ export function useDocumentLibraryProperties({
     fieldDefinitions,
     uploadFieldDefinitions,
     fieldDefinitionsLoading,
-    contextMenu,
-    setContextMenu,
-    contextMenuBulkSelectedCount,
     bulkPropertiesItemIds,
     propertiesTarget,
     setPropertiesTarget,
@@ -194,8 +174,6 @@ export function useDocumentLibraryProperties({
     openPropertiesEditorForSelection,
     openUploadEditor,
     closeDrawer,
-    handleGroupContextMenu,
-    onRowContextMenu,
     handleSaveProperties,
     handleSaveAndNext,
     handleUpload,

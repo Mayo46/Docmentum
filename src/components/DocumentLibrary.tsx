@@ -7,7 +7,6 @@ import type {
   DocumentLibraryToast,
 } from "../types";
 import DeleteDialog from "./DeleteDialog";
-import DocumentLibraryContextMenu from "./DocumentLibraryContextMenu";
 import DocumentsTable from "./DocumentsTable";
 import FileSelectionDialog from "./FileSelectionDialog";
 import PropertiesDrawer from "./PropertiesDrawer";
@@ -25,10 +24,6 @@ import { useDocumentLibrarySelection } from "../hooks/useDocumentLibrarySelectio
 import { useUploadDialog } from "../hooks/useUploadDialog";
 import type { DocumentLibraryGridAgContext } from "../common/GroupRowRenderer";
 import DocumentLibraryToolbar from "./DocumentLibraryToolbar";
-import {
-  checkDuplicateDocumentName,
-  getEnteredDocumentName,
-} from "../utils/documentName";
 import { deleteDocumentsByDocSet } from "../utils/documentSet";
 import {
   canDeleteDocuments,
@@ -165,11 +160,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   const activeColumns = columns;
 
   const grouping = useDocumentLibraryGrouping({ rows, columns: activeColumns });
-  const hasEditableProperties = true;
-  // const hasEditableProperties = useMemo(
-  //   () => normalizeEditablePropertiesInput(editableProperties).keys.length > 0,
-  //   [editableProperties],
-  // );
 
   const selection = useDocumentLibrarySelection({
     rows,
@@ -177,7 +167,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     showRowCheckbox,
     groupTree: grouping.groupTree,
     toggleGroupId: grouping.toggleGroupId,
-    hasEditableProperties,
   });
 
   const properties = useDocumentLibraryProperties({
@@ -188,7 +177,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     rows,
     groupTree: grouping.groupTree,
     selectedItemIds: selection.selectedItemIds,
-    groupingEnabled: grouping.groupingEnabled,
     refresh,
     onToast,
     clearSelection: selection.clearSelection,
@@ -199,15 +187,8 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   const gridContext: DocumentLibraryGridAgContext = useMemo(
     () => ({
       ...selection.gridContext,
-      onGroupContextMenu: grouping.groupingEnabled
-        ? properties.handleGroupContextMenu
-        : undefined,
     }),
-    [
-      selection.gridContext,
-      grouping.groupingEnabled,
-      properties.handleGroupContextMenu,
-    ],
+    [selection.gridContext],
   );
 
   const documentUrlFromRow = useCallback(
@@ -424,9 +405,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     fieldDefinitions,
     uploadFieldDefinitions,
     fieldDefinitionsLoading,
-    contextMenu,
-    setContextMenu,
-    contextMenuBulkSelectedCount,
     bulkPropertiesItemIds,
     propertiesTarget,
     propertiesInitialValues,
@@ -438,15 +416,12 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     isLastStep,
     bulkActionLocked,
     primaryItemName,
-    primaryItemId,
     drawerMode,
     drawerOpen,
     uploadFiles,
     uploadTitle,
-    openPropertiesEditor,
     openPropertiesEditorForSelection,
     closeDrawer,
-    onRowContextMenu,
     handleSaveProperties,
     handleSaveAndNext,
     handleUpload,
@@ -454,34 +429,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   } = properties;
 
   const isUploadMode = drawerMode === "upload";
-
-  const validateDocumentName = useCallback(
-    async (enteredName: string) => {
-      if (isUploadMode) {
-        const docSetId = navigation.currentParentDriveItemId;
-        if (!docSetId) return "unique" as const;
-        return checkDuplicateDocumentName({
-          client,
-          parentDriveItemId: docSetId,
-          enteredName,
-        });
-      }
-      if (!primaryItemId) return "unique" as const;
-      return checkDuplicateDocumentName({
-        client,
-        currentItemId: primaryItemId,
-        enteredName,
-        originalName: getEnteredDocumentName(propertiesInitialValues ?? {}),
-      });
-    },
-    [
-      client,
-      isUploadMode,
-      navigation.currentParentDriveItemId,
-      primaryItemId,
-      propertiesInitialValues,
-    ],
-  );
 
   return (
     <Box sx={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
@@ -533,9 +480,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
           groupingEnabled={grouping.groupingEnabled}
           gridHeight={gridHeight}
           gridContext={gridContext}
-          onRowContextMenu={
-            hasEditableProperties ? onRowContextMenu : undefined
-          }
           documentType={documentType}
         />
       </UploadPannel>
@@ -566,13 +510,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         skippedCheckedOutDocuments={skippedCheckedOutDocuments}
         onClose={closeDeleteDialog}
         onConfirm={handleDeleteConfirm}
-      />
-
-      <DocumentLibraryContextMenu
-        contextMenu={contextMenu}
-        bulkSelectedCount={contextMenuBulkSelectedCount}
-        onClose={() => setContextMenu(null)}
-        onEditProperties={openPropertiesEditor}
       />
 
       <PropertiesDrawer
@@ -624,7 +561,6 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
             ? handleBackToFileSelection
             : undefined
         }
-        validateDocumentName={validateDocumentName}
       />
 
       <Snackbar

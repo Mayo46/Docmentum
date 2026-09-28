@@ -16,7 +16,6 @@ const PER_ITEM_UNIQUE_FIELD_KEYS = new Set([
   "filename",
   "linkfilename",
   "linkfilenamenomenu",
-  "documentname",
 ]);
 
 export function isPerItemUniqueField(key: string): boolean {

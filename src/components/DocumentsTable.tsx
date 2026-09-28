@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type {
-  CellContextMenuEvent,
   ColDef,
   GetRowIdParams,
   GridApi,
@@ -32,9 +31,6 @@ type DocumentsTableProps = {
   groupingEnabled?: boolean;
   gridHeight?: number | string;
   gridContext?: DocumentLibraryGridAgContext;
-  onRowContextMenu?: (
-    event: CellContextMenuEvent<DocumentLibraryGridRow>,
-  ) => void;
   documentType?: DocumentLibraryDocumentType;
 };
 
@@ -52,7 +48,6 @@ export default function DocumentsTable({
   groupingEnabled = false,
   gridHeight,
   gridContext,
-  onRowContextMenu,
   totalCount,
   loading,
   documentType
@@ -208,8 +203,6 @@ export default function DocumentsTable({
             return undefined;
           }}
           suppressRowClickSelection
-          preventDefaultOnContextMenu={!!onRowContextMenu}
-          onCellContextMenu={onRowContextMenu}
           domLayout={"normal"}
           loading={loading}
         />

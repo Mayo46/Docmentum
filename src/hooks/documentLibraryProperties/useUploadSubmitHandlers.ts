@@ -7,11 +7,6 @@ import type {
 import { toastFromFailures } from "../../common/helpers";
 import { normalizeLookupKey } from "../../utils/columns";
 import { isPerItemUniqueField } from "../../utils/fieldDefinitions";
-import {
-    checkDuplicateDocumentName,
-    DUPLICATE_DOCUMENT_NAME_MESSAGE,
-    getEnteredDocumentName,
-} from "../../utils/documentName";
 
 type Params = {
     client: DocumentLibraryGraphClient;
@@ -50,19 +45,6 @@ export function useUploadSubmitHandlers({
             if (!uploadSession || uploadSession.length === 0) return;
             setPropertiesSubmitting(true);
             try {
-                if (uploadSession.length === 1) {
-                    const enteredName = getEnteredDocumentName(properties);
-                    if (enteredName) {
-                        const duplicate = await checkDuplicateDocumentName({
-                            client,
-                            parentDriveItemId,
-                            enteredName,
-                        });
-                        if (duplicate === "duplicate") {
-                            throw new Error(DUPLICATE_DOCUMENT_NAME_MESSAGE);
-                        }
-                    }
-                }
                 // For multiple files, don't clone one file's Title onto all of them — drop it
                 // so each file falls back to its own name. Other shared metadata still applies.
                 const payload =
@@ -116,17 +98,6 @@ export function useUploadSubmitHandlers({
             if (!uploadSession) return;
             const file = uploadSession[safeStepIndex];
             if (!file) return;
-            const enteredName = getEnteredDocumentName(properties);
-            if (enteredName) {
-                const duplicate = await checkDuplicateDocumentName({
-                    client,
-                    parentDriveItemId,
-                    enteredName,
-                });
-                if (duplicate === "duplicate") {
-                    throw new Error(DUPLICATE_DOCUMENT_NAME_MESSAGE);
-                }
-            }
             // Once per-file stepping starts, block the bulk "Upload All Files" action.
             setBulkActionLocked(true);
             setPropertiesSubmitting(true);

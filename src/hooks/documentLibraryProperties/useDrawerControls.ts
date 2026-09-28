@@ -1,7 +1,6 @@
 import { useCallback, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type {
-    DocumentLibraryContextMenuState,
     DocumentLibraryItemRow,
     DocumentLibraryPropertiesEditTarget,
 } from "../../types";
@@ -18,7 +17,6 @@ type Params = {
     >;
     setStepIndex: Dispatch<SetStateAction<number>>;
     setBulkActionLocked: Dispatch<SetStateAction<boolean>>;
-    setContextMenu: Dispatch<SetStateAction<DocumentLibraryContextMenuState | null>>;
 };
 
 /** Open/close controls for the shared drawer in both edit and upload modes. */
@@ -30,7 +28,6 @@ export function useDrawerControls({
     setPropertiesInitialValues,
     setStepIndex,
     setBulkActionLocked,
-    setContextMenu,
 }: Params) {
     const rowsRef = useRef(rows);
     rowsRef.current = rows;
@@ -42,7 +39,6 @@ export function useDrawerControls({
             setPropertiesInitialValues(undefined);
             setStepIndex(0);
             setBulkActionLocked(false);
-            setContextMenu(null);
         },
         [
             setUploadSession,
@@ -50,7 +46,6 @@ export function useDrawerControls({
             setPropertiesInitialValues,
             setStepIndex,
             setBulkActionLocked,
-            setContextMenu,
         ],
     );
 
@@ -62,7 +57,6 @@ export function useDrawerControls({
             setPropertiesTarget(null);
             setStepIndex(0);
             setBulkActionLocked(false);
-            setContextMenu(null);
             setPropertiesInitialValues(undefined);
             setUploadSession(files);
         },
@@ -70,7 +64,6 @@ export function useDrawerControls({
             setPropertiesTarget,
             setStepIndex,
             setBulkActionLocked,
-            setContextMenu,
             setPropertiesInitialValues,
             setUploadSession,
         ],

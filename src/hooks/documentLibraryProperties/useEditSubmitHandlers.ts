@@ -7,11 +7,6 @@ import type {
 } from "../../types";
 import { toastFromFieldUpdateFailures } from "../../common/helpers";
 import { isPerItemUniqueField } from "../../utils/fieldDefinitions";
-import {
-    checkDuplicateDocumentName,
-    DUPLICATE_DOCUMENT_NAME_MESSAGE,
-    getEnteredDocumentName,
-} from "../../utils/documentName";
 
 type Params = {
     client: DocumentLibraryGraphClient;
@@ -21,7 +16,6 @@ type Params = {
     safeStepIndex: number;
     isLastStep: boolean;
     stepTotal: number;
-    propertiesInitialValues?: Record<string, unknown>;
     refresh: () => Promise<void>;
     onToast: (toast: DocumentLibraryToast) => void;
     clearSelection?: () => void;
@@ -42,7 +36,6 @@ export function useEditSubmitHandlers({
     safeStepIndex,
     isLastStep,
     stepTotal,
-    propertiesInitialValues,
     refresh,
     onToast,
     clearSelection,
@@ -66,22 +59,6 @@ export function useEditSubmitHandlers({
                         message: "No items selected to update.",
                     });
                     return;
-                }
-                if (itemIds.length === 1) {
-                    const enteredName = getEnteredDocumentName(properties);
-                    if (enteredName) {
-                        const duplicate = await checkDuplicateDocumentName({
-                            client,
-                            currentItemId: itemIds[0],
-                            enteredName,
-                            originalName: getEnteredDocumentName(
-                                propertiesInitialValues ?? {},
-                            ),
-                        });
-                        if (duplicate === "duplicate") {
-                            throw new Error(DUPLICATE_DOCUMENT_NAME_MESSAGE);
-                        }
-                    }
                 }
                 // Never bulk-apply the file-name field: it must stay unique per item, otherwise
                 // SharePoint rejects the request with `nameAlreadyExists`.
@@ -123,7 +100,6 @@ export function useEditSubmitHandlers({
             client,
             propertiesTarget,
             bulkPropertiesItemIds,
-            propertiesInitialValues,
             refresh,
             onToast,
             clearSelection,
@@ -143,20 +119,6 @@ export function useEditSubmitHandlers({
             setBulkActionLocked(true);
             setPropertiesSubmitting(true);
             try {
-                const enteredName = getEnteredDocumentName(properties);
-                if (enteredName) {
-                    const duplicate = await checkDuplicateDocumentName({
-                        client,
-                        currentItemId: itemId,
-                        enteredName,
-                        originalName: getEnteredDocumentName(
-                            propertiesInitialValues ?? {},
-                        ),
-                    });
-                    if (duplicate === "duplicate") {
-                        throw new Error(DUPLICATE_DOCUMENT_NAME_MESSAGE);
-                    }
-                }
                 const result = await client.updateListItemFields({
                     itemIds: [itemId],
                     properties,
@@ -194,7 +156,6 @@ export function useEditSubmitHandlers({
             safeStepIndex,
             isLastStep,
             stepTotal,
-            propertiesInitialValues,
             refresh,
             onToast,
             clearSelection,

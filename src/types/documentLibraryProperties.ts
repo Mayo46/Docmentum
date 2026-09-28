@@ -14,7 +14,6 @@ export type UseDocumentLibraryPropertiesParams = {
     rows: DocumentLibraryItemRow[];
     groupTree: GroupTreeNode[];
     selectedItemIds: Set<string>;
-    groupingEnabled: boolean;
     refresh: () => Promise<void>;
     onToast: (toast: DocumentLibraryToast) => void;
     /** Clears grid selection after a successful multi-file edit. */

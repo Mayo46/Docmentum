@@ -12,7 +12,6 @@ type UseDocumentLibrarySelectionParams = {
     showRowCheckbox: boolean;
     groupTree: GroupTreeNode[];
     toggleGroupId: (id: string) => void;
-    hasEditableProperties: boolean;
 };
 
 export function useDocumentLibrarySelection({
@@ -21,7 +20,6 @@ export function useDocumentLibrarySelection({
     showRowCheckbox,
     groupTree,
     toggleGroupId,
-    hasEditableProperties,
 }: UseDocumentLibrarySelectionParams) {
     const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(() => new Set());
     const [selectionRevision, setSelectionRevision] = useState(0);
@@ -148,7 +146,6 @@ export function useDocumentLibrarySelection({
     const gridContext: DocumentLibraryGridAgContext = useMemo(
         () => ({
             toggleGroupId,
-            canEditProperties: hasEditableProperties,
             selectionEnabled: rowSelectionEnabled,
             isItemSelected,
             toggleItemSelection,
@@ -163,7 +160,6 @@ export function useDocumentLibrarySelection({
         }),
         [
             toggleGroupId,
-            hasEditableProperties,
             rowSelectionEnabled,
             isItemSelected,
             toggleItemSelection,
