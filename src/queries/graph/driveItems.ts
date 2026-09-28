@@ -4,6 +4,7 @@ import type {
   DocumentLibraryItemsPage,
 } from "../../types";
 import { buildDriveItemSelect, buildFieldSelect } from "../../utils/columns";
+import { CHECKOUT_USER_FIELD_KEYS } from "../../utils/constants";
 import { getAxiosErrorMessage, graphRequestNoJson } from "./graphRequest";
 import { mapDriveItemToRow } from "./mapDriveItem";
 import type { GraphClientDeps } from "./types";
@@ -54,7 +55,10 @@ export function createDriveItemsApi(deps: GraphClientDeps) {
       const { accessToken, driveId } = await getContext();
 
       const selectClause = buildDriveItemSelect(opts.columns);
-      const fieldSelectClause = buildFieldSelect(opts.columns, fieldKeys);
+      const fieldSelectClause = buildFieldSelect(opts.columns, [
+        ...(fieldKeys ?? []),
+        ...CHECKOUT_USER_FIELD_KEYS,
+      ]);
 
       let nextUrl =
         `${graphBaseUrl}/drives/${encodeURIComponent(driveId)}` +
@@ -132,7 +136,9 @@ export function createDriveItemsApi(deps: GraphClientDeps) {
       const { accessToken, driveId } = await getContext();
 
       const selectClause = buildDriveItemSelect(opts.columns);
-      const fieldSelectClause = buildFieldSelect(opts.columns);
+      const fieldSelectClause = buildFieldSelect(opts.columns, [
+        ...CHECKOUT_USER_FIELD_KEYS,
+      ]);
 
       /*
        * If nextLink is provided, Graph has already built the URL

@@ -8,6 +8,14 @@ export function mapDriveItemToRow(
   const fields: Record<string, unknown> =
     (item?.listItem?.fields as Record<string, unknown>) ?? {};
 
+  const checkoutUserIdValue = fields.CheckoutUserLookupId;
+  const checkoutUserId =
+    checkoutUserIdValue !== null &&
+    checkoutUserIdValue !== undefined &&
+    checkoutUserIdValue !== ""
+      ? Number(checkoutUserIdValue)
+      : undefined;
+
   const ctRaw = fields.ContentType;
   let contentTypeName: string | undefined;
   if (typeof ctRaw === "string" && ctRaw.trim()) {
@@ -47,6 +55,7 @@ export function mapDriveItemToRow(
     createdByDisplayName: getFieldDisplayName(item.createdBy),
     createdByEmail: getIdentityEmail(item.createdBy),
     modifiedByDisplayName: getFieldDisplayName(item.lastModifiedBy),
+    checkoutUserId,
   };
 }
 

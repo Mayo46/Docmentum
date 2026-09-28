@@ -82,6 +82,9 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
   const [skippedDocuments, setSkippedDocuments] = useState<
     DocumentLibraryItemRow[]
   >([]);
+  const [skippedCheckedOutDocuments, setSkippedCheckedOutDocuments] = useState<
+    DocumentLibraryItemRow[]
+  >([]);
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [versionsTarget, setVersionsTarget] =
     useState<DocumentLibraryItemRow | null>(null);
@@ -225,33 +228,54 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
 
   const closeDeleteDialog = useCallback(() => {
     setDeleteOpen(false);
-    setDeleteDocuments([]);
-    setSkippedDocuments([]);
   }, []);
 
   const openDeleteDialog = useCallback(
     (rows: Array<DocumentLibraryItemRow | DocumentLibraryGridRow>) => {
       if (!allowDeleteDocuments) return;
+
+      // Remove group rows and document containers from the delete targets.
       const targets = rows.filter((row): row is DocumentLibraryItemRow => {
         if ("rowType" in row && row.rowType === "group") return false;
         return !row.isContainer;
       });
+
       if (targets.length === 0) return;
 
+      // Separate checked-out documents first.
+      // A checked-out document cannot be deleted by any role.
+      const checkedOut: DocumentLibraryItemRow[] = [];
+      const available: DocumentLibraryItemRow[] = [];
+
+      for (const row of targets) {
+        if (row.checkoutUserId != null) {
+          checkedOut.push(row);
+        } else {
+          available.push(row);
+        }
+      }
+
+      // Importers can only delete documents they imported.
+      // Checked-out documents have already been removed from `available`.
       if (importerOnlyOwnDeletes) {
         const { owned, skipped } = splitRowsByDeletePermission(
-          targets,
+          available,
           userRole,
           userEmail,
         );
+
         setDeleteDocuments(owned);
         setSkippedDocuments(skipped);
+        setSkippedCheckedOutDocuments(checkedOut);
         setDeleteOpen(true);
         return;
       }
 
-      setDeleteDocuments(targets);
+      // Admins can delete available documents, but checked-out
+      // documents are still excluded from deletion.
+      setDeleteDocuments(available);
       setSkippedDocuments([]);
+      setSkippedCheckedOutDocuments(checkedOut);
       setDeleteOpen(true);
     },
     [allowDeleteDocuments, importerOnlyOwnDeletes, userEmail, userRole],
@@ -539,6 +563,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
         open={deleteOpen}
         documents={deleteDocuments}
         skippedDocuments={skippedDocuments}
+        skippedCheckedOutDocuments={skippedCheckedOutDocuments}
         onClose={closeDeleteDialog}
         onConfirm={handleDeleteConfirm}
       />

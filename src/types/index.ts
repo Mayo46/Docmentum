@@ -76,6 +76,8 @@ export type DocumentLibraryItemRow = {
   modifiedByDisplayName?: string;
   documentClientUrl?: string;
   contentTypeName?: string;
+  /** Site-specific SharePoint user lookup ID for the user who has the document checked out. */
+  checkoutUserId?: number;
 };
 
 export type DocumentLibraryPage = {
@@ -152,6 +154,8 @@ export type DocumentLibraryGraphClient = {
     itemId: string;
     fieldKeys: string[];
   }) => Promise<Record<string, unknown>>;
+  /** Site-specific SharePoint user lookup ID for the signed-in user. */
+  getCheckoutUserId?: () => Promise<number | null>;
   updateListItemFields: (params: {
     itemIds: string[];
     properties: Record<string, unknown>;

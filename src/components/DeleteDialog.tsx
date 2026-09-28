@@ -13,6 +13,7 @@ type DeleteDialogProps = {
     open: boolean;
     documents: DocumentLibraryItemRow[];
     skippedDocuments?: DocumentLibraryItemRow[];
+    skippedCheckedOutDocuments?: DocumentLibraryItemRow[];
     onClose: () => void;
     onConfirm: () => Promise<void>;
 };
@@ -27,6 +28,7 @@ export default function DeleteDialog({
     open,
     documents,
     skippedDocuments = [],
+    skippedCheckedOutDocuments = [],
     onClose,
     onConfirm,
 }: DeleteDialogProps) {
@@ -69,6 +71,26 @@ export default function DeleteDialog({
                             </Typography>
                             <Stack component="ul" sx={{ m: 0, pl: 2 }}>
                                 {skippedDocuments.map((row) => (
+                                    <Typography
+                                        key={row.itemId}
+                                        component="li"
+                                        variant="body2"
+                                        color="text.secondary"
+                                    >
+                                        {documentLabel(row)}
+                                    </Typography>
+                                ))}
+                            </Stack>
+                        </Stack>
+                    ) : null}
+                    {skippedCheckedOutDocuments.length > 0 ? (
+                        <Stack spacing={1}>
+                            <Typography color="text.secondary" variant="body2">
+                                These documents will not be deleted because they
+                                are checked out by another user:
+                            </Typography>
+                            <Stack component="ul" sx={{ m: 0, pl: 2 }}>
+                                {skippedCheckedOutDocuments.map((row) => (
                                     <Typography
                                         key={row.itemId}
                                         component="li"

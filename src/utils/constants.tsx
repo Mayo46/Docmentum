@@ -17,6 +17,12 @@ export const DEFAULT_FIELD_SELECT_COLUMNS = [
   "ModifiedBy",
 ];
 
+/** Person lookup fields needed to know who has a document checked out. */
+export const CHECKOUT_USER_FIELD_KEYS = [
+  "CheckoutUser",
+  "CheckoutUserLookupId",
+];
+
 export const COLUMN_GROUP_LABELS: Record<string, string> = {
   document: "Document Information",
   claim: "Claim Information",

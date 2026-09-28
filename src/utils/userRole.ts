@@ -45,7 +45,12 @@ export function canDeleteDocument(
   role?: string,
   userEmail?: string,
   createdByEmail?: string,
+  checkoutUserId?: number,
 ): boolean {
+  // A checked-out document cannot be deleted by anyone.
+  if (checkoutUserId != null) {
+    return false;
+  }
   const normalizedRole = normalizeUserRole(role);
 
   if (normalizedRole === "admin") {
@@ -67,12 +72,22 @@ export function splitRowsByDeletePermission(
   rows: DocumentLibraryItemRow[],
   role?: string,
   userEmail?: string,
-): { owned: DocumentLibraryItemRow[]; skipped: DocumentLibraryItemRow[] } {
+): {
+  owned: DocumentLibraryItemRow[];
+  skipped: DocumentLibraryItemRow[];
+} {
   const owned: DocumentLibraryItemRow[] = [];
   const skipped: DocumentLibraryItemRow[] = [];
+
   for (const row of rows) {
-    if (canDeleteDocument(role, userEmail, row.createdByEmail)) owned.push(row);
-    else skipped.push(row);
+    if (
+      canDeleteDocument(role, userEmail, row.createdByEmail, row.checkoutUserId)
+    ) {
+      owned.push(row);
+    } else {
+      skipped.push(row);
+    }
   }
+
   return { owned, skipped };
 }
