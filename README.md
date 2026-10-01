@@ -292,7 +292,7 @@ editableProperties={[
 
 Choice fields such as Document Type can be populated from `dropdownList`.
 Selecting a Document Type copies related values onto matching form fields
-(Category, SubCategory, Workflow, Company, and similar).
+(Category, SubCategory, ClaimWorkflow, Company, and similar).
 
 Document Name is validated against sibling documents in the same document
 set on both upload and edit. Duplicate names are rejected with

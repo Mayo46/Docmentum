@@ -6,7 +6,8 @@ export type DocIdentifierMapping = {
   DocIdentifier: string;
   Category: string;
   SubCategory: string;
-  Workflow: string;
+  DocumentName: string;
+  ClaimWorkflow: string;
   Function: string;
   Companies: string[];
   IsExistingClaim: boolean;
@@ -17,7 +18,7 @@ type DropdownRow = {
 };
 
 const MAPPING_SELECT =
-  "DocIdentifier,Category,SubCategory,Workflow,Function,IsExistingClaim,Companies";
+  "DocIdentifier,Category,SubCategory,DocumentName,ClaimWorkflow,Function,IsExistingClaim,Companies";
 
 function asText(value: unknown): string {
   if (typeof value === "string") return value.trim();
@@ -54,7 +55,8 @@ function toMapping(
     DocIdentifier,
     Category: asText(fields?.Category),
     SubCategory: asText(fields?.SubCategory),
-    Workflow: asText(fields?.Workflow),
+    DocumentName: asText(fields?.DocumentName),
+    ClaimWorkflow: asText(fields?.ClaimWorkflow),
     Function: asText(fields?.Function),
     Companies: asTexts(fields?.Companies),
     IsExistingClaim: asBoolean(fields?.IsExistingClaim),
@@ -74,8 +76,8 @@ export function derivedFieldsFromMapping(
   return {
     _Category: mapping?.Category ?? "",
     SubCategory: mapping?.SubCategory ?? "",
-    Workflow: mapping?.Workflow ?? "",
-    ClaimWorkflow: mapping?.Workflow ?? "",
+    DocumentName: mapping?.DocumentName ?? "",
+    ClaimWorkflow: mapping?.ClaimWorkflow ?? "",
     Function: mapping?.Function ?? "",
     G2CompanyName: mapping?.Companies?.[0] ?? "",
   };

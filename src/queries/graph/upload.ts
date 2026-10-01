@@ -103,6 +103,7 @@ export function createUploadApi(
           const fieldProperties: Record<string, unknown> = {
             ...normalized.fieldProperties,
             ...(hasSharedTitle ? {} : { Title: stripFileExtension(file.name) }),
+            OriginalDocumentName: file.name,
           };
 
           if (Object.keys(fieldProperties).length > 0) {

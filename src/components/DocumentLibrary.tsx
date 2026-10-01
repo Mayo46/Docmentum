@@ -363,7 +363,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
       onToast({
         kind: "success",
         message:
-          count === 1 ? "Deleted." : `${count} documents deleted successfully.`,
+          count === 1 ? "Document Deleted." : `${count} Documents Deleted Successfully.`,
       });
       closeDeleteDialog();
       await refresh();

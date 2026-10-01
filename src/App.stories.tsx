@@ -57,10 +57,9 @@ export const Underwriting: Story = {
 
     // checkout columns
     columns: `
-    ClaimsG2,DateReceived,CheckoutUser,Name,CheckedOutMachineName,ClaimID,ContractID,Company,
-        UserModifiedDate,CreationDate,CreatorName,SubCategory,Category,Recipient,BatchID,
+        DateReceived,CheckoutUser,Name,CheckedOutMachineName,ClaimID,ContractID,Company,
+        UserModifiedDate,CreationDate,CreatorName,SubCategory,_Category,Recipient,BatchID,
         IndexOperator,CheckedOutBy,CheckedOutDate
-   
   `,
 
     showToolbar: true,
@@ -126,7 +125,7 @@ export const ClaimsGenesisDev: Story = {
     Created,
     CreatedBy,
     SubCategory,
-    Category,
+    _Category,
   `,
 
     showToolbar: true,

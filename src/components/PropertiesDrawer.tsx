@@ -117,8 +117,7 @@ export default function PropertiesDrawer(props: Props) {
   
 
     const runSubmit = async (
-        handler?: (properties: Record<string, unknown>) => Promise<void>,
-        options?: { skipNameCheck?: boolean },
+        handler?: (properties: Record<string, unknown>) => Promise<void>
     ) => {
         if (!handler) return;
         setSubmitError(null);

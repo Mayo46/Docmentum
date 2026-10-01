@@ -75,7 +75,7 @@ const DERIVED_DOC_IDENTIFIER_KEYS = new Set(
   [
     "_Category",
     "SubCategory",
-    "Workflow",
+    "DocumentName",
     "ClaimWorkflow",
     "Function",
     "G2CompanyName",
@@ -117,6 +117,7 @@ export function formValuesToPatchPayload(
   values: PropertyFormValues,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
+  // Build normal payload
   for (const def of definitions) {
     if (
       def.readOnly &&
@@ -132,6 +133,31 @@ export function formValuesToPatchPayload(
 
     out[def.key] = formatFieldValueForPatch(def, raw);
   }
+
+  // Apply DocumentType -> derived fields mapping
+  const documentTypeDef = definitions.find(
+    (def) => normalizeLookupKey(def.key) === "documenttype",
+  );
+
+  const documentType = String(values[documentTypeDef?.key ?? ""] ?? "").trim();
+
+  if (documentType && documentTypeDef?.derivedValuesByChoice) {
+    const derived =
+      documentTypeDef.derivedValuesByChoice[documentType] ??
+      derivedFieldsFromMapping(null);
+
+    for (const [fieldKey, fieldValue] of Object.entries(derived)) {
+      if (!fieldValue) continue;
+      // DocumentName is user-editable.
+      // Do not overwrite the value entered in the form.
+      if (normalizeLookupKey(fieldKey) === "documentname") {
+        continue;
+      }
+
+      out[fieldKey] = fieldValue;
+    }
+  }
+
   return out;
 }
 

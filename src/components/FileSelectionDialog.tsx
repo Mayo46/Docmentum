@@ -93,7 +93,7 @@ export default function FileSelectionDialog({
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700 }}>Upload documents</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 700 }}>Upload Documents</DialogTitle>
       <DialogContent dividers>
         <Box
           onDrop={handleDrop}
