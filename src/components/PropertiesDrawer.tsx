@@ -218,6 +218,7 @@ export default function PropertiesDrawer(props: Props) {
                                 }}
                                 disabled={submitting}
                                 fieldErrors={fieldErrors}
+                                mode={mode}
                             />
                         ) : isUpload ? (
                             <Alert severity="info">

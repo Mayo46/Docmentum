@@ -7,6 +7,10 @@ import type {
   DocumentLibraryPropertiesEditTarget,
 } from "../../types";
 import { getCellValue } from "../../utils/columns";
+import {
+  isReceivedDateField,
+  todayDisplayDate,
+} from "../../utils/fieldDefinitions";
 import { stripFileExtension } from "../../utils/files";
 
 type Params = {
@@ -121,15 +125,19 @@ export function useDrawerValueSeeding({
   ]);
 
   // Seeds the form for the file currently shown in upload mode, defaulting Title to
-  // that file's name (without extension). Re-runs as the user steps between files.
+  // that file's name (without extension) and Date Received to today.
   useEffect(() => {
     if (!uploadSession) return;
     const file = uploadSession[safeStepIndex];
     const nameSeed = file ? stripFileExtension(file.name) : "";
+    const receivedDateKey = fieldDefinitionsRef.current.find((definition) =>
+      isReceivedDateField(definition.key),
+    )?.key;
     setPropertiesInitialValues({
+      ...(receivedDateKey ? { [receivedDateKey]: todayDisplayDate() } : {}),
       ...(uploadPrefillProperties ?? {}),
       ...(nameSeed ? { Title: nameSeed } : {}),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uploadSession, safeStepIndex, uploadPrefillSignature]);
+  }, [uploadSession, safeStepIndex, uploadPrefillSignature, fieldDefinitions]);
 }

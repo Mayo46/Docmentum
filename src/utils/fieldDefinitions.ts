@@ -22,6 +22,15 @@ export function isPerItemUniqueField(key: string): boolean {
   return PER_ITEM_UNIQUE_FIELD_KEYS.has(normalizeLookupKey(key));
 }
 
+export function isReceivedDateField(key: string): boolean {
+  const normalized = normalizeLookupKey(key);
+  return normalized === "ReceivedDate" || normalized === "receiveddate";
+}
+
+export function todayDisplayDate() {
+  return moment().format("MM/DD/YYYY");
+}
+
 /** Base field definition from a host key before dropdown/choice enrichment. */
 export function fallbackFieldDefinition(
   key: string,
@@ -82,6 +91,11 @@ export function formatFieldValueForPatch(
   if (def.fieldType === "number") {
     const n = typeof value === "string" ? Number(value) : Number(value);
     return Number.isFinite(n) ? n : value;
+  }
+
+  if (def.fieldType === "dateTime" && typeof value === "string") {
+    const parsed = moment(value, ["MM/DD/YYYY", moment.ISO_8601], true);
+    return parsed.isValid() ? parsed.format("YYYY-MM-DD") : value;
   }
 
   if (typeof value === "string") return value;

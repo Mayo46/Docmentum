@@ -16,6 +16,7 @@ import type { DocumentLibraryFieldDefinition } from "../types";
 import {
   formatFieldValueForInput,
   formatFieldValueForPatch,
+  isReceivedDateField,
 } from "../utils/fieldDefinitions";
 import moment from "moment";
 import { normalizeLookupKey } from "../utils/columns";
@@ -24,6 +25,8 @@ import { COLUMN_GROUP_LABELS, GROUP_ORDER } from "../utils/constants";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import { useState } from "react";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
 export type PropertyFormValues = Record<string, string | boolean | string[]>;
 
 const editableFieldSx = {
@@ -42,6 +45,7 @@ type Props = {
   onChange: (values: PropertyFormValues) => void;
   disabled?: boolean;
   fieldErrors?: Record<string, string>;
+  mode?: "edit" | "upload";
 };
 
 export function buildInitialFormValues(
@@ -167,6 +171,7 @@ export default function PropertiesFormFields({
   onChange,
   disabled = false,
   fieldErrors = {},
+  mode = "edit",
 }: Props) {
   const setKey = (key: string, value: string | boolean | string[]) => {
     const next: PropertyFormValues = { ...values, [key]: value };
@@ -324,17 +329,58 @@ export default function PropertiesFormFields({
     }
 
     if (def.fieldType === "dateTime") {
+      const isReceivedDate = isReceivedDateField(def.key);
+      const isUploadReceivedDate = mode === "upload" && isReceivedDate;
+
       const dateValue =
         value && typeof value === "string"
-          ? moment(value).format("MM/DD/YYYY")
-          : "";
+          ? moment(value, ["MM/DD/YYYY", moment.ISO_8601], true)
+          : null;
+
+      // Upload mode → editable DatePicker
+      if (isUploadReceivedDate) {
+        return (
+          <DatePicker
+            key={def.key}
+            label={def.displayName}
+            value={dateValue?.isValid() ? dateValue : null}
+            disableFuture
+            maxDate={moment()}
+            disabled={disabled}
+            onChange={(nextDate) => {
+              if (!nextDate || !nextDate.isValid()) {
+                setKey(def.key, "");
+                return;
+              }
+
+              if (nextDate.isAfter(moment(), "day")) {
+                return;
+              }
+
+              setKey(def.key, nextDate.format("MM/DD/YYYY"));
+            }}
+            slotProps={{
+              textField: {
+                size: "small",
+                fullWidth: true,
+                required: !!def.required,
+                error: hasError,
+                helperText: fieldError || undefined,
+                sx: editableFieldSx,
+              },
+            }}
+          />
+        );
+      }
+
+      // Edit mode → read-only
       return (
         <TextField
           key={def.key}
           label={def.displayName}
           size="small"
           fullWidth
-          value={dateValue}
+          value={dateValue?.isValid() ? dateValue.format("MM/DD/YYYY") : ""}
           slotProps={{
             input: { readOnly: true },
             inputLabel: { shrink: true },
@@ -368,7 +414,8 @@ export default function PropertiesFormFields({
 
   // return <Stack spacing={2}>{definitions.map(renderField)}</Stack>;
   return (
-    <Stack spacing={3}>
+    <LocalizationProvider dateAdapter={AdapterMoment}>
+      <Stack spacing={3}>
       {orderedGroups.map((group) => {
         const expanded = expandedSections[group] !== false;
         const groupLabel = COLUMN_GROUP_LABELS[group] || group || "Properties";
@@ -403,6 +450,7 @@ export default function PropertiesFormFields({
           </Stack>
         );
       })}
-    </Stack>
+      </Stack>
+    </LocalizationProvider>
   );
 }
