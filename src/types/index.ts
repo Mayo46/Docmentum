@@ -68,6 +68,7 @@ export type DocumentLibraryItemRow = {
   itemId: string;
   name: string;
   webUrl?: string;
+  serverRelativeUrl?: string;
   isContainer?: boolean;
   parentReference?: DocumentLibraryParentReference;
   fields: Record<string, unknown>;

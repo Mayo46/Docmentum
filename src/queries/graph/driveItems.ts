@@ -58,6 +58,7 @@ export function createDriveItemsApi(deps: GraphClientDeps) {
       const fieldSelectClause = buildFieldSelect(opts.columns, [
         ...(fieldKeys ?? []),
         ...CHECKOUT_USER_FIELD_KEYS,
+        "FileRef",
       ]);
 
       let nextUrl =
@@ -138,6 +139,7 @@ export function createDriveItemsApi(deps: GraphClientDeps) {
       const selectClause = buildDriveItemSelect(opts.columns);
       const fieldSelectClause = buildFieldSelect(opts.columns, [
         ...CHECKOUT_USER_FIELD_KEYS,
+        "FileRef",
       ]);
 
       /*

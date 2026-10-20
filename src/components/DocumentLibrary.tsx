@@ -32,6 +32,7 @@ import {
   isImporterRole,
   splitRowsByDeletePermission,
 } from "../utils/userRole";
+import { getOfficeUrl } from "../utils/openDocument";
 
 export default function DocumentLibrary(props: DocumentLibraryProps) {
   const {
@@ -63,6 +64,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     externalTotalCount,
     externalHasMore,
     onLoadMoreExternal,
+    siteUrl,
   } = props;
   const allowImportDocs = canImportDocuments(userRole);
   const allowRestoreVersions = canRestoreVersions(userRole);
@@ -190,16 +192,27 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     }),
     [selection.gridContext],
   );
+  // const documentUrlFromRow = useCallback(
+  //   (row: DocumentLibraryItemRow) => {
+  //     const fromField = row.fields?.[documentClientUrlFieldKey];
+  //     if (typeof fromField === "string" && fromField.trim().length > 0) {
+  //       return fromField;
+  //     }
+  //     return typeof row.webUrl === "string" ? row.webUrl : undefined;
+  //   },
+  //   [documentClientUrlFieldKey],
+  // );
 
   const documentUrlFromRow = useCallback(
     (row: DocumentLibraryItemRow) => {
       const fromField = row.fields?.[documentClientUrlFieldKey];
-      if (typeof fromField === "string" && fromField.trim().length > 0) {
-        return fromField;
-      }
-      return typeof row.webUrl === "string" ? row.webUrl : undefined;
+      const officeUrl = getOfficeUrl(row.serverRelativeUrl, row.name, siteUrl);
+      const result = typeof fromField === "string" && fromField.trim().length > 0 ? fromField : officeUrl ?? row.webUrl;
+
+      return result;
+     
     },
-    [documentClientUrlFieldKey],
+    [documentClientUrlFieldKey, siteUrl],
   );
 
   const openVersionHistory = useCallback((row: DocumentLibraryItemRow) => {

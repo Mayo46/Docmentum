@@ -42,10 +42,15 @@ export function mapDriveItemToRow(
       ? parent.name.trim()
       : "";
 
+  const fileRef = fields.FileRef;
+
+  const serverRelativeUrl = typeof fileRef === "string" && fileRef.startsWith("/") ? fileRef : undefined;
+
   return {
     itemId: item.id,
     name: item.name,
     webUrl: item.webUrl,
+    serverRelativeUrl,
     fields,
     contentTypeName,
     isContainer,

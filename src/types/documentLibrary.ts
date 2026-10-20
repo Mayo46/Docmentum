@@ -98,4 +98,7 @@ export type DocumentLibraryProps = {
   externalHasMore?: boolean;
   /** Optional externally supplied document load more function. When provided, the grid displays this function instead of loading documents from SharePoint. */
   onLoadMoreExternal?: () => Promise<void>;
+
+  /** SharePoint site URL that hosts the document library. */
+  siteUrl: string;
 };

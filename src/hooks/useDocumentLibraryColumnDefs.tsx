@@ -31,6 +31,7 @@ import { getCellValue } from "../utils/columns";
 import moment from "moment";
 
 import type { ParentReference } from "./useDocumentLibraryNavigation";
+import { handleOpenDocument } from "../utils/openDocument";
 
 const SELECTION_CELL_CLASS = "doc-library-selection-cell";
 
@@ -296,7 +297,11 @@ export function useDocumentLibraryColumnDefs({
                     <a
                       href={url}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleOpenDocument(row.name || label, url);
+                      }}
                     >
                       {label}
                     </a>

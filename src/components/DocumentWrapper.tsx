@@ -278,11 +278,12 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
             onDeleteDocuments={onDeleteDocuments}
             gridHeight={gridHeight}
             externalRows={externalRows}
+            onFavorite={onFavorite}
+            onUnfavorite={onUnfavorite}
             externalTotalCount={externalTotalCount}
             externalHasMore={externalHasMore}
             onLoadMoreExternal={onLoadMoreExternal}
-            onFavorite={onFavorite}
-            onUnfavorite={onUnfavorite}
+            siteUrl={siteUrl}
           />
         ) : null}
       </Stack>
