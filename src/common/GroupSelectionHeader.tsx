@@ -2,6 +2,7 @@ import { Box, Checkbox } from "@mui/material";
 import type { IHeaderParams } from "ag-grid-community";
 import type { DocumentLibraryGridRow } from "../types";
 import {
+    CHECKOUT_LOCK_SLOT_PX,
     groupSelectionCellWrapperSx,
     groupSelectionCheckboxSx,
     type DocumentLibraryGridAgContext,
@@ -24,6 +25,10 @@ export default function GroupSelectionHeader(
                 onChange={() => ctx?.toggleSelectAllItems?.()}
                 sx={groupSelectionCheckboxSx}
                 inputProps={{ "aria-label": "Select all rows" }}
+            />
+            <Box
+                aria-hidden
+                sx={{ width: CHECKOUT_LOCK_SLOT_PX, flexShrink: 0 }}
             />
         </Box>
     );

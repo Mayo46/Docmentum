@@ -6,12 +6,15 @@ import type { SxProps, Theme } from "@mui/material";
 import type { DocumentLibraryGridRow } from "../types";
 
 export const GROUP_SELECTION_COL_ID = "groupSelection";
-export const GROUP_SELECTION_COL_WIDTH = 56;
+/** Checkbox plus a reserved slot for the checkout lock icon. */
+export const GROUP_SELECTION_COL_WIDTH = 60;
+export const CHECKOUT_LOCK_SLOT_PX = 18;
 
 export const groupSelectionCellWrapperSx: SxProps<Theme> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    gap: 0.25,
     width: "100%",
     height: "100%",
     overflow: "visible",
@@ -88,6 +91,7 @@ export default function GroupRowRenderer(
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        gap: 0.25,
                         boxSizing: "border-box",
                         px: "4px",
                     }}
@@ -102,6 +106,10 @@ export default function GroupRowRenderer(
                         inputProps={{
                             "aria-label": `Select all items in ${data.fieldHeaderName}: ${data.groupValue}`,
                         }}
+                    />
+                    <Box
+                        aria-hidden
+                        sx={{ width: CHECKOUT_LOCK_SLOT_PX, flexShrink: 0 }}
                     />
                 </Box>
             ) : null}

@@ -172,7 +172,7 @@ export function useDocumentLibraryColumnDefs({
         flex: 1,
         resizable: true,
         sortable: !groupingEnabled,
-        minWidth: 140,
+        minWidth: c.key === "OriginalDocumentName" || c.key === "Name" ? 350   : 140,
 
         cellStyle: (
           params: CellClassParams<DocumentLibraryGridRow>,
