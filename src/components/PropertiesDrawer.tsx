@@ -8,7 +8,7 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import type { DocumentLibraryFieldDefinition } from "../types";
+import type { DocumentLibraryFieldDefinition, User } from "../types";
 import PropertiesFormFields, {
     buildInitialFormValues,
     formValuesToPatchPayload,
@@ -55,6 +55,8 @@ type Props = {
      * nothing has been uploaded yet; omitted once upload begins so the selection is locked.
      */
     onBack?: () => void;
+    /** Users who will be notified when a document added recipent. */
+    notificationUsers?: User[];
 };
 
 export default function PropertiesDrawer(props: Props) {
@@ -81,6 +83,7 @@ export default function PropertiesDrawer(props: Props) {
         onSubmit,
         onSaveAndNext,
         onBack,
+        notificationUsers,
     } = props;
 
     const [values, setValues] = useState<PropertyFormValues>({});
@@ -219,6 +222,7 @@ export default function PropertiesDrawer(props: Props) {
                                 disabled={submitting}
                                 fieldErrors={fieldErrors}
                                 mode={mode}
+                                notificationUsers={notificationUsers }
                             />
                         ) : isUpload ? (
                             <Alert severity="info">

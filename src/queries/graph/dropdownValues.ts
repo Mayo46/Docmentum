@@ -8,9 +8,10 @@ export type DocIdentifierMapping = {
   SubCategory: string;
   DocumentName: string;
   ClaimWorkflow: string;
-  Function: string;
-  Companies: string[];
+  // Function: string;
+  // Companies: string[];
   IsExistingClaim: boolean;
+  // Specialization: string;
 };
 
 type DropdownRow = {
@@ -18,7 +19,9 @@ type DropdownRow = {
 };
 
 const MAPPING_SELECT =
-  "DocIdentifier,Category,SubCategory,DocumentName,ClaimWorkflow,Function,IsExistingClaim,Companies";
+  "DocIdentifier,Category,SubCategory,DocumentName,IsExistingClaim";
+// const MAPPING_SELECT =
+//   "DocIdentifier,Category,SubCategory,DocumentName,ClaimWorkflow,Function,IsExistingClaim,Companies,Specialization";
 
 function asText(value: unknown): string {
   if (typeof value === "string") return value.trim();
@@ -57,9 +60,10 @@ function toMapping(
     SubCategory: asText(fields?.SubCategory),
     DocumentName: asText(fields?.DocumentName),
     ClaimWorkflow: asText(fields?.ClaimWorkflow),
-    Function: asText(fields?.Function),
-    Companies: asTexts(fields?.Companies),
+    // Function: asText(fields?.Function),
+    // Companies: asTexts(fields?.Companies),
     IsExistingClaim: asBoolean(fields?.IsExistingClaim),
+    // Specialization: asText(fields?.Specialization),
   };
 }
 
@@ -78,8 +82,9 @@ export function derivedFieldsFromMapping(
     SubCategory: mapping?.SubCategory ?? "",
     DocumentName: mapping?.DocumentName ?? "",
     ClaimWorkflow: mapping?.ClaimWorkflow ?? "",
-    Function: mapping?.Function ?? "",
-    G2CompanyName: mapping?.Companies?.[0] ?? "",
+  //   Function: mapping?.Function ?? "",
+  //   G2CompanyName: mapping?.Companies?.[0] ?? "",
+  //   Specialization: mapping?.Specialization ?? "",
   };
 }
 
@@ -88,8 +93,9 @@ export function choicesFromMappings(
 ): Record<string, string[]> {
   return {
     DocumentType: sortDistinct(mappings.map((row) => row.DocIdentifier)),
-    Function: sortDistinct(mappings.map((row) => row.Function).filter(Boolean)),
-    G2CompanyName: sortDistinct(mappings.flatMap((row) => row.Companies)),
+    // Function: sortDistinct(mappings.map((row) => row.Function).filter(Boolean)),
+    // G2CompanyName: sortDistinct(mappings.flatMap((row) => row.Companies)),
+    // Specialization: sortDistinct(mappings.map((row) => row.Specialization).filter(Boolean)),
   };
 }
 

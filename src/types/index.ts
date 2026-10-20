@@ -194,6 +194,26 @@ export type GraphAccessTokenClaims = {
   family_name?: string;
 };
 
+export type User = {
+  active: boolean;
+  branchID: number;
+  businessPhone: string | null;
+  createdBy: string;
+  createdDate: string;
+  emailAddress: string;
+  emailSignature: string;
+  firstName: string;
+  genServeID: string | null;
+  lastName: string;
+  managerID: string | null;
+  modifiedBy: string;
+  modifiedDate: string;
+  profile: string | null;
+  userDomainID: string;
+  userID: string;
+  userRoles: any[];
+};
+
 export type {
   DocumentLibraryProps,
   DocumentLibraryPropertiesEditTarget,

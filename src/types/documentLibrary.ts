@@ -5,6 +5,7 @@ import type {
   DocumentLibraryGridRow,
   DocumentLibraryItemRow,
   DocumentLibraryUploadColumn,
+  User,
 } from "./index";
 
 export type DocumentLibraryPropertiesEditTarget =
@@ -101,4 +102,7 @@ export type DocumentLibraryProps = {
 
   /** SharePoint site URL that hosts the document library. */
   siteUrl: string;
+
+  /** Users who will be notified when a document added recipent. */
+  notificationUsers?: User[];
 };

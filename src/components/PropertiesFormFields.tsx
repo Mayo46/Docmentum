@@ -2,6 +2,7 @@ import {
   Autocomplete,
   Box,
   Checkbox,
+  Chip,
   FormControl,
   FormControlLabel,
   FormHelperText,
@@ -12,7 +13,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import type { DocumentLibraryFieldDefinition } from "../types";
+import type { DocumentLibraryFieldDefinition, User } from "../types";
 import {
   formatFieldValueForInput,
   formatFieldValueForPatch,
@@ -46,6 +47,8 @@ type Props = {
   disabled?: boolean;
   fieldErrors?: Record<string, string>;
   mode?: "edit" | "upload";
+  /** Users who will be notified when a document added recipent. */
+  notificationUsers?: User[];
 };
 
 export function buildInitialFormValues(
@@ -81,8 +84,9 @@ const DERIVED_DOC_IDENTIFIER_KEYS = new Set(
     "SubCategory",
     "DocumentName",
     "ClaimWorkflow",
-    "Function",
-    "G2CompanyName",
+    // "Function",
+    // "G2CompanyName",
+    // "Specialization",
   ].map(normalizeLookupKey),
 );
 
@@ -172,6 +176,7 @@ export default function PropertiesFormFields({
   disabled = false,
   fieldErrors = {},
   mode = "edit",
+  notificationUsers,
 }: Props) {
   const setKey = (key: string, value: string | boolean | string[]) => {
     const next: PropertyFormValues = { ...values, [key]: value };
@@ -242,7 +247,59 @@ export default function PropertiesFormFields({
         />
       );
     }
+    if (normalizeLookupKey(def.key) === "recipient") {
+      // Convert SharePoint's comma-separated text into email addresses
+      const selectedEmails = (typeof value === "string" ? value : "")
+        .split(",")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean);
 
+      // Match those emails with the full user objects
+      const selectedUsers = notificationUsers?.filter((user) =>
+        selectedEmails.includes((user.emailAddress ?? "").trim().toLowerCase()),
+      );
+
+      return (
+        <Autocomplete<User, true>
+          multiple
+          options={notificationUsers ?? []}
+          value={selectedUsers}
+          onChange={(_, selectedUsers) => {
+            setKey(
+              def.key,
+              selectedUsers
+                .map((user) => user.emailAddress?.trim())
+                .filter((email): email is string => Boolean(email))
+                .join(","),
+            );
+          }}
+          getOptionLabel={(option) => option.emailAddress || ""}
+          isOptionEqualToValue={(option, selected) =>
+            option.userDomainID === selected.userDomainID
+          }
+          filterSelectedOptions
+          size="small"
+          renderValue={(selectedUsers, getTagProps) =>
+            selectedUsers.map((user, index) => (
+              <Chip
+                {...getTagProps({ index })}
+                key={user.userDomainID}
+                label={user.emailAddress}
+                size="small"
+              />
+            ))
+          }
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label={def.displayName || "Recipients"}
+              placeholder="Search Recipients"
+              size="small"
+            />
+          )}
+        />
+      );
+    }
     if (def.fieldType === "choice") {
       const options = def.choices ?? [];
       if (def.allowMultipleChoices) {

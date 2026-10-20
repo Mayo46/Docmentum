@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import DocumentWrapper from "./components/DocumentWrapper";
 
 const graphToken =
-  "eyJ0eXAiOiJKV1QiLCJub25jZSI6IjZQQWxsNDIyUmc2SFFuN3R6SHJpaHZHSDhNd3dubmxnZUFOVXVpeXBpZnMiLCJhbGciOiJSUzI1NiIsIng1dCI6InJ5QngtNjVqTm94SDRGUUhfNnphck5qYU5mNCIsImtpZCI6InJ5QngtNjVqTm94SDRGUUhfNnphck5qYU5mNCJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC8yZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkvIiwiaWF0IjoxNzkyNDgxMTI3LCJuYmYiOjE3OTI0ODExMjcsImV4cCI6MTc5MjQ4NTEyOCwiYWNjdCI6MCwiYWNyIjoiMSIsImFjcnMiOlsicDEiLCJwZmRyIl0sImFpbyI6IkFiUUFTLzhlQUFBQWtHbVZnYVZVVGNWaERTeEJDSVRvU3ZKN2hTd3NEQU1DS1VwZWt3N1J1engvWk5VTlNuWVFtVjh2SXIrcDk5OUlWV1ZibytNazc5bjVYVFJ0T3R0SGhmNXhzTko5ZHZpdXcxNG8ydW5BU3drNHBDV1VQeThUd3FFY1pHNkFtQnY4YWEzQlFOQXRVUnpMRGdrc1p5SGFNYjRaNmFEMmhTZ2FlUDM0MVFjS1RhN2ZrZDAxbDJDaDM4a0l0dW84cGdPRm9MeDlScXVwWGx0V3cxdmtOOFhCWS9uREFZVG5aNDlLeG03NFF0SWZLalk9IiwiYWx0c2VjaWQiOiI1OjoxMDAzMjAwNEI2MzU5NzJGIiwiYW1yIjpbInB3ZCIsInJzYSIsIm1mYSJdLCJhcHBfZGlzcGxheW5hbWUiOiJHMiBEb2NzIFJlc291cmNlIFVJIE5vblByb2QiLCJhcHBpZCI6ImIxMzA1MTMxLWU3MjItNGFkYS05NTAzLWNkYzY3Zjk3MzA3MCIsImFwcGlkYWNyIjoiMCIsImRldmljZWlkIjoiZTdkNTZiODItZGJmZS00YzlmLTlmNzEtMThjMmI5M2RjNWRmIiwiZW1haWwiOiJtdWJhc2hpci5hbHRhZkBnZW5lcmFsc3Rhci5jb20iLCJpZHAiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC9kYTU1YTE3Yy05MDZhLTRlZGEtODIzOS0xOGZlY2I2MDI5NjUvIiwiaWR0eXAiOiJ1c2VyIiwiaXBhZGRyIjoiNTIuMTUxLjIyOC4xMTQiLCJuYW1lIjoiTXViYXNoaXIgQWx0YWYgKENvbnN1bHRhbnQpIiwib2lkIjoiYjIyNGVhMGYtODNjZS00YzBjLWE5MTYtZDNiZTdlMjZkYzBkIiwicGxhdGYiOiIzIiwicHVpZCI6IjEwMDMyMDA2M0IxOTVCMzAiLCJyaCI6IjEuQVdNQm9wRWxMX0ljcWthWjJJbEdkbGxseVFNQUFBQUFBQUFBd0FBQUFBQUFBQUFBQUZaakFRLiIsInNjcCI6IkRpcmVjdG9yeS5SZWFkLkFsbCBGaWxlcy5SZWFkIEZpbGVzLlJlYWQuQWxsIEZpbGVzLlJlYWRXcml0ZSBHcm91cC5SZWFkLkFsbCBTaXRlcy5SZWFkLkFsbCBTaXRlcy5SZWFkV3JpdGUuQWxsIFNpdGVzLlNlYXJjaC5BbGwgU2l0ZXMuU2VsZWN0ZWQgVGVybVN0b3JlLlJlYWRXcml0ZS5BbGwgVXNlci5SZWFkIFVzZXIuUmVhZFdyaXRlLkFsbCBwcm9maWxlIG9wZW5pZCBlbWFpbCIsInNpZCI6IjAwN2Q0ZTNhLThmZDAtNDFmMS00MGU2LWFkMmYwN2YxNjFhMSIsInNpZ25pbl9zdGF0ZSI6WyJkdmNfbW5nZCIsImR2Y19jbXAiLCJpbmtub3dubnR3ayJdLCJzdWIiOiJRV083N1ljcVIxdVdZUk13eDB0U25vM3lYd2hTRzIzOUtnc1V3UnI2TW4wIiwidGVuYW50X3JlZ2lvbl9zY29wZSI6Ik5BIiwidGlkIjoiMmYyNTkxYTItMWNmMi00NmFhLTk5ZDgtODk0Njc2NTk2NWM5IiwidW5pcXVlX25hbWUiOiJtdWJhc2hpci5hbHRhZkBnZW5lcmFsc3Rhci5jb20iLCJ1dGkiOiI5dFRTSG9CdzRrQzR6dC1qWTVKZEFnIiwidmVyIjoiMS4wIiwid2lkcyI6WyJiNzlmYmY0ZC0zZWY5LTQ2ODktODE0My03NmIxOTRlODU1MDkiXSwieG1zX2FjZCI6MTc2MTkwNDk5NCwieG1zX2FjdF9mY3QiOiIzIDkiLCJ4bXNfYXVkX2d1aWQiOiIwMDAwMDAwMy0wMDAwLTAwMDAtYzAwMC0wMDAwMDAwMDAwMDAiLCJ4bXNfZnRkIjoiZnVpZ0poRVNPSndzSXYybnhTZzBVb0d5QzJjNlVUU0h1OFlzbndMTlhrOEJkWE5sWVhOMExXUnpiWE0iLCJ4bXNfaWRyZWwiOiIxIDMwIiwieG1zX3BmdGV4cCI6MTc5MjU3MTUyOCwieG1zX3N0Ijp7InN1YiI6InBxRXA3R1cwTjdMTTdUclR2YVFfcGhUQXZNTWFLTTRSOF8zS3FiQlVhR0kifSwieG1zX3N1Yl9mY3QiOiIyIDMiLCJ4bXNfdGNkdCI6MTc1MjU4NjEwOSwieG1zX3RudF9mY3QiOiIxNCAzIn0.QBUr0lO586Vsu6MTaWPU9fAymS7oy2QzTSRd59CJMM8dkOcUNdsLMTMdnY1IZ3cu_8YCnAuqP9u3ts2MpzmgerQCbXezsMkt13rsq12JkQU3oWSVinFluEacpWWlKOGaAW2UBOf_m64GGMMfkE_4VG72D61uGB5H0F1zk3nNGhLTjQZ5JAdCPPd4DF6EFeLYbvfivmUSY5VOaS6mIdYq2Wlq0T1AIUKqvXwhcIYmEeGRlYJQLZIPnvuEUOO6dbFOL_d_UI9Y65tRJeTt8mTJ0cmVxBeqmMCxtJ4vMS0ANZnSbaRn1EckwKVq8tS8AntK9Liq0t_g0xGjZaAQ34CVRw";
+  "eyJ0eXAiOiJKV1QiLCJub25jZSI6IldKX053UndvSTZ1V3JhNkR0UjlaSHI3am10cFhaajVxRWRsSTFmZ3FXb3MiLCJhbGciOiJSUzI1NiIsIng1dCI6InJ5QngtNjVqTm94SDRGUUhfNnphck5qYU5mNCIsImtpZCI6InJ5QngtNjVqTm94SDRGUUhfNnphck5qYU5mNCJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC8yZjI1OTFhMi0xY2YyLTQ2YWEtOTlkOC04OTQ2NzY1OTY1YzkvIiwiaWF0IjoxNzkyNDk2NzUzLCJuYmYiOjE3OTI0OTY3NTMsImV4cCI6MTc5MjUwMDgxOCwiYWNjdCI6MCwiYWNyIjoiMSIsImFjcnMiOlsicDEiLCJwZmRyIl0sImFpbyI6IkFiUUFTLzhlQUFBQUlNcndmNVZoa2dWY2ZBRzhXWDNFMTNMcytqN3haV1Jqb0JQempkUnlkb3ptcXBWL2l4aVlVdG1wMmpYeXppMUtYMEVXSE8wa2JSTk1pTGo5N0NxZUJUam1ZeHFFVUVwTkM4TzNGb0pCai9yWEROeHorZXRBNXB1VkdRQTZ4OEo2Z3FyVVJWU0pVOFpWdE5LSFhYbUcvazhGUHhqUEx6elVQazNUWkJHUXo1NkFZdGx3c0REcHhaN3VKMkhjbHBSM3hrWkxPYWFUTTd0NUhwdisxelZ0aGd6QWVHSmtrT0R3WUs3bjRvcHVTZFE9IiwiYWx0c2VjaWQiOiI1OjoxMDAzMjAwNEI2MzU5NzJGIiwiYW1yIjpbInB3ZCIsInJzYSIsIm1mYSJdLCJhcHBfZGlzcGxheW5hbWUiOiJHMiBEb2NzIFJlc291cmNlIFVJIE5vblByb2QiLCJhcHBpZCI6ImIxMzA1MTMxLWU3MjItNGFkYS05NTAzLWNkYzY3Zjk3MzA3MCIsImFwcGlkYWNyIjoiMCIsImRldmljZWlkIjoiZTdkNTZiODItZGJmZS00YzlmLTlmNzEtMThjMmI5M2RjNWRmIiwiZW1haWwiOiJtdWJhc2hpci5hbHRhZkBnZW5lcmFsc3Rhci5jb20iLCJpZHAiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC9kYTU1YTE3Yy05MDZhLTRlZGEtODIzOS0xOGZlY2I2MDI5NjUvIiwiaWR0eXAiOiJ1c2VyIiwiaXBhZGRyIjoiNTIuMTUxLjIyOC4xMTQiLCJuYW1lIjoiTXViYXNoaXIgQWx0YWYgKENvbnN1bHRhbnQpIiwib2lkIjoiYjIyNGVhMGYtODNjZS00YzBjLWE5MTYtZDNiZTdlMjZkYzBkIiwicGxhdGYiOiIzIiwicHVpZCI6IjEwMDMyMDA2M0IxOTVCMzAiLCJyaCI6IjEuQVdNQm9wRWxMX0ljcWthWjJJbEdkbGxseVFNQUFBQUFBQUFBd0FBQUFBQUFBQUFBQUZaakFRLiIsInNjcCI6IkRpcmVjdG9yeS5SZWFkLkFsbCBGaWxlcy5SZWFkIEZpbGVzLlJlYWQuQWxsIEZpbGVzLlJlYWRXcml0ZSBHcm91cC5SZWFkLkFsbCBTaXRlcy5SZWFkLkFsbCBTaXRlcy5SZWFkV3JpdGUuQWxsIFNpdGVzLlNlYXJjaC5BbGwgU2l0ZXMuU2VsZWN0ZWQgVGVybVN0b3JlLlJlYWRXcml0ZS5BbGwgVXNlci5SZWFkIFVzZXIuUmVhZFdyaXRlLkFsbCBwcm9maWxlIG9wZW5pZCBlbWFpbCIsInNpZCI6IjAwN2Q0ZTNhLThmZDAtNDFmMS00MGU2LWFkMmYwN2YxNjFhMSIsInNpZ25pbl9zdGF0ZSI6WyJkdmNfbW5nZCIsImR2Y19jbXAiLCJpbmtub3dubnR3ayJdLCJzdWIiOiJRV083N1ljcVIxdVdZUk13eDB0U25vM3lYd2hTRzIzOUtnc1V3UnI2TW4wIiwidGVuYW50X3JlZ2lvbl9zY29wZSI6Ik5BIiwidGlkIjoiMmYyNTkxYTItMWNmMi00NmFhLTk5ZDgtODk0Njc2NTk2NWM5IiwidW5pcXVlX25hbWUiOiJtdWJhc2hpci5hbHRhZkBnZW5lcmFsc3Rhci5jb20iLCJ1dGkiOiJidEVWN0h4U2FFRzRJaTM4aDBfTkFnIiwidmVyIjoiMS4wIiwid2lkcyI6WyJiNzlmYmY0ZC0zZWY5LTQ2ODktODE0My03NmIxOTRlODU1MDkiXSwieG1zX2FjZCI6MTc2MTkwNDk5NCwieG1zX2FjdF9mY3QiOiI5IDMiLCJ4bXNfYXVkX2d1aWQiOiIwMDAwMDAwMy0wMDAwLTAwMDAtYzAwMC0wMDAwMDAwMDAwMDAiLCJ4bXNfZnRkIjoiMUVlZ1lxeGNCa25nRVFQUXNCLXRWcm5ja0ZPTkc0QlNhNnI0S2hHSGF1SUJkWE5sWVhOMExXUnpiWE0iLCJ4bXNfaWRyZWwiOiI0IDEiLCJ4bXNfcGZ0ZXhwIjoxNzkyNTg3MjE4LCJ4bXNfc3QiOnsic3ViIjoicHFFcDdHVzBON0xNN1RyVHZhUV9waFRBdk1NYUtNNFI4XzNLcWJCVWFHSSJ9LCJ4bXNfc3ViX2ZjdCI6IjMgNiIsInhtc190Y2R0IjoxNzUyNTg2MTA5LCJ4bXNfdG50X2ZjdCI6IjE2IDMifQ.dWRJRXjw7tz61SeFnGJ0WEzfyPJIVSzNLzMseV7UHn8bQnOFvSaYs1ifqMLtAzDkW-fDe9OyfUlgZmPsitEmp6DHzkheBU6MECanwLSRV9xIaINHUA11HCTNx25EkqEc4Puv0sZWYxJyUoA7RdKsb0zLHbAaPzZqgqA-OhuKR9uD_uMRyrRX7wH7p0_-c5BkR_oAwIBKHMRd4AL85l8ozmA2i4LY-v_NMna06atiB0MA5B6tex_JTgxzxJlE-Vme4J7bw2e5bFy7BHoQBgieyyMb2t3h73NFxeKZqDVLWHiqsH4mXX82smmNoxpL2jcPlrr-L-q-Zm4YrjLwIJDFVg";
   const meta: Meta<typeof DocumentWrapper> = {
   title: "App",
   component: DocumentWrapper,
@@ -20,7 +20,7 @@ const graphToken =
     },
     userRole: {
       control: { type: "select" },
-      options: ["admin", "viewer", "importer"],
+      options: ["Admin", "Viewer", "Importer"],
     },
   },
   args: {
@@ -33,65 +33,6 @@ export default meta;
 
 type Story = StoryObj<typeof DocumentWrapper>;
 
-export const Underwriting: Story = {
-  args: {
-    graphToken: graphToken,
-    siteUrl:
-      "https://genstargenesis.sharepoint.com/sites/UW-BrokerageMedical-Dev",
-    listName: "Documents",
-    contentTypesLibrary: "",
-    documentSetName: "",
-
-    actions: {
-      editDocumentProperties: true,
-      bulkUpdateClaimIDForSelectedDocuments: true,
-      checkoutDocuments: true,
-      checkinDocuments: true,
-      cancelDocumentCheckout: true,
-      deleteDocuments: true,
-      exportDocuments: true,
-      copyDocumentUrls: true,
-      addDocumentsToFavorites: true,
-      removeDocumentsToFavorites: true,
-    },
-
-    // checkout columns
-    columns: `
-        ReceivedDate,CheckoutUser,Name,CheckedOutMachineName,ClaimID,ContractID,Company,
-        UserModifiedDate,CreationDate,CreatorName,SubCategory,_Category,Recipient,BatchID,
-        IndexOperator,CheckedOutBy,CheckedOutDate
-  `,
-
-    showToolbar: true,
-    showActions: true,
-    showBreadcrumb: true,
-    showUploadControls: true,
-    showRowCheckbox: true,
-    dashboardName: "Favorites",
-    userEmail: "Saad.Shah@GENERALSTAR.COM",
-    userRole: "admin",
-    documentType: "favorites",
-    onSelectionChange: fn(),
-
-    onFavorite: async (itemIds: string[]) => {
-      console.log("onFavorite called with:", itemIds);
-      // await myProjectApi.addFavorites(itemIds);
-    },
-
-    onUnfavorite: async (itemIds: string[]) => {
-      console.log("onUnfavorite called with:", itemIds);
-      // await myProjectApi.removeFavorites(itemIds);
-    },
-
-    onDeleteDocuments: async (itemIds: string[], docSetId: string) => {
-      console.log("onDeleteDocuments called with:", itemIds, docSetId);
-      // await myProjectApi.deleteDocuments(itemIds, docSetId);
-    },
-
-    favoriteItemIDs: ["01BLIGMWNBNKNBAJZ4IFAJPAXZBJTVPCNC"],
-  },
-};
-
 export const ClaimsGenesisDev: Story = {
   args: {
     graphToken: graphToken,
@@ -100,7 +41,7 @@ export const ClaimsGenesisDev: Story = {
 
     actions: {
       editDocumentProperties: true,
-      bulkUpdateClaimIDForSelectedDocuments: true,
+      bulkUpdateClaimIDForSelectedDocuments: false,
       checkoutDocuments: true,
       checkinDocuments: true,
       cancelDocumentCheckout: true,
@@ -116,27 +57,17 @@ export const ClaimsGenesisDev: Story = {
     documentSetName: "",
 
     // checkout columns
-    columns: `
-    Name,
-    CheckoutUser,
-    ReceivedDate,
-    ClaimID,
-    Modified,
-    Created,
-    CreatedBy,
-    SubCategory,
-    _Category,
-  `,
+    columns:
+      "OriginalDocumentName,NamedInsured,ReceivedDate,CheckoutUser,Name,CheckedOutMachineName,ClaimID,StatutoryClaimID,ClaimType,ClaimWorkflow,Comments,DocumentName,Format,DocumentType,Geography,ModifiedDate,ObjectID,FromAddress,ContractID,G2CompanyName,UserModifiedDate,CreationDate,CreatorName,SubCategory,_Category,Recipient,BatchID,IndexOperator,CheckedOutBy,CheckedOutDate",
 
     showToolbar: true,
-
     showActions: true,
     showBreadcrumb: true,
     showUploadControls: true,
     showRowCheckbox: true,
     dashboardName: "Library",
-    userEmail: "Mubashir.Altaf@GENERALSTAR.COM",
-    userRole: "importer",
+    userEmail: "mubashir.altaf@generalstar.com",
+    userRole: "Admin",
     documentType: "library",
     onSelectionChange: fn(),
 
@@ -150,7 +81,7 @@ export const ClaimsGenesisDev: Story = {
     },
     onDeleteDocuments: async (itemIds: string[], docSetId: string) => {
       console.log("onDeleteDocuments called with:", itemIds, docSetId);
-      // await myProjectApi.deleteDocuments(itemIds, docSetId);
+      // await myProjectApi.deleteDocuments(itemIds,docSetId);
     },
     editableProperties: [
       // Document Information
@@ -250,7 +181,7 @@ export const ClaimsGenesisDev: Story = {
         group: "claim",
         readOnly: true,
         required: true,
-        columnType: "choice",
+        columnType: "text",
       },
       {
         key: "Created",
@@ -277,20 +208,59 @@ export const ClaimsGenesisDev: Story = {
         columnType: "dateTime",
       },
     ],
-    dropdownList: "ClaimDocIdentifier",
+    dropdownList: "claimDocIdentifier",
+    notificationUsers: [
+      {
+        active: true,
+        branchID: 0,
+        businessPhone: null,
+        createdBy: "98c64bd7-eac5-44bd-8fa6-a6cfb5a2a8f8",
+        createdDate: "2024-09-27T13:37:36.153",
+        emailAddress: "Hasan.Nasir@GENERALSTAR.COM",
+        emailSignature: "<p>Test Signature Development<br></p>",
+        firstName: "Hasan",
+        genServeID: null,
+        lastName: "Nasir",
+        managerID: null,
+        modifiedBy: "caf01fa9-32de-4bae-81c9-2c47c79a1d76",
+        modifiedDate: "2025-12-31T13:51:31.917",
+        profile: null,
+        userDomainID: "GRN\\Hanasir",
+        userID: "caf01fa9-32de-4bae-81c9-2c47c79a1d76",
+        userRoles: [],
+      },
+      {
+        active: true,
+        branchID: 0,
+        businessPhone: null,
+        createdBy: "6e1d67ad-d1c8-4f9f-8ef4-8f73179013ec",
+        createdDate: "2025-02-20T10:27:24.123",
+        emailAddress: "junaid.arif@generalstar.com",
+        emailSignature: "",
+        firstName: "Junaid",
+        genServeID: null,
+        lastName: "Arif",
+        managerID: null,
+        modifiedBy: "6e1d67ad-d1c8-4f9f-8ef4-8f73179013ec",
+        modifiedDate: "2025-05-09T14:35:12.867",
+        profile:
+          '{"appPreferences":[{"zipCodes":[{"zipCode":"05450","city":"Enosburg Falls","state":"VT","latitude":44.90107345581055,"longitude":-72.7960433959961,"default":true}],"appTypeID":"5106305D-DB81-4548-A7D7-4DF58A7AE860"}]}',
+        userDomainID: "GRN\\junarif",
+        userID: "6e1d67ad-d1c8-4f9f-8ef4-8f73179013ec",
+        userRoles: [],
+      },
+    ],
   },
 };
 
 export const FinancialSupportingDocumentsDev: Story = {
   args: {
     graphToken: graphToken,
-
     siteUrl:
       "https://genstargenesis.sharepoint.com/sites/FinancialSupportingDocuments-Dev",
-
     actions: {
       editDocumentProperties: true,
-      bulkUpdateClaimIDForSelectedDocuments: true,
+      bulkUpdateClaimIDForSelectedDocuments: false,
       checkoutDocuments: true,
       checkinDocuments: true,
       cancelDocumentCheckout: true,
@@ -306,27 +276,17 @@ export const FinancialSupportingDocumentsDev: Story = {
     documentSetName: "",
 
     // checkout columns
-    columns: `
-    Name,
-    CheckoutUser,
-    ReceivedDate,
-    ClaimID,
-    Modified,
-    Created,
-    CreatedBy,
-    SubCategory,
-    Category,
-  `,
+    columns: `OriginalDocumentName,DocumentName,Name,DocumentType,_Category,SubCategory,Comments,DateRecieved,Recipients,Function,CompanyName,Sensitivity,
+    _Source,Specialization,BatchID,FromAddress,Recipient,CreatedDate,CreatorName,CheckedOutDate,CheckedOutBy,ModifiedDate,ModifiedBy`,
 
     showToolbar: true,
-
     showActions: true,
     showBreadcrumb: true,
     showUploadControls: true,
     showRowCheckbox: true,
     dashboardName: "Library",
     userEmail: "Saad.Shah@GENERALSTAR.COM",
-    userRole: "admin",
+    userRole: "Admin",
     documentType: "library",
     onSelectionChange: fn(),
 
@@ -340,7 +300,7 @@ export const FinancialSupportingDocumentsDev: Story = {
     },
     onDeleteDocuments: async (itemIds: string[], docSetId: string) => {
       console.log("onDeleteDocuments called with:", itemIds, docSetId);
-      // await myProjectApi.deleteDocuments(itemIds, docSetId);
+      // await myProjectApi.deleteDocuments(itemIds,docSetId);
     },
     editableProperties: [
       // Document Information
@@ -349,7 +309,7 @@ export const FinancialSupportingDocumentsDev: Story = {
         displayName: "Document Type",
         group: "document",
         readOnly: false,
-        required: false,
+        required: true,
         columnType: "choice",
       },
       {
@@ -394,9 +354,9 @@ export const FinancialSupportingDocumentsDev: Story = {
       },
       {
         key: "ReceivedDate",
-        displayName: "Received Date",
+        displayName: "Date Received",
         group: "document",
-        readOnly: true,
+        readOnly: false,
         required: true,
         columnType: "dateTime",
       },
@@ -417,12 +377,20 @@ export const FinancialSupportingDocumentsDev: Story = {
         columnType: "choice",
       },
       {
-        key: "Created",
-        displayName: "Created",
+        key: "Recipient",
+        displayName: "Recipients",
         group: "document",
-        readOnly: true,
+        readOnly: false,
+        required: true,
+        columnType: "choice",
+      },
+      {
+        key: "Specialization",
+        displayName: "Specialization",
+        group: "document",
+        readOnly: false,
         required: false,
-        columnType: "dateTime",
+        columnType: "choice",
       },
       {
         key: "CheckedOutBy",
@@ -433,42 +401,41 @@ export const FinancialSupportingDocumentsDev: Story = {
         columnType: "text",
       },
       {
-        key: "CheckedOutDate",
-        displayName: "Checked Out Date",
-        group: "document",
+        key: "Sensitivity",
+        displayName: "Sensitivity",
+        group: "enterprise",
+        readOnly: true,
+        required: false,
+        columnType: "text",
+      },
+      // Enterprise Information
+      {
+        key: "DocumentumBatchID",
+        displayName: "Documentum Batch ID",
+        group: "enterprise",
+        readOnly: true,
+        required: false,
+        columnType: "text",
+      },
+      {
+        key: "CreatedBy",
+        displayName: "Created By",
+        group: "enterprise",
+        readOnly: true,
+        required: false,
+        columnType: "text",
+      },
+      {
+        key: "CreatedDate",
+        displayName: "Created Date",
+        group: "enterprise",
         readOnly: true,
         required: false,
         columnType: "dateTime",
       },
-
-      // Enterprise Information
       {
-        key: "Area",
-        displayName: "Area",
-        group: "enterprise",
-        readOnly: true,
-        required: false,
-        columnType: "text",
-      },
-      {
-        key: "BatchID",
-        displayName: "Batch ID",
-        group: "enterprise",
-        readOnly: true,
-        required: false,
-        columnType: "text",
-      },
-      {
-        key: "CreatorName",
-        displayName: "Creator Name",
-        group: "enterprise",
-        readOnly: true,
-        required: false,
-        columnType: "text",
-      },
-      {
-        key: "DMSSource",
-        displayName: "DMS Source",
+        key: "_source",
+        displayName: "Source",
         group: "enterprise",
         readOnly: true,
         required: false,
@@ -483,56 +450,25 @@ export const FinancialSupportingDocumentsDev: Story = {
         columnType: "text",
       },
       {
-        key: "HoldApplied",
-        displayName: "Hold Applied",
+        key: "FromAddress",
+        displayName: "From Address",
         group: "enterprise",
         readOnly: true,
         required: false,
-        columnType: "boolean",
+        columnType: "text",
       },
+
       {
-        key: "Sender",
-        displayName: "Sender",
+        key: "ModifiedBy",
+        displayName: "Modified By",
         group: "enterprise",
         readOnly: true,
         required: false,
         columnType: "text",
       },
       {
-        key: "FullContentSize",
-        displayName: "Full Content Size",
-        group: "enterprise",
-        readOnly: true,
-        required: false,
-        columnType: "number",
-      },
-      {
-        key: "Type",
-        displayName: "Type",
-        group: "enterprise",
-        readOnly: true,
-        required: false,
-        columnType: "text",
-      },
-      {
-        key: "UserModifiedDate",
-        displayName: "User Modified Date",
-        group: "enterprise",
-        readOnly: true,
-        required: false,
-        columnType: "dateTime",
-      },
-      {
-        key: "VersionLabel",
-        displayName: "Version Label",
-        group: "enterprise",
-        readOnly: true,
-        required: false,
-        columnType: "text",
-      },
-      {
-        key: "VersionDescription",
-        displayName: "Version Description",
+        key: "Version",
+        displayName: "Version",
         group: "enterprise",
         readOnly: true,
         required: false,
@@ -540,5 +476,100 @@ export const FinancialSupportingDocumentsDev: Story = {
       },
     ],
     dropdownList: "FinancialSupportingDocIdentifier",
+
+    notificationUsers: [
+      {
+        active: true,
+        branchID: 0,
+        businessPhone: null,
+        createdBy: "98c64bd7-eac5-44bd-8fa6-a6cfb5a2a8f8",
+        createdDate: "2024-09-27T13:37:36.153",
+        emailAddress: "Hasan.Nasir@GENERALSTAR.COM",
+        emailSignature: "<p>Test Signature Development<br></p>",
+        firstName: "Hasan",
+        genServeID: null,
+        lastName: "Nasir",
+        managerID: null,
+        modifiedBy: "caf01fa9-32de-4bae-81c9-2c47c79a1d76",
+        modifiedDate: "2025-12-31T13:51:31.917",
+        profile: null,
+        userDomainID: "GRN\\Hanasir",
+        userID: "caf01fa9-32de-4bae-81c9-2c47c79a1d76",
+        userRoles: [],
+      },
+      {
+        active: true,
+        branchID: 0,
+        businessPhone: null,
+        createdBy: "6e1d67ad-d1c8-4f9f-8ef4-8f73179013ec",
+        createdDate: "2025-02-20T10:27:24.123",
+        emailAddress: "junaid.arif@generalstar.com",
+        emailSignature: "",
+        firstName: "Junaid",
+        genServeID: null,
+        lastName: "Arif",
+        managerID: null,
+        modifiedBy: "6e1d67ad-d1c8-4f9f-8ef4-8f73179013ec",
+        modifiedDate: "2025-05-09T14:35:12.867",
+        profile:
+          '{"appPreferences":[{"zipCodes":[{"zipCode":"05450","city":"Enosburg Falls","state":"VT","latitude":44.90107345581055,"longitude":-72.7960433959961,"default":true}],"appTypeID":"5106305D-DB81-4548-A7D7-4DF58A7AE860"}]}',
+        userDomainID: "GRN\\junarif",
+        userID: "6e1d67ad-d1c8-4f9f-8ef4-8f73179013ec",
+        userRoles: [],
+      },
+    ],
+  },
+};
+
+export const Underwriting: Story = {
+  args: {
+    graphToken: graphToken,
+    siteUrl:
+      "https://genstargenesis.sharepoint.com/sites/UW-BrokerageMedical-Dev",
+    listName: "Documents",
+    contentTypesLibrary: "",
+    documentSetName: "",
+
+    actions: {
+      editDocumentProperties: true,
+      bulkUpdateClaimIDForSelectedDocuments: true,
+      checkoutDocuments: true,
+      checkinDocuments: true,
+      cancelDocumentCheckout: true,
+      deleteDocuments: true,
+      exportDocuments: true,
+      copyDocumentUrls: true,
+      addDocumentsToFavorites: true,
+      removeDocumentsToFavorites: true,
+    },
+
+    // checkout columns
+    columns: `ClaimsG2,ReceivedDate,CheckoutUser,Name,CheckedOutMachineName,
+        ClaimID,ContractID,Company,UserModifiedDate,CreationDate,CreatorName,
+        SubCategory,Category,BatchID,IndexOperator,CheckedOutBy,CheckedOutDate`,
+    showToolbar: true,
+    showActions: true,
+    showBreadcrumb: true,
+    showUploadControls: true,
+    showRowCheckbox: true,
+    dashboardName: "Favorites",
+    userEmail: "Saad.Shah@GENERALSTAR.COM",
+    documentType: "favorites",
+    onSelectionChange: fn(),
+    onFavorite: async (itemIds: string[]) => {
+      console.log("onFavorite called with:", itemIds);
+      // await myProjectApi.addFavorites(itemIds);
+    },
+
+    onUnfavorite: async (itemIds: string[]) => {
+      console.log("onUnfavorite called with:", itemIds);
+      // await myProjectApi.removeFavorites(itemIds);
+    },
+    onDeleteDocuments: async (itemIds: string[], docSetId: string) => {
+      console.log("onDeleteDocuments called with:", itemIds, docSetId);
+      // await myProjectApi.deleteDocuments(itemIds,docSetId);
+    },
+
+    favoriteItemIDs: ["01BLIGMWNBNKNBAJZ4IFAJPAXZBJTVPCNC"],
   },
 };

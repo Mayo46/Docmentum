@@ -65,6 +65,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
     externalHasMore,
     onLoadMoreExternal,
     siteUrl,
+    notificationUsers,
   } = props;
   const allowImportDocs = canImportDocuments(userRole);
   const allowRestoreVersions = canRestoreVersions(userRole);
@@ -574,6 +575,7 @@ export default function DocumentLibrary(props: DocumentLibraryProps) {
             ? handleBackToFileSelection
             : undefined
         }
+        notificationUsers={notificationUsers}
       />
 
       <Snackbar

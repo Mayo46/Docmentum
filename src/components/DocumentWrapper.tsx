@@ -8,6 +8,7 @@ import type {
   DocumentLibraryGridRow,
   DocumentLibraryItemRow,
   DocumentLibraryUserRole,
+  User,
 } from "../types";
 import { createGraphClient } from "../queries";
 import { inferColumnKind, normalizeColumnsInput, normalizeLookupKey } from "../utils/columns";
@@ -98,6 +99,9 @@ export type DocumentWrapperProps = {
   onFavorite?: (itemIds: string[]) => Promise<void>; 
   onUnfavorite?: (itemIds: string[]) => Promise<void>;
   favoriteItemIDs?: string[];
+
+  /** Users who will be notified when a document added recipent. */
+  notificationUsers?: User[];
 };
 
 export default function DocumentWrapper(props: DocumentWrapperProps) {
@@ -131,6 +135,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
     onFavorite,
     onUnfavorite,
     favoriteItemIDs,
+    notificationUsers,
   } = props;
   const [docSetItemId, setDocSetItemId] = useState<string | undefined>();
   const [resolveError, setResolveError] = useState<string | null>(null);
@@ -284,6 +289,7 @@ export default function DocumentWrapper(props: DocumentWrapperProps) {
             externalHasMore={externalHasMore}
             onLoadMoreExternal={onLoadMoreExternal}
             siteUrl={siteUrl}
+            notificationUsers={notificationUsers}
           />
         ) : null}
       </Stack>
