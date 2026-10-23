@@ -8,7 +8,6 @@ import { resolveRequestedFieldKeys } from "./helpers";
 import { graphRequest } from "./graphRequest";
 import type { ContentTypeHelpers } from "./contentTypes";
 import {
-  choicesFromMappings,
   derivedFieldsFromMapping,
   type DropdownValuesHelper,
 } from "./dropdownValues";
@@ -56,7 +55,9 @@ export function createFieldsApi(
           console.warn("Failed to load DocIdentifier mappings", error);
           return [];
         });
-      const dropdownChoices = choicesFromMappings(mappings);
+      const dropdownChoices = await dropdownValues
+        .getDropdownChoices(accessToken)
+        .catch(() => ({}) as Record<string, string[]>);
       const derivedValuesByChoice = Object.fromEntries(
         mappings.map((row) => [
           row.DocIdentifier,
